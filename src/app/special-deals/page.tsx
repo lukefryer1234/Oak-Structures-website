@@ -1,5 +1,4 @@
-
-"use client"; // Added "use client" directive
+"use client"; // Ensures client-side interactivity for onClick handlers
 
 import Link from 'next/link';
 import Image from 'next/image';
