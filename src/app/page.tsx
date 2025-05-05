@@ -10,6 +10,7 @@ const productCategories = [
   { name: 'Porches', href: '/products/porches', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
   { name: 'Oak Beams', href: '/products/oak-beams', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
   { name: 'Oak Flooring', href: '/products/oak-flooring', description: 'Beautiful and durable oak flooring.', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
+   { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 
 const specialDeals = [
@@ -24,7 +25,7 @@ export default function Home() {
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Our Products</h2>
+          {/* <h2 className="text-3xl font-bold text-center mb-12">Our Products</h2> Removed heading */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
@@ -45,26 +46,6 @@ export default function Home() {
                 </Card>
               </Link>
             ))}
-             {/* Special Deals Category Link */}
-             <Link href="/special-deals" className="group block">
-               <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 border-accent h-full flex flex-col">
-                  <CardContent className="p-0 flex-grow relative aspect-square w-full"> {/* Combined relative and aspect-square */}
-                    <Image
-                      src={`https://picsum.photos/seed/specialdeals/400/400`} // Use square image
-                      alt="Special Deals"
-                      layout="fill"
-                      objectFit="cover"
-                      data-ai-hint="sale discount offer wood"
-                      className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
-                    />
-                  </CardContent>
-                  <CardFooter className="p-4 justify-center"> {/* Use CardFooter for title */}
-                    <CardTitle className="text-lg font-semibold text-center text-accent"> {/* Apply accent color */}
-                      Special Deals
-                    </CardTitle>
-                  </CardFooter>
-                </Card>
-              </Link>
           </div>
         </div>
       </section>
