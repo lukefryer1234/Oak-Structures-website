@@ -76,15 +76,8 @@ export function SiteHeader() {
       {/* Container to constrain content width and justify elements */}
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
 
-        {/* Left Side: Home Icon, Hamburger Menus & Basket Total */}
+        {/* Left Side: Hamburger Menus, Home Icon & Basket Total */}
         <div className="flex items-center gap-2">
-           {/* Home Icon Button */}
-           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-            <Link href="/" aria-label="Homepage">
-              <Home className="h-5 w-5" />
-            </Link>
-          </Button>
-
            {/* Mobile Hamburger Trigger */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -185,6 +178,13 @@ export function SiteHeader() {
              </DropdownMenuContent>
            </DropdownMenu>
 
+           {/* Home Icon Button */}
+           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+            <Link href="/" aria-label="Homepage">
+              <Home className="h-5 w-5" />
+            </Link>
+          </Button>
+
             {/* Basket Total Price */}
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
@@ -213,6 +213,15 @@ export function SiteHeader() {
             </Link>
           </Button>
 
+           {/* Admin Link (conditionally rendered) */}
+           {isLoggedIn && isAdmin && (
+              <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+                <Link href="/admin" aria-label="Admin Dashboard">
+                  <LayoutDashboard className="h-5 w-5 text-primary" /> {/* Use primary color */}
+                </Link>
+              </Button>
+            )}
+
           {/* User Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -225,17 +234,6 @@ export function SiteHeader() {
                 <>
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                   {/* Add Admin Link Here */}
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="flex items-center gap-2">
-                        <LayoutDashboard className="h-4 w-4" />
-                         Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                   {/* Separate admin link from user links */}
-                   {isAdmin && <DropdownMenuSeparator />}
                   <DropdownMenuItem asChild>
                     <Link href="/account/profile">Profile</Link>
                   </DropdownMenuItem>
