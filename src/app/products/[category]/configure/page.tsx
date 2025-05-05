@@ -1,3 +1,4 @@
+
 "use client"; // Needed for form/state
 
 import { useState, useEffect } from 'react'; // Added useEffect
@@ -21,7 +22,7 @@ import { cn } from '@/lib/utils'; // Import cn utility
 interface ConfigOption {
   id: string;
   label: string;
-  type: 'select' | 'slider' | 'radio' | 'checkbox' | 'dimensions' | 'area';
+  type: 'select' | 'slider' | 'radio' | 'checkbox' | 'dimensions' | 'area' | 'preview'; // Added 'preview' type
   options?: { value: string; label: string; image?: string }[]; // For select/radio
   min?: number; // For slider/numeric inputs
   max?: number; // For slider/numeric inputs
@@ -30,7 +31,9 @@ interface ConfigOption {
   unit?: string; // For dimensions/area
   fixedValue?: string | number; // For non-editable display like flooring thickness
   perBay?: boolean; // True if the option applies individually to each bay
+  dataAiHint?: string; // Added for preview placeholder
 }
+
 
 interface CategoryConfig {
   title: string;
@@ -46,7 +49,8 @@ const configurations: { [key: string]: CategoryConfig } = {
     options: [
       // Reordered options, removed oakType
       { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
-      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
+      { id: 'preview', label: 'Preview', type: 'preview', dataAiHint: 'garage oak structure'}, // Placeholder for preview
+      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
       { id: 'sizeType', label: 'Size Type (Overall Dimensions)', type: 'select', options: [{ value: 'small', label: 'Small (e.g., 5m x 6m)' }, { value: 'medium', label: 'Medium (e.g., 6m x 6m)' }, { value: 'large', label: 'Large (e.g., 6m x 9m)' }], defaultValue: 'medium' },
       { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false }, // Changed to apply to all
     ]
@@ -56,14 +60,14 @@ const configurations: { [key: string]: CategoryConfig } = {
     options: [
        { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'full', label: 'Full Height Legs' }, { value: 'wall', label: 'Wall Mount (Half Legs)' }], defaultValue: 'full' },
       { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: '3x3', label: '3m x 3m' }, { value: '4x3', label: '4m x 3m' }, { value: '4x4', label: '4m x 4m' }], defaultValue: '3x3' },
-      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
+      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
        { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
     ]
   },
    porches: {
     title: "Configure Your Porch",
     options: [
-      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
+      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
        { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
       { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: 'narrow', label: 'Narrow (e.g., 1.5m Wide)' }, { value: 'standard', label: 'Standard (e.g., 2m Wide)' }, { value: 'wide', label: 'Wide (e.g., 2.5m Wide)' }], defaultValue: 'standard' },
        { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' },
@@ -224,6 +228,19 @@ export default function ConfigureProductPage() {
                   <div key={option.id} className="text-center"> {/* Center align each option block */}
                     {/* Added text-center to center the label */}
                     <Label htmlFor={option.id} className="text-base font-medium block mb-2">{option.label}</Label>
+                     {option.type === 'preview' && (
+                        <div className="mt-2 max-w-md mx-auto aspect-video bg-muted/50 rounded-md border border-border/50 flex items-center justify-center">
+                           {/* Preview Image placeholder */}
+                            <Image
+                                src={`https://picsum.photos/seed/${option.dataAiHint?.replace(/\s+/g, '-')}/400/225`} // Use placeholder URL
+                                alt="Configuration Preview"
+                                width={400}
+                                height={225}
+                                className="rounded object-cover"
+                                data-ai-hint={option.dataAiHint}
+                             />
+                        </div>
+                     )}
                     {option.type === 'select' && (
                       <Select
                         value={configState[option.id]}
@@ -252,7 +269,18 @@ export default function ConfigureProductPage() {
                            {option.options?.map((opt) => (
                              <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
                                 <RadioGroupItem value={opt.value} id={`${option.id}-${opt.value}`} className="sr-only" />
-                                 {/* Remove image rendering from radio options */}
+                                 {/* Add image rendering for radio options */}
+                                 {opt.image && (
+                                    <div className="mb-2 relative w-full aspect-[4/3] rounded overflow-hidden">
+                                        <Image
+                                            src={`https://picsum.photos/seed/${opt.dataAiHint?.replace(/\s+/g, '-') || opt.value}/200/150`}
+                                            alt={opt.label}
+                                            layout="fill"
+                                            objectFit="cover"
+                                            data-ai-hint={opt.dataAiHint || opt.label}
+                                        />
+                                    </div>
+                                 )}
                                  <span className="text-sm font-medium mt-auto">{opt.label}</span>
                              </Label>
                            ))}
@@ -375,3 +403,4 @@ export default function ConfigureProductPage() {
     </div>
   );
 }
+
