@@ -43,17 +43,15 @@ export default function Home() {
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
                 <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
-                  <CardContent className="p-0 flex-grow">
-                    <div className="relative aspect-square w-full"> {/* Use aspect-square for consistent look */}
-                      <Image
-                        src={`https://picsum.photos/seed/${category.name}/400/400`} // Use square image
-                        alt={category.name}
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint={category.dataAiHint}
-                        className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
-                      />
-                    </div>
+                  <CardContent className="p-0 flex-grow relative aspect-square w-full"> {/* Combined relative and aspect-square */}
+                    <Image
+                      src={`https://picsum.photos/seed/${category.name}/400/400`} // Use square image
+                      alt={category.name}
+                      layout="fill"
+                      objectFit="cover"
+                      data-ai-hint={category.dataAiHint}
+                      className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
+                    />
                   </CardContent>
                   <CardFooter className="p-4 justify-center"> {/* Use CardFooter for title */}
                     <CardTitle className="text-lg font-semibold text-center">{category.name}</CardTitle> {/* Centered title */}
@@ -64,17 +62,15 @@ export default function Home() {
              {/* Special Deals Category Link */}
              <Link href="/special-deals" className="group block">
                <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 border-accent h-full flex flex-col">
-                  <CardContent className="p-0 flex-grow">
-                    <div className="relative aspect-square w-full"> {/* Use aspect-square */}
-                      <Image
-                        src={`https://picsum.photos/seed/specialdeals/400/400`} // Use square image
-                        alt="Special Deals"
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint="sale discount offer wood"
-                        className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
-                      />
-                    </div>
+                  <CardContent className="p-0 flex-grow relative aspect-square w-full"> {/* Combined relative and aspect-square */}
+                    <Image
+                      src={`https://picsum.photos/seed/specialdeals/400/400`} // Use square image
+                      alt="Special Deals"
+                      layout="fill"
+                      objectFit="cover"
+                      data-ai-hint="sale discount offer wood"
+                      className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
+                    />
                   </CardContent>
                   <CardFooter className="p-4 justify-center"> {/* Use CardFooter for title */}
                     <CardTitle className="text-lg font-semibold text-center text-accent"> {/* Apply accent color */}
@@ -126,16 +122,6 @@ export default function Home() {
         </div>
       </section>
 
-        {/* Call to Action for Custom Orders */}
-      <section className="py-16 bg-secondary text-secondary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Need Something Bespoke?</h2>
-
-          <Button variant="accent" size="lg" asChild>
-            <Link href="/custom-order">Request a Custom Order</Link>
-          </Button>
-        </div>
-      </section>
     </div>
   );
 }
