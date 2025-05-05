@@ -70,7 +70,7 @@ export default function RegisterPage() {
               <Input id="password" type="password" required />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
               <Input id="confirm-password" type="password" required />
             </div>
             <Button type="submit" className="w-full">Register</Button>

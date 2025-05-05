@@ -7,7 +7,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
-       {/* Can add a background image or pattern here if desired */}
+       {/* The Card component from login/register pages will be centered here */}
       {children}
     </div>
   );
