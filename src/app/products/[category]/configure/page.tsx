@@ -1,4 +1,3 @@
-
 "use client"; // Needed for form/state
 
 import { useState, useEffect } from 'react'; // Added useEffect
@@ -30,7 +29,7 @@ interface ConfigOption {
   defaultValue?: any;
   unit?: string; // For dimensions/area
   fixedValue?: string | number; // For non-editable display like flooring thickness
-  perBay?: boolean; // Added for Cat Slide
+  perBay?: boolean; // True if the option applies individually to each bay
 }
 
 interface CategoryConfig {
@@ -46,10 +45,10 @@ const configurations: { [key: string]: CategoryConfig } = {
     title: "Configure Your Garage",
     options: [
       // Reordered options, removed oakType
-      { id: 'bays', label: 'Number of Bays', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
+      { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
       { id: 'sizeType', label: 'Size Type (Overall Dimensions)', type: 'select', options: [{ value: 'small', label: 'Small (e.g., 5m x 6m)' }, { value: 'medium', label: 'Medium (e.g., 6m x 6m)' }, { value: 'large', label: 'Large (e.g., 6m x 9m)' }], defaultValue: 'medium' },
-      { id: 'catSlide', label: 'Include Cat Slide Roof?', type: 'checkbox', defaultValue: false, perBay: true }, // Mark as per bay
+      { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false }, // Changed to apply to all
     ]
   },
   gazebos: {
@@ -96,13 +95,8 @@ const calculatePrice = (category: string, config: any): number => {
   switch (category) {
     case 'garages':
         const bays = config.bays?.[0] || 1;
-        let catSlideCost = 0;
-        // Calculate catSlide cost based on per-bay selections
-        for (let i = 1; i <= bays; i++) {
-            if (config[`catSlide_bay_${i}`]) {
-                catSlideCost += 150; // Example cost per bay with cat slide
-            }
-        }
+        // Calculate catSlide cost based on single checkbox and number of bays
+        const catSlideCost = config.catSlide ? (150 * bays) : 0; // Example: 150 per bay if selected
         // Removed oakType from pricing calculation
         basePrice = 8000 + bays * 1500 + catSlideCost;
         break;
@@ -146,50 +140,15 @@ export default function ConfigureProductPage() {
     if (!categoryConfig) return {}; // Return empty if config not found
     const initialState: any = {};
     categoryConfig.options.forEach(opt => {
-      if (opt.perBay) {
-        // Initialize per-bay options (start with default number of bays)
-        const defaultBays = categoryConfig.options.find(o => o.id === 'bays')?.defaultValue?.[0] || 1;
-        for (let i = 1; i <= defaultBays; i++) {
-          initialState[`${opt.id}_bay_${i}`] = opt.defaultValue;
-        }
-      } else {
-         initialState[opt.id] = opt.defaultValue;
-      }
+      // Remove per-bay initialization logic
+      initialState[opt.id] = opt.defaultValue;
     });
     return initialState;
   });
 
    const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-   // Update number of per-bay options when 'bays' changes
-   useEffect(() => {
-     if (category === 'garages') {
-       const numberOfBays = configState.bays?.[0] || 1;
-       const catSlideOption = categoryConfig?.options.find(o => o.id === 'catSlide');
-
-       if (catSlideOption) {
-         setConfigState(prev => {
-           const newState = { ...prev };
-           // Remove extra catSlide options if bays decreased
-           Object.keys(newState).forEach(key => {
-             if (key.startsWith('catSlide_bay_')) {
-               const bayNum = parseInt(key.split('_').pop() || '0');
-               if (bayNum > numberOfBays) {
-                 delete newState[key];
-               }
-             }
-           });
-           // Add missing catSlide options if bays increased
-           for (let i = 1; i <= numberOfBays; i++) {
-             if (!newState.hasOwnProperty(`catSlide_bay_${i}`)) {
-               newState[`catSlide_bay_${i}`] = catSlideOption.defaultValue;
-             }
-           }
-           return newState;
-         });
-       }
-     }
-   }, [configState.bays, category, categoryConfig?.options]);
+   // Remove useEffect related to per-bay state management as it's no longer needed
 
    // Recalculate initial price when config is available or changes
    useEffect(() => {
@@ -293,11 +252,7 @@ export default function ConfigureProductPage() {
                            {option.options?.map((opt) => (
                              <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
                                 <RadioGroupItem value={opt.value} id={`${option.id}-${opt.value}`} className="sr-only" />
-                                 {opt.image && (
-                                    <div className="relative h-24 w-full mb-2 rounded-md overflow-hidden bg-muted/30">
-                                    <Image src={`https://picsum.photos/seed/${opt.value}-${option.id}/200/150`} alt={opt.label} layout="fill" objectFit="contain" data-ai-hint={`${category} ${opt.label} truss schematic`} />
-                                    </div>
-                                )}
+                                 {/* Remove image rendering from radio options */}
                                  <span className="text-sm font-medium mt-auto">{opt.label}</span>
                              </Label>
                            ))}
@@ -319,26 +274,8 @@ export default function ConfigureProductPage() {
                           </div>
                       </div>
                     )}
-                    {/* Conditional rendering for per-bay checkbox */}
-                    {option.type === 'checkbox' && option.perBay && category === 'garages' && (
-                        <div className="mt-4 space-y-2">
-                            {/* Render checkboxes for each bay */}
-                            {Array.from({ length: configState.bays?.[0] || 1 }, (_, i) => i + 1).map((bayNum) => (
-                                <div key={bayNum} className="flex items-center justify-center space-x-2">
-                                    <Checkbox
-                                        id={`${option.id}_bay_${bayNum}`}
-                                        checked={configState[`${option.id}_bay_${bayNum}`] || false}
-                                        onCheckedChange={(checked) => handleConfigChange(`${option.id}_bay_${bayNum}`, checked)}
-                                    />
-                                    <Label htmlFor={`${option.id}_bay_${bayNum}`} className="font-normal">
-                                        Apply to Bay {bayNum}
-                                    </Label>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    {/* Standard checkbox rendering */}
-                    {option.type === 'checkbox' && !option.perBay && (
+                    {/* Standard checkbox rendering (not per bay) */}
+                    {option.type === 'checkbox' && (
                        <div className="flex items-center justify-center space-x-2 mt-2">
                          <Checkbox
                             id={option.id}
