@@ -23,7 +23,7 @@ interface ConfigOption {
   options?: { value: string; label: string; }[];
   defaultValue?: any;
   unit?: string;
-  fixedValue?: string | number;
+  fixedValue?: string | number; // This will be ignored now
 }
 
 interface CategoryConfig {
@@ -45,7 +45,7 @@ const oakFlooringConfig: CategoryConfig = {
         title: "Configure Your Oak Flooring",
         options: [
          { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
-         { id: 'thickness', label: 'Thickness', type: 'area', fixedValue: '20mm' }, // Display only
+         // { id: 'thickness', label: 'Thickness', type: 'area', fixedValue: '20mm' }, // This line is effectively removed by not rendering it
          { id: 'area', label: 'Area Required', type: 'area', unit: 'm²', defaultValue: { area: 10, length: '', width: '' } }, // Allows direct area or length*width
         ]
     };
@@ -244,47 +244,40 @@ export default function ConfigureOakFlooringPage() {
                         </SelectContent>
                       </Select>
                     )}
-                     {option.type === 'area' && (
+                     {option.type === 'area' && !option.fixedValue && ( // Only render if not a fixedValue display
                          <div className="mt-2 space-y-4 max-w-md mx-auto">
-                             {option.fixedValue && (
-                                 <div className="flex justify-between items-center text-sm px-4 max-w-sm mx-auto">
-                                     <span className="text-muted-foreground">{option.label}:</span>
-                                     <span className="font-medium">{option.fixedValue}</span>
-                                 </div>
-                             )}
-                             {!option.fixedValue && (
-                                <>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                        <div className="text-center">
-                                          <Label htmlFor={`${option.id}-area`}>Area ({option.unit})</Label>
-                                          <Input id={`${option.id}-area`} type="number" min="0.1" step="any"
-                                                 placeholder={`Enter area directly`}
-                                                 value={configState[option.id]?.area || ''}
-                                                 onChange={(e) => handleAreaChange(e.target.value, 'area')}
-                                                 className="mt-1 bg-background/70 text-center"/>
-                                        </div>
-                                        <div className="text-center text-sm text-muted-foreground pb-2">OR</div>
+                             {/* Area or Length/Width Inputs */}
+                            <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                    <div className="text-center">
+                                      <Label htmlFor={`${option.id}-area`}>Area ({option.unit})</Label>
+                                      <Input id={`${option.id}-area`} type="number" min="0.1" step="any"
+                                             placeholder={`Enter area directly`}
+                                             value={configState[option.id]?.area || ''}
+                                             onChange={(e) => handleAreaChange(e.target.value, 'area')}
+                                             className="mt-1 bg-background/70 text-center"/>
                                     </div>
-                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="text-center">
-                                          <Label htmlFor={`${option.id}-length`}>Length (cm)</Label>
-                                          <Input id={`${option.id}-length`} type="number" min="1" step="any"
-                                                 placeholder="Calculate area"
-                                                 value={configState[option.id]?.length || ''}
-                                                 onChange={(e) => handleAreaChange(e.target.value, 'length')}
-                                                 className="mt-1 bg-background/70 text-center"/>
-                                        </div>
-                                        <div className="text-center">
-                                           <Label htmlFor={`${option.id}-width`}>Width (cm)</Label>
-                                           <Input id={`${option.id}-width`} type="number" min="1" step="any"
-                                                  placeholder="Calculate area"
-                                                  value={configState[option.id]?.width || ''}
-                                                  onChange={(e) => handleAreaChange(e.target.value, 'width')}
-                                                  className="mt-1 bg-background/70 text-center"/>
-                                        </div>
-                                     </div>
-                                </>
-                             )}
+                                    <div className="text-center text-sm text-muted-foreground pb-2">OR</div>
+                                </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="text-center">
+                                      <Label htmlFor={`${option.id}-length`}>Length (cm)</Label>
+                                      <Input id={`${option.id}-length`} type="number" min="1" step="any"
+                                             placeholder="Calculate area"
+                                             value={configState[option.id]?.length || ''}
+                                             onChange={(e) => handleAreaChange(e.target.value, 'length')}
+                                             className="mt-1 bg-background/70 text-center"/>
+                                    </div>
+                                    <div className="text-center">
+                                       <Label htmlFor={`${option.id}-width`}>Width (cm)</Label>
+                                       <Input id={`${option.id}-width`} type="number" min="1" step="any"
+                                              placeholder="Calculate area"
+                                              value={configState[option.id]?.width || ''}
+                                              onChange={(e) => handleAreaChange(e.target.value, 'width')}
+                                              className="mt-1 bg-background/70 text-center"/>
+                                    </div>
+                                 </div>
+                            </>
                          </div>
                      )}
                   </div>
