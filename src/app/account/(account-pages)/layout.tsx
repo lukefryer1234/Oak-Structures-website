@@ -1,8 +1,12 @@
+
+"use client"; // Keep "use client" because we use hooks and client-side logic
+
 import React from 'react';
 import { User, ShoppingBag, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { usePathname } from 'next/navigation'; // Import usePathname
 
 const accountNavLinks = [
   { href: "/account/profile", label: "Profile", icon: User },
@@ -17,8 +21,10 @@ export default function AccountLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Placeholder for active path logic
-  const isActive = (path: string) => typeof window !== 'undefined' && window.location.pathname === path;
+  const pathname = usePathname(); // Get current pathname using the hook
+
+  // Updated isActive logic using pathname from the hook
+  const isActive = (path: string) => pathname === path;
 
   return (
     <div className="container mx-auto px-4 py-12">
