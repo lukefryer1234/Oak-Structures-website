@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Image from 'next/image'; // For Google logo
+import Image from 'next/image'; // For logos
 import { useState } from 'react';
 
 // Placeholder function for handling local login
@@ -40,6 +40,12 @@ const handleGoogleAuth = (mode: 'login' | 'register') => {
   alert(`Google ${mode} initiated (placeholder)`);
 };
 
+// Placeholder function for handling PayPal login/registration
+const handlePayPalAuth = (mode: 'login' | 'register') => {
+  // TODO: Implement PayPal OAuth flow, potentially using the mode
+  alert(`PayPal ${mode} initiated (placeholder)`);
+};
+
 export default function AuthPage() {
     const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
@@ -62,11 +68,17 @@ export default function AuthPage() {
              </CardHeader>
 
             <TabsContent value="login">
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4"> {/* Reduced space-y to 4 */}
                     {/* Google Login Button */}
                     <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleGoogleAuth('login')}>
                         <Image src="https://picsum.photos/seed/google-logo/18/18" alt="Google" width={18} height={18} data-ai-hint="google logo" />
                         Continue with Google
+                    </Button>
+
+                    {/* PayPal Login Button */}
+                    <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handlePayPalAuth('login')}>
+                         <Image src="https://picsum.photos/seed/paypal-logo/18/18" alt="PayPal" width={18} height={18} data-ai-hint="paypal logo" />
+                        Continue with PayPal
                     </Button>
 
                     <div className="relative">
@@ -103,11 +115,17 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="register">
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4"> {/* Reduced space-y to 4 */}
                     {/* Google Register Button */}
                     <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handleGoogleAuth('register')}>
                         <Image src="https://picsum.photos/seed/google-logo/18/18" alt="Google" width={18} height={18} data-ai-hint="google logo" />
                         Continue with Google
+                    </Button>
+
+                    {/* PayPal Register Button */}
+                     <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handlePayPalAuth('register')}>
+                         <Image src="https://picsum.photos/seed/paypal-logo/18/18" alt="PayPal" width={18} height={18} data-ai-hint="paypal logo" />
+                        Continue with PayPal
                     </Button>
 
                     <div className="relative">
