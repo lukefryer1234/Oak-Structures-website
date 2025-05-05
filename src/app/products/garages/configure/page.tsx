@@ -46,7 +46,9 @@ interface CategoryConfig {
 const garageConfig: CategoryConfig = {
     title: "Configure Your Garage",
     options: [
+       { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' },
       { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
+      { id: 'beamSize', label: 'Structural Beam Sizes', type: 'select', options: [ { value: '6x6', label: '6 inch x 6 inch' }, { value: '7x7', label: '7 inch x 7 inch' }, { value: '8x8', label: '8 inch x 8 inch' } ], defaultValue: '6x6' },
       { id: 'preview', label: 'Preview', type: 'preview', dataAiHint: 'garage oak structure'}, // Placeholder for preview
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
       { id: 'baySize', label: 'Size Per Bay', type: 'select', options: [{ value: 'standard', label: 'Standard (e.g., 3m wide)' }, { value: 'large', label: 'Large (e.g., 3.5m wide)' }], defaultValue: 'standard' },
@@ -66,7 +68,17 @@ const calculatePrice = (config: any): number => {
   const catSlideCost = config.catSlide ? (150 * bays) : 0; // Example: 150 per bay if selected
   // Incorporate baySize into pricing (example logic)
   const baySizeMultiplier = config.baySize === 'large' ? 1.1 : 1.0;
-  basePrice = (8000 + bays * 1500 + catSlideCost) * baySizeMultiplier;
+  // Incorporate oak type
+  const oakMultiplier = config.oakType === 'reclaimed' ? 1.15 : 1.0;
+   // Incorporate beam size
+   let beamSizeCost = 0;
+   switch (config.beamSize) {
+     case '7x7': beamSizeCost = 200 * bays; break;
+     case '8x8': beamSizeCost = 450 * bays; break;
+     default: beamSizeCost = 0; // 6x6 is base
+   }
+
+  basePrice = (8000 + bays * 1500 + catSlideCost + beamSizeCost) * baySizeMultiplier * oakMultiplier;
 
   return Math.max(0, basePrice); // Ensure price is not negative
 };
@@ -248,5 +260,3 @@ export default function ConfigureGaragePage() {
     </div>
   );
 }
-
-    
