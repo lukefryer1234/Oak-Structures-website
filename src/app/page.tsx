@@ -31,13 +31,7 @@ export default function Home() {
           data-ai-hint="timber frame workshop landscape"
         />
         <div className="absolute inset-0 bg-black/50 z-10"></div>
-        <div className="relative z-20 flex flex-col items-center justify-center h-full text-center text-primary-foreground p-4">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">Timberline Commerce</h1>
-          <p className="text-lg md:text-xl mb-8 max-w-2xl">High-quality configurable oak structures and materials, built for you.</p>
-          <Button size="lg" asChild>
-            <Link href="#categories">Explore Products <ArrowRight className="ml-2" /></Link>
-          </Button>
-        </div>
+        {/* Removed hero content div */}
       </section>
 
       {/* Product Categories Section */}
