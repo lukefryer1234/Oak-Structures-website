@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -15,7 +16,6 @@ const handlePasswordReset = (event: React.FormEvent<HTMLFormElement>) => {
 
 export default function ForgotPasswordPage() {
   return (
-    // The AuthLayout will center this Card
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Forgot Password</CardTitle>
@@ -30,9 +30,9 @@ export default function ForgotPasswordPage() {
             <Button type="submit" className="w-full">Send Reset Link</Button>
           </form>
         </CardContent>
-        <CardFooter className="text-center text-sm text-muted-foreground">
+        <CardFooter className="text-center text-sm text-muted-foreground flex justify-center"> {/* Added flex justify-center */}
            Remembered your password?{' '}
-          <Link href="/login" className="text-primary hover:underline">
+          <Link href="/login" className="text-primary hover:underline ml-1"> {/* Changed href to /login */}
             Login
           </Link>
         </CardFooter>
