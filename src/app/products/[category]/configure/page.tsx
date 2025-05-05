@@ -215,7 +215,7 @@ export default function ConfigureProductPage() {
           <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
             <CardHeader className="text-center"> {/* Center align header content */}
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
-                <Link href="/" className="text-sm text-primary hover:underline">&larr; Back to Home</Link>
+               {/* Removed Back to Home link */}
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-8">
                 {/* Configuration Options */}
