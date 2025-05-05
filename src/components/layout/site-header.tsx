@@ -8,7 +8,7 @@ import {
   Menu,
   Home, // Added Home icon
   Building,
-  Image as ImageIcon,
+  ImageIcon, // Use the aliased import
   Mail,
   Wrench,
   TreeDeciduous,
@@ -38,11 +38,12 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge"; // Import Badge
 
 const mainNavLinks = [
-  { href: "/products/garages", label: "Garages", icon: Wrench }, // Link to category page
-  { href: "/products/gazebos", label: "Gazebos", icon: TreeDeciduous }, // Link to category page
-  { href: "/products/porches", label: "Porches", icon: DoorOpen }, // Link to category page
-  { href: "/products/oak-beams", label: "Oak Beams", icon: Layers }, // Link to category page
-  { href: "/products/oak-flooring", label: "Oak Flooring", icon: Grid }, // Link to category page
+  // Updated hrefs to point to the configure pages
+  { href: "/products/garages/configure", label: "Garages", icon: Wrench },
+  { href: "/products/gazebos/configure", label: "Gazebos", icon: TreeDeciduous },
+  { href: "/products/porches/configure", label: "Porches", icon: DoorOpen },
+  { href: "/products/oak-beams/configure", label: "Oak Beams", icon: Layers },
+  { href: "/products/oak-flooring/configure", label: "Oak Flooring", icon: Grid },
   { href: "/special-deals", label: "Special Deals", icon: Sparkles },
 ];
 
@@ -244,6 +245,7 @@ export function SiteHeader() {
                     <Link href="/account/addresses">Addresses</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  {/* Ensure onClick is handled correctly on client-side */}
                   <DropdownMenuItem onClick={() => alert("Logout clicked (placeholder)")}>Logout</DropdownMenuItem>
                 </>
               ) : (

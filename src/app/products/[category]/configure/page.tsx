@@ -38,6 +38,7 @@ interface CategoryConfig {
   dataAiHint?: string;
 }
 
+// Ensure keys match the slugs used in the links (e.g., 'oak-beams')
 const configurations: { [key: string]: CategoryConfig } = {
   garages: {
     title: "Configure Your Garage",
@@ -134,18 +135,29 @@ const calculatePrice = (category: string, config: any): number => {
 
 export default function ConfigureProductPage() {
   const params = useParams();
-  const category = params.category as string;
+  const category = params.category as string; // Get category from URL
   const categoryConfig = configurations[category];
 
+  // Initialize state based on the found category config
   const [configState, setConfigState] = useState<any>(() => {
+    if (!categoryConfig) return {}; // Return empty if config not found
     const initialState: any = {};
-    categoryConfig?.options.forEach(opt => {
+    categoryConfig.options.forEach(opt => {
       initialState[opt.id] = opt.defaultValue;
     });
     return initialState;
   });
+
    const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
    const [previewImage, setPreviewImage] = useState<string | null>(categoryConfig?.image || null);
+
+   // Recalculate initial price and set preview image when config is available
+   useState(() => {
+      if (categoryConfig) {
+          setCalculatedPrice(calculatePrice(category, configState));
+          setPreviewImage(categoryConfig.image || null);
+      }
+   });
 
 
    const handleConfigChange = (id: string, value: any) => {
@@ -168,13 +180,9 @@ export default function ConfigureProductPage() {
      });
    };
 
-    // Calculate initial price on load
-   useState(() => {
-      setCalculatedPrice(calculatePrice(category, configState));
-   });
-
 
   if (!categoryConfig) {
+    // If the category slug doesn't match any config, show 404
     notFound();
   }
 
@@ -230,7 +238,9 @@ export default function ConfigureProductPage() {
           <Card className="max-w-4xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjusted card */}
             <CardHeader>
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
-               <Link href={`/products/${category}`} className="text-sm text-primary hover:underline">&larr; Back to {category.replace('-', ' ')}</Link>
+               {/* Link back to the dynamic product page (which doesn't exist) - better to remove or link to home */}
+               {/* <Link href={`/products/${category}`} className="text-sm text-primary hover:underline">&larr; Back to {category.replace('-', ' ')}</Link> */}
+                <Link href="/" className="text-sm text-primary hover:underline">&larr; Back to Home</Link>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Configuration Options */}
@@ -410,3 +420,4 @@ export default function ConfigureProductPage() {
     </div>
   );
 }
+
