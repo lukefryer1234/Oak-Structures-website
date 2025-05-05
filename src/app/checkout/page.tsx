@@ -35,11 +35,12 @@ const addressSchema = z.object({
   phone: z.string().optional(),
 });
 
+// Updated schema: only PayPal is allowed
 const checkoutSchema = z.object({
   billingAddress: addressSchema,
   shippingAddress: addressSchema.optional(), // Optional if same as billing
   useBillingAsShipping: z.boolean().default(true),
-  paymentMethod: z.enum(["stripe", "paypal"], { required_error: "Please select a payment method." }),
+  paymentMethod: z.literal("paypal", { required_error: "PayPal must be selected." }), // Only allow 'paypal'
 });
 
 // Placeholder order summary data - fetch from basket state
@@ -61,6 +62,7 @@ export default function CheckoutPage() {
     defaultValues: {
       useBillingAsShipping: true,
       billingAddress: { email: "", firstName: "", lastName: "", addressLine1: "", town: "", postcode: ""},
+      paymentMethod: "paypal", // Default to PayPal since it's the only option
     },
   });
 
@@ -194,17 +196,55 @@ export default function CheckoutPage() {
 
 
   return (
-     // Removed relative isolate and background image handling
      <div>
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-4xl font-bold mb-8">Checkout</h1>
-          {/* Add Guest/Login options here if not already handled */}
 
            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-8">
+                {/* Payment Method - Moved to top */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
+                  <CardHeader>
+                    <CardTitle>Payment Method</CardTitle>
+                     <CardDescription>All transactions are secure and encrypted.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <FormField
+                      control={form.control}
+                      name="paymentMethod"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-3" // Adjusted spacing
+                            >
+                              {/* Only PayPal Option */}
+                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60">
+                                <FormControl>
+                                  <RadioGroupItem value="paypal" />
+                                </FormControl>
+                                 <Image src="https://picsum.photos/seed/paypal-logo/80/25" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
+                                 <FormLabel className="font-normal flex-grow cursor-pointer"> {/* Added cursor-pointer */}
+                                  PayPal
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {/* Placeholder for PayPal Button */}
+                     <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm">
+                        Payment gateway integration placeholder. Secure PayPal button will appear here.
+                     </div>
+                  </CardContent>
+                </Card>
+
                 {/* Billing Address */}
-                 {/* Adjust card appearance if needed */}
                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Billing Address</CardTitle>
@@ -215,7 +255,6 @@ export default function CheckoutPage() {
                 </Card>
 
                 {/* Shipping Address */}
-                 {/* Adjust card appearance if needed */}
                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Shipping Address</CardTitle>
@@ -225,7 +264,6 @@ export default function CheckoutPage() {
                         control={form.control}
                         name="useBillingAsShipping"
                         render={({ field }) => (
-                          // Adjust appearance if needed
                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border/50 p-4 mb-6 shadow-sm bg-background/60">
                              <FormControl>
                               <Checkbox
@@ -246,13 +284,11 @@ export default function CheckoutPage() {
                 </Card>
 
                  {/* Shipping Method */}
-                  {/* Adjust card appearance if needed */}
                  <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                     <CardHeader>
                         <CardTitle>Shipping Method</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {/* Adjust appearance if needed */}
                         <div className="rounded-md border border-border/50 p-4 bg-background/60">
                             <div className="flex justify-between items-center">
                                 <span>Standard UK Delivery</span>
@@ -267,71 +303,15 @@ export default function CheckoutPage() {
                     </CardContent>
                  </Card>
 
-
-                {/* Payment Method */}
-                 {/* Adjust card appearance if needed */}
-                <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
-                  <CardHeader>
-                    <CardTitle>Payment Method</CardTitle>
-                     <CardDescription>All transactions are secure and encrypted.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                     <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-3" // Adjusted spacing
-                            >
-                               {/* Adjust appearance if needed */}
-                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60">
-                                <FormControl>
-                                  <RadioGroupItem value="stripe" />
-                                </FormControl>
-                                 <Image src="https://picsum.photos/seed/stripe-logo/60/25" alt="Stripe" width={60} height={25} data-ai-hint="stripe logo" />
-                                <FormLabel className="font-normal flex-grow cursor-pointer"> {/* Added cursor-pointer */}
-                                  Credit/Debit Card (Stripe)
-                                </FormLabel>
-                              </FormItem>
-                               {/* Adjust appearance if needed */}
-                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60">
-                                <FormControl>
-                                  <RadioGroupItem value="paypal" />
-                                </FormControl>
-                                 <Image src="https://picsum.photos/seed/paypal-logo/80/25" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
-                                 <FormLabel className="font-normal flex-grow cursor-pointer"> {/* Added cursor-pointer */}
-                                  PayPal
-                                </FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {/* Placeholder for Stripe Elements / PayPal Button */}
-                     {/* Adjust appearance if needed */}
-                     <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm">
-                        Payment gateway integration placeholder. Secure payment form/button will appear here based on selection.
-                     </div>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Order Summary */}
               <div className="lg:col-span-1">
-                 {/* Adjust card appearance if needed */}
                 <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Order Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                     {/* Mini item list */}
-                      {/* Add border and padding */}
                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2 border-b border-border/50 pb-4 mb-4">
                         {orderSummary.items.map(item => (
                             <div key={item.id} className="flex justify-between items-center text-sm">
@@ -340,7 +320,6 @@ export default function CheckoutPage() {
                             </div>
                         ))}
                      </div>
-                     {/* <Separator className="border-border/50"/> */}
                      <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="text-foreground">£{orderSummary.subtotal.toFixed(2)}</span>
@@ -359,10 +338,9 @@ export default function CheckoutPage() {
                       <span>£{orderSummary.total.toFixed(2)}</span>
                     </div>
                   </CardContent>
-                   {/* Add border and padding */}
                   <CardFooter className="flex-col space-y-4 border-t border-border/50 pt-6">
                     <Button type="submit" className="w-full" size="lg">
-                       Place Order & Pay
+                       Place Order & Pay with PayPal
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
                         By placing your order, you agree to our <Link href="/terms" className="underline hover:text-primary">Terms & Conditions</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
@@ -376,5 +354,7 @@ export default function CheckoutPage() {
      </div>
   );
 }
+
+    
 
     
