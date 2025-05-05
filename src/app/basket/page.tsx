@@ -71,22 +71,14 @@ export default function BasketPage() {
   const total = subtotal + vat + shippingCost;
 
   return (
-     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/basket-bg/1920/1080"
-         alt="Subtle abstract background shopping"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle pattern texture shopping basket grey"
-         aria-hidden="true"
-       />
+     // Removed relative isolate and background image handling
+     <div>
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-4xl font-bold mb-8">Shopping Basket</h1>
 
           {basketItems.length === 0 ? (
-            <Card className="bg-card/80 backdrop-blur-sm"> {/* Added transparency and blur */}
+             // Adjust card appearance if needed
+            <Card className="bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6 text-center">
                 <p className="text-muted-foreground mb-4">Your basket is currently empty.</p>
                 <Button asChild>
@@ -101,10 +93,11 @@ export default function BasketPage() {
                   // Construct link based on category
                   const itemLink = item.category === 'special-deals'
                                      ? `/special-deals` // Link to deals page for deal items
-                                     : `/products/${item.category}`; // Link to category page (not config)
+                                     : `/products/${item.category}/configure`; // Link to config page
 
                   return (
-                    <Card key={item.id} className="overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, lighter border */}
+                     // Adjust card appearance if needed
+                    <Card key={item.id} className="overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50">
                       <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
                         <div className="relative h-32 w-full sm:w-32 flex-shrink-0 bg-muted/50 rounded-md overflow-hidden"> {/* Adjusted background */}
                           <Image
@@ -145,7 +138,8 @@ export default function BasketPage() {
               </div>
 
               <div className="lg:col-span-1">
-                <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjusted card appearance */}
+                 {/* Adjust card appearance if needed */}
+                <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Order Summary</CardTitle>
                   </CardHeader>
@@ -184,3 +178,5 @@ export default function BasketPage() {
      </div>
   );
 }
+
+    

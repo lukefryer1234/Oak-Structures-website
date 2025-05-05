@@ -1,6 +1,6 @@
 
 import type { Metadata } from 'next';
-import Image from 'next/image'; // Import Image
+// Removed Image import as it's handled globally
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -18,21 +18,13 @@ const companyInfo = {
 
 export default function PrivacyPage() {
   return (
-     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/privacy-bg/1920/1080"
-         alt="Subtle geometric background"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle pattern geometric grey texture"
-         aria-hidden="true"
-       />
+     // Removed relative isolate and background image handling
+     <div>
         <div className="container mx-auto px-4 py-12 md:py-16">
            {/* Use prose for readable text formatting */}
           <div className="max-w-3xl mx-auto prose prose-lg lg:prose-xl text-foreground prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-8 prose-headings:mb-4 prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground prose-ul:list-disc prose-ul:pl-6 prose-li:my-1 prose-p:leading-relaxed prose-p:mb-4">
-            <h1 className="!mb-2 border-b border-border/50 pb-2">Privacy Policy</h1> {/* Lighter border */}
+             {/* Lighter border */}
+            <h1 className="!mb-2 border-b border-border/50 pb-2">Privacy Policy</h1>
             <p className="lead text-muted-foreground !mt-0 !mb-6">Last updated: May 6, 2025</p>
 
             <p>Timberline Commerce ("us", "we", or "our") operates the [Your Website URL - Replace Me] website (the "Service").</p>
@@ -155,3 +147,5 @@ export default function PrivacyPage() {
     </div>
   );
 }
+
+    

@@ -1,7 +1,7 @@
 
 "use client"; // Needed for form/state
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -152,12 +152,12 @@ export default function ConfigureProductPage() {
    const [previewImage, setPreviewImage] = useState<string | null>(categoryConfig?.image || null);
 
    // Recalculate initial price and set preview image when config is available
-   useState(() => {
+   useEffect(() => { // Changed useState to useEffect
       if (categoryConfig) {
           setCalculatedPrice(calculatePrice(category, configState));
           setPreviewImage(categoryConfig.image || null);
       }
-   });
+   }, [category, categoryConfig]); // Re-run if category or its config changes
 
 
    const handleConfigChange = (id: string, value: any) => {
@@ -223,19 +223,11 @@ export default function ConfigureProductPage() {
 
 
   return (
-    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src={`https://picsum.photos/seed/${category}-config-bg/1920/1080`}
-         alt="Subtle background texture for configuration"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle pattern texture blueprint wood technical"
-         aria-hidden="true"
-       />
+    // Removed relative isolate and background image handling
+    <div>
         <div className="container mx-auto px-4 py-12">
-          <Card className="max-w-4xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjusted card */}
+           {/* Adjusted card */}
+          <Card className="max-w-4xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
             <CardHeader>
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
                {/* Link back to the dynamic product page (which doesn't exist) - better to remove or link to home */}
@@ -253,6 +245,7 @@ export default function ConfigureProductPage() {
                         value={configState[option.id]}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
+                         {/* Adjusted background */}
                         <SelectTrigger id={option.id} className="mt-2 bg-background/70">
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
@@ -270,10 +263,12 @@ export default function ConfigureProductPage() {
                             className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4"
                          >
                            {option.options?.map((opt) => (
-                             <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer"> {/* Adjusted background */}
+                              /* Adjusted background */
+                             <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
                                 <RadioGroupItem value={opt.value} id={`${option.id}-${opt.value}`} className="sr-only" />
                                  {opt.image && (
-                                    <div className="relative h-24 w-full mb-2 rounded-md overflow-hidden bg-muted/30"> {/* Adjusted background */}
+                                     /* Adjusted background */
+                                    <div className="relative h-24 w-full mb-2 rounded-md overflow-hidden bg-muted/30">
                                     <Image src={`https://picsum.photos/seed/${opt.value}-${option.id}/200/150`} alt={opt.label} layout="fill" objectFit="contain" data-ai-hint={`${category} ${opt.label} truss schematic`} />
                                     </div>
                                 )}
@@ -312,6 +307,7 @@ export default function ConfigureProductPage() {
                          <div className="mt-2 grid grid-cols-3 gap-4">
                              <div>
                                <Label htmlFor={`${option.id}-length`}>Length ({option.unit})</Label>
+                                {/* Adjusted background */}
                                <Input id={`${option.id}-length`} type="number" min="1" step="any"
                                       value={configState[option.id]?.length || ''}
                                       onChange={(e) => handleDimensionChange(e.target.value, 'length')}
@@ -319,6 +315,7 @@ export default function ConfigureProductPage() {
                              </div>
                              <div>
                                 <Label htmlFor={`${option.id}-width`}>Width ({option.unit})</Label>
+                                 {/* Adjusted background */}
                                 <Input id={`${option.id}-width`} type="number" min="1" step="any"
                                        value={configState[option.id]?.width || ''}
                                        onChange={(e) => handleDimensionChange(e.target.value, 'width')}
@@ -326,6 +323,7 @@ export default function ConfigureProductPage() {
                              </div>
                               <div>
                                 <Label htmlFor={`${option.id}-thickness`}>Thickness ({option.unit})</Label>
+                                 {/* Adjusted background */}
                                 <Input id={`${option.id}-thickness`} type="number" min="1" step="any"
                                        value={configState[option.id]?.thickness || ''}
                                        onChange={(e) => handleDimensionChange(e.target.value, 'thickness')}
@@ -346,6 +344,7 @@ export default function ConfigureProductPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                                         <div>
                                           <Label htmlFor={`${option.id}-area`}>Area ({option.unit})</Label>
+                                           {/* Adjusted background */}
                                           <Input id={`${option.id}-area`} type="number" min="0.1" step="any"
                                                  placeholder={`Enter area directly`}
                                                  value={configState[option.id]?.area || ''}
@@ -357,6 +356,7 @@ export default function ConfigureProductPage() {
                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                           <Label htmlFor={`${option.id}-length`}>Length (cm)</Label>
+                                           {/* Adjusted background */}
                                           <Input id={`${option.id}-length`} type="number" min="1" step="any"
                                                  placeholder="Calculate area"
                                                  value={configState[option.id]?.length || ''}
@@ -365,6 +365,7 @@ export default function ConfigureProductPage() {
                                         </div>
                                         <div>
                                            <Label htmlFor={`${option.id}-width`}>Width (cm)</Label>
+                                            {/* Adjusted background */}
                                            <Input id={`${option.id}-width`} type="number" min="1" step="any"
                                                   placeholder="Calculate area"
                                                   value={configState[option.id]?.width || ''}
@@ -382,9 +383,11 @@ export default function ConfigureProductPage() {
 
                 {/* Preview & Price */}
                <div className="space-y-6 order-1 md:order-2 sticky top-20 self-start">
-                 <Card className="overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjusted card */}
+                  {/* Adjusted card */}
+                 <Card className="overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50">
                    <CardContent className="p-0">
-                      <div className="relative aspect-video bg-muted/50"> {/* Adjusted background */}
+                       {/* Adjusted background */}
+                      <div className="relative aspect-video bg-muted/50">
                          {previewImage ? (
                              <Image
                                 src={`https://picsum.photos/seed/${category}-${JSON.stringify(configState).length}/600/400`} // Use key to force reload on change
@@ -403,7 +406,8 @@ export default function ConfigureProductPage() {
                       </div>
                    </CardContent>
                  </Card>
-                 <Separator className="border-border/50"/> {/* Lighter separator */}
+                  {/* Lighter separator */}
+                 <Separator className="border-border/50"/>
                  <div className="text-right space-y-2">
                     <p className="text-sm text-muted-foreground">Estimated Price (excl. VAT & Delivery)</p>
                     <p className="text-3xl font-bold">
@@ -421,3 +425,4 @@ export default function ConfigureProductPage() {
   );
 }
 
+    

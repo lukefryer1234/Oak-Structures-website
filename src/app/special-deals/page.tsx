@@ -17,17 +17,8 @@ const specialDeals = [
 
 export default function SpecialDealsPage() {
   return (
-     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/deals-bg/1920/1080"
-         alt="Subtle background pattern sale tags"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle pattern texture sale discount"
-         aria-hidden="true"
-       />
+     // Removed relative isolate and background image handling
+     <div>
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-4xl font-bold text-center mb-12">Special Deals</h1>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -35,7 +26,8 @@ export default function SpecialDealsPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {specialDeals.map((deal) => (
-              <Card key={deal.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, lighter border */}
+               {/* Added transparency, blur, lighter border */}
+              <Card key={deal.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col bg-card/80 backdrop-blur-sm border border-border/50">
                  <CardHeader className="p-0 relative">
                    <Badge variant="destructive" className="absolute top-2 right-2 z-10">DEAL</Badge>
                    <div className="relative h-56 w-full">
@@ -79,3 +71,5 @@ export default function SpecialDealsPage() {
      </div>
   );
 }
+
+    

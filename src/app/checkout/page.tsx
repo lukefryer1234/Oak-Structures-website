@@ -194,17 +194,8 @@ export default function CheckoutPage() {
 
 
   return (
-     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/checkout-bg/1920/1080"
-         alt="Subtle abstract background secure checkout"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle pattern texture security lock payment"
-         aria-hidden="true"
-       />
+     // Removed relative isolate and background image handling
+     <div>
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-4xl font-bold mb-8">Checkout</h1>
           {/* Add Guest/Login options here if not already handled */}
@@ -213,7 +204,8 @@ export default function CheckoutPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-8">
                 {/* Billing Address */}
-                <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                 {/* Adjust card appearance if needed */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Billing Address</CardTitle>
                   </CardHeader>
@@ -223,7 +215,8 @@ export default function CheckoutPage() {
                 </Card>
 
                 {/* Shipping Address */}
-                <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                 {/* Adjust card appearance if needed */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Shipping Address</CardTitle>
                   </CardHeader>
@@ -232,7 +225,8 @@ export default function CheckoutPage() {
                         control={form.control}
                         name="useBillingAsShipping"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border/50 p-4 mb-6 shadow-sm bg-background/60"> {/* Adjust appearance */}
+                          // Adjust appearance if needed
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border/50 p-4 mb-6 shadow-sm bg-background/60">
                              <FormControl>
                               <Checkbox
                                 checked={field.value}
@@ -252,12 +246,14 @@ export default function CheckoutPage() {
                 </Card>
 
                  {/* Shipping Method */}
-                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                  {/* Adjust card appearance if needed */}
+                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                     <CardHeader>
                         <CardTitle>Shipping Method</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="rounded-md border border-border/50 p-4 bg-background/60"> {/* Adjust appearance */}
+                        {/* Adjust appearance if needed */}
+                        <div className="rounded-md border border-border/50 p-4 bg-background/60">
                             <div className="flex justify-between items-center">
                                 <span>Standard UK Delivery</span>
                                 <span className="font-medium">
@@ -273,7 +269,8 @@ export default function CheckoutPage() {
 
 
                 {/* Payment Method */}
-                <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                 {/* Adjust card appearance if needed */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Payment Method</CardTitle>
                      <CardDescription>All transactions are secure and encrypted.</CardDescription>
@@ -290,7 +287,8 @@ export default function CheckoutPage() {
                               defaultValue={field.value}
                               className="flex flex-col space-y-3" // Adjusted spacing
                             >
-                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60"> {/* Adjust appearance */}
+                               {/* Adjust appearance if needed */}
+                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60">
                                 <FormControl>
                                   <RadioGroupItem value="stripe" />
                                 </FormControl>
@@ -299,7 +297,8 @@ export default function CheckoutPage() {
                                   Credit/Debit Card (Stripe)
                                 </FormLabel>
                               </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60"> {/* Adjust appearance */}
+                               {/* Adjust appearance if needed */}
+                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60">
                                 <FormControl>
                                   <RadioGroupItem value="paypal" />
                                 </FormControl>
@@ -315,7 +314,8 @@ export default function CheckoutPage() {
                       )}
                     />
                     {/* Placeholder for Stripe Elements / PayPal Button */}
-                     <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm"> {/* Adjust appearance */}
+                     {/* Adjust appearance if needed */}
+                     <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm">
                         Payment gateway integration placeholder. Secure payment form/button will appear here based on selection.
                      </div>
                   </CardContent>
@@ -324,13 +324,15 @@ export default function CheckoutPage() {
 
               {/* Order Summary */}
               <div className="lg:col-span-1">
-                <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust appearance */}
+                 {/* Adjust card appearance if needed */}
+                <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Order Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                      {/* Mini item list */}
-                     <div className="space-y-3 max-h-60 overflow-y-auto pr-2 border-b border-border/50 pb-4 mb-4"> {/* Add border and padding */}
+                      {/* Add border and padding */}
+                     <div className="space-y-3 max-h-60 overflow-y-auto pr-2 border-b border-border/50 pb-4 mb-4">
                         {orderSummary.items.map(item => (
                             <div key={item.id} className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">{item.name} x {item.quantity}</span>
@@ -357,7 +359,8 @@ export default function CheckoutPage() {
                       <span>£{orderSummary.total.toFixed(2)}</span>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex-col space-y-4 border-t border-border/50 pt-6"> {/* Add border and padding */}
+                   {/* Add border and padding */}
+                  <CardFooter className="flex-col space-y-4 border-t border-border/50 pt-6">
                     <Button type="submit" className="w-full" size="lg">
                        Place Order & Pay
                     </Button>
@@ -373,3 +376,5 @@ export default function CheckoutPage() {
      </div>
   );
 }
+
+    

@@ -16,17 +16,8 @@ const galleryItems = [
 
 export default function GalleryPage() {
   return (
-    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/gallery-bg/1920/1080"
-         alt="Subtle wood grain background"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle wood grain texture light"
-         aria-hidden="true"
-       />
+    // Removed relative isolate and background image handling
+    <div>
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-4xl font-bold text-center mb-4">Gallery</h1>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -35,7 +26,8 @@ export default function GalleryPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {galleryItems.map((item) => (
-              <Card key={item.id} className="overflow-hidden group bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, lighter border */}
+               {/* Added transparency, blur, lighter border */}
+              <Card key={item.id} className="overflow-hidden group bg-card/80 backdrop-blur-sm border border-border/50">
                 <CardContent className="p-0">
                   <div className="relative aspect-square w-full overflow-hidden">
                      <Image
@@ -48,7 +40,8 @@ export default function GalleryPage() {
                       />
                       {/* Optional: Overlay for caption on hover */}
                       {item.caption && (
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"> {/* Adjusted gradient */}
+                         {/* Adjusted gradient */}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                            <p className="text-sm text-primary-foreground">{item.caption}</p>
                         </div>
                       )}
@@ -67,3 +60,5 @@ export default function GalleryPage() {
     </div>
   );
 }
+
+    

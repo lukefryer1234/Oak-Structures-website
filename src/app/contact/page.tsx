@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'; // Added Send icon, Loader2
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react"; // For loading state
-import Image from 'next/image'; // Import Image
+// Removed Image import as it's handled globally
 
 // Placeholder contact details - Fetch from Admin settings ideally
 const companyInfo = {
@@ -45,17 +45,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/contact-bg/1920/1080"
-         alt="Subtle background pattern"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle texture gray pattern"
-         aria-hidden="true"
-       />
+    // Removed relative isolate and background image handling
+    <div>
       <div className="container mx-auto px-4 py-12 md:py-16">
         <h1 className="text-4xl font-bold text-center mb-12 text-foreground">Contact Us</h1>
 
@@ -70,7 +61,8 @@ export default function ContactPage() {
                  </p>
              </div>
 
-             <Card className="bg-card/80 backdrop-blur-sm border border-border p-6 space-y-5 shadow-sm"> {/* Added transparency and blur */}
+             {/* Added transparency and blur */}
+             <Card className="bg-card/80 backdrop-blur-sm border border-border p-6 space-y-5 shadow-sm">
                  {/* Address */}
                  <div className="flex items-start gap-4">
                     <MapPin className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
@@ -107,7 +99,8 @@ export default function ContactPage() {
 
           {/* Contact Form Section (Right Column) */}
           <div className="lg:col-span-3">
-              <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-lg"> {/* Added transparency and blur */}
+               {/* Added transparency and blur */}
+              <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-lg">
                   <CardHeader>
                       <CardTitle className="text-xl text-card-foreground">Send Us a Message</CardTitle>
                        <CardDescription className="text-muted-foreground">Fill out the form below and we'll get back to you as soon as possible.</CardDescription>
@@ -116,19 +109,23 @@ export default function ContactPage() {
                       <form onSubmit={handleContactFormSubmit} className="space-y-4">
                            <div className="space-y-2">
                              <Label htmlFor="contact-name" className="text-card-foreground">Name</Label>
-                             <Input id="contact-name" name="name" placeholder="Your Name" required className="bg-background/70 border-input"/> {/* Adjusted background */}
+                              {/* Adjusted background */}
+                             <Input id="contact-name" name="name" placeholder="Your Name" required className="bg-background/70 border-input"/>
                            </div>
                            <div className="space-y-2">
                               <Label htmlFor="contact-email" className="text-card-foreground">Email</Label>
-                              <Input id="contact-email" name="email" type="email" placeholder="your.email@example.com" required className="bg-background/70 border-input"/> {/* Adjusted background */}
+                               {/* Adjusted background */}
+                              <Input id="contact-email" name="email" type="email" placeholder="your.email@example.com" required className="bg-background/70 border-input"/>
                            </div>
                             <div className="space-y-2">
                               <Label htmlFor="contact-subject" className="text-card-foreground">Subject</Label>
-                              <Input id="contact-subject" name="subject" placeholder="e.g., Question about Garages" required className="bg-background/70 border-input"/> {/* Adjusted background */}
+                               {/* Adjusted background */}
+                              <Input id="contact-subject" name="subject" placeholder="e.g., Question about Garages" required className="bg-background/70 border-input"/>
                            </div>
                             <div className="space-y-2">
                                <Label htmlFor="contact-message" className="text-card-foreground">Message</Label>
-                               <Textarea id="contact-message" name="message" rows={5} placeholder="Your message..." required className="bg-background/70 border-input"/> {/* Adjusted background */}
+                                {/* Adjusted background */}
+                               <Textarea id="contact-message" name="message" rows={5} placeholder="Your message..." required className="bg-background/70 border-input"/>
                             </div>
                              {/* Use custom accent button class */}
                             <Button type="submit" className="w-full sm:w-auto btn-accent" disabled={isSubmitting}>
@@ -144,3 +141,5 @@ export default function ContactPage() {
     </div>
   );
 }
+
+    

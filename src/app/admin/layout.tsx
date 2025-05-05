@@ -43,7 +43,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from 'next/navigation'; // To highlight active link
-import Image from 'next/image'; // Import Next Image for background
+// Removed Image import as it's handled globally
 
 // --- Placeholder Authentication ---
 // In a real app, replace this with actual authentication context/logic
@@ -227,22 +227,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                      </div>
                  </SidebarFooter>
             </Sidebar>
-            <SidebarInset className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-                {/* Background Image */}
-               <Image
-                 src="https://picsum.photos/seed/admin-bg/1920/1080"
-                 alt="Subtle abstract background for admin area"
-                 layout="fill"
-                 objectFit="cover"
-                 className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-                 data-ai-hint="abstract pattern subtle grey texture geometric"
-                 aria-hidden="true"
-               />
+            {/* Removed relative isolate and background image handling from SidebarInset */}
+            <SidebarInset>
                 {/* Main content area for admin pages */}
-                 <div className="p-4 md:p-8 relative z-10"> {/* Add padding to content area, ensure content is above background */}
+                 {/* Removed relative z-10 */}
+                 <div className="p-4 md:p-8">
                     {children}
                  </div>
             </SidebarInset>
         </SidebarProvider>
     );
 }
+
+    

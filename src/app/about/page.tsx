@@ -11,17 +11,8 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/about-bg/1920/1080"
-         alt="Subtle abstract background texture wood"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle abstract texture wood grain light"
-         aria-hidden="true"
-       />
+    // Removed relative isolate and background image handling
+    <div>
         {/* Hero Section */}
         <div className="relative h-64 md:h-80">
             <Image
@@ -40,7 +31,8 @@ export default function AboutPage() {
 
         {/* Main Content */}
         <div className="container mx-auto px-4 py-12 md:py-16">
-          <div className="max-w-4xl mx-auto bg-card/70 backdrop-blur-sm p-6 md:p-8 rounded-lg shadow-md border border-border/50"> {/* Add background, padding, etc. */}
+          {/* Add background, padding, etc. directly if needed, or let BackgroundImage handle it */}
+          <div className="max-w-4xl mx-auto bg-card/70 backdrop-blur-sm p-6 md:p-8 rounded-lg shadow-md border border-border/50">
             {/* Using prose for readable text formatting, customized via globals.css or tailwind.config */}
             <div className="prose prose-lg lg:prose-xl max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80">
               <p className="lead text-xl text-muted-foreground !mb-8"> {/* Lead paragraph style */}
@@ -109,3 +101,5 @@ export default function AboutPage() {
     </div>
   );
 }
+
+    

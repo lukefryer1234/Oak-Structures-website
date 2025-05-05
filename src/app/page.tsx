@@ -23,17 +23,7 @@ const featuredDeals = [
 
 export default function Home() {
   return (
-    <div className="relative isolate overflow-hidden">
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/home-bg/1920/1080"
-         alt="Subtle wood texture background"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="light wood texture pattern subtle"
-         aria-hidden="true"
-       />
+    <div> {/* Removed relative isolate div */}
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted/50 backdrop-blur-sm"> {/* Semi-transparent background */}
         <div className="container mx-auto px-4">
@@ -65,6 +55,47 @@ export default function Home() {
         </div>
       </section>
 
+       {/* Featured Deals Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-12">Featured Deals</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {featuredDeals.map((deal) => (
+               <Card key={deal.name} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col sm:flex-row bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust styles */}
+                 <div className="relative h-48 sm:h-auto sm:w-1/3 flex-shrink-0 bg-muted">
+                     <Image
+                       src={`https://picsum.photos/seed/${deal.name.replace(/\s+/g, '-')}/400/400`}
+                       alt={deal.name}
+                       layout="fill"
+                       objectFit="cover"
+                       data-ai-hint={deal.dataAiHint}
+                     />
+                 </div>
+                  <CardContent className="p-6 flex flex-col justify-between flex-grow">
+                     <div>
+                       <CardTitle className="text-xl mb-2">{deal.name}</CardTitle>
+                       <CardDescription className="mb-4">{deal.description}</CardDescription>
+                     </div>
+                      <div className="flex items-center justify-between mt-4">
+                       <span className="text-2xl font-semibold text-primary">{deal.price}</span>
+                        <Button variant="secondary" asChild>
+                           {/* Link to the main special deals page as specific pages don't exist */}
+                           <Link href="/special-deals">View Deal</Link>
+                        </Button>
+                     </div>
+                   </CardContent>
+               </Card>
+            ))}
+          </div>
+           <div className="text-center mt-12">
+             <Button variant="outline" asChild>
+               <Link href="/special-deals">See All Special Deals <ArrowRight className="ml-2 h-4 w-4" /></Link>
+             </Button>
+           </div>
+        </div>
+      </section>
     </div>
   );
 }
+
+    

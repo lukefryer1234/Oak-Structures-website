@@ -20,7 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import Image from 'next/image'; // Import Image
+// Removed Image import as it's handled globally
 
 // Placeholder - In a real app, check authentication status here
 const isLoggedIn = true; // Assume user is logged in for now
@@ -68,18 +68,11 @@ export default function CustomOrderPage() {
   if (!isLoggedIn) {
     // In a real app, you might redirect to login or show a message
      return (
-      <div className="relative isolate overflow-hidden"> {/* Added wrapper for background */}
-          <Image
-             src="https://picsum.photos/seed/custom-order-login-bg/1920/1080"
-             alt="Subtle background"
-             layout="fill"
-             objectFit="cover"
-             className="absolute inset-0 -z-10 opacity-5"
-             data-ai-hint="subtle texture grey pattern"
-             aria-hidden="true"
-           />
+       // Removed wrapper for background
+      <div>
           <div className="container mx-auto px-4 py-12 text-center flex items-center justify-center min-h-[calc(100vh-12rem)]">
-             <Card className="max-w-lg mx-auto bg-card/80 backdrop-blur-sm"> {/* Adjusted card */}
+             {/* Adjusted card */}
+             <Card className="max-w-lg mx-auto bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                    <CardTitle>Login Required</CardTitle>
                    <CardDescription>Please log in or register to submit a custom order inquiry.</CardDescription>
@@ -94,19 +87,11 @@ export default function CustomOrderPage() {
    }
 
   return (
-     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/custom-order-bg/1920/1080"
-         alt="Subtle background texture blueprint"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle pattern texture blueprint design wood"
-         aria-hidden="true"
-       />
+     // Removed relative isolate and background image handling
+     <div>
         <div className="container mx-auto px-4 py-12">
-          <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjusted card */}
+           {/* Adjusted card */}
+          <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
             <CardHeader>
               <CardTitle className="text-3xl">Custom Order Inquiry</CardTitle>
               <CardDescription>
@@ -125,6 +110,7 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Full Name <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
+                           {/* Adjusted background */}
                           <Input placeholder="Your full name" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
@@ -139,6 +125,7 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Email Address <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
+                           {/* Adjusted background */}
                           <Input type="email" placeholder="your.email@example.com" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
@@ -153,6 +140,7 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Description of Requirements <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
+                           {/* Adjusted background */}
                           <Textarea rows={6} placeholder="Describe your project, desired dimensions, materials, features, etc." {...field} className="bg-background/70"/>
                         </FormControl>
                          <FormDescription>
@@ -171,6 +159,7 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
+                           {/* Adjusted background */}
                           <Input type="tel" placeholder="Your contact number" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
@@ -185,6 +174,7 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Postcode / Town</FormLabel>
                         <FormControl>
+                           {/* Adjusted background */}
                           <Input placeholder="Delivery or site postcode/town" {...field} className="bg-background/70"/>
                         </FormControl>
                          <FormDescription>Helps us estimate delivery if applicable.</FormDescription>
@@ -200,6 +190,7 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Company Name</FormLabel>
                         <FormControl>
+                           {/* Adjusted background */}
                           <Input placeholder="Your company name (if applicable)" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
@@ -215,6 +206,7 @@ export default function CustomOrderPage() {
                           <FormLabel>Related Product Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
+                               {/* Adjusted background */}
                               <SelectTrigger className="bg-background/70">
                                 <SelectValue placeholder="Select a product type (optional)" />
                               </SelectTrigger>
@@ -240,6 +232,7 @@ export default function CustomOrderPage() {
                         <FormItem>
                           <FormLabel>File Upload</FormLabel>
                           <FormControl>
+                             {/* Adjusted background */}
                             {/* Basic file input. Enhance with drag-and-drop library if needed */}
                             <Input type="file" {...form.register("fileUpload")} className="bg-background/70"/>
                           </FormControl>
@@ -293,6 +286,7 @@ export default function CustomOrderPage() {
                           <FormItem>
                             <FormLabel>Budget Indication</FormLabel>
                             <FormControl>
+                               {/* Adjusted background */}
                               <Input placeholder="e.g., £5,000 - £10,000 (optional)" {...field} className="bg-background/70"/>
                             </FormControl>
                             <FormMessage />
@@ -307,6 +301,7 @@ export default function CustomOrderPage() {
                           <FormItem>
                             <FormLabel>Desired Timescale / Date</FormLabel>
                             <FormControl>
+                               {/* Adjusted background */}
                               <Input placeholder="e.g., Within 3 months, By September 2025 (optional)" {...field} className="bg-background/70"/>
                             </FormControl>
                             <FormMessage />
@@ -315,7 +310,8 @@ export default function CustomOrderPage() {
                       />
 
 
-                  <div className="flex justify-end pt-4 border-t border-border/50"> {/* Added border */}
+                   {/* Added border */}
+                  <div className="flex justify-end pt-4 border-t border-border/50">
                      <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
                       {form.formState.isSubmitting ? "Submitting..." : "Submit Inquiry"}
                     </Button>
@@ -328,3 +324,5 @@ export default function CustomOrderPage() {
      </div>
   );
 }
+
+    

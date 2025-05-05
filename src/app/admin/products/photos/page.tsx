@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Trash2, Image as ImageIcon } from 'lucide-react'; // Icons
 import Image from 'next/image'; // Use next/image for preview
+import { Slider } from "@/components/ui/slider"; // Import Slider
+import { useToast } from "@/hooks/use-toast"; // Import useToast
 
 // --- Types and Placeholder Data ---
 
-// Added 'main_product' and 'background' types
+// Added 'background' type
 type ImageType = 'category' | 'special_deal' | 'config_option' | 'main_product' | 'background';
 
 interface ProductImage {
@@ -21,6 +23,7 @@ interface ProductImage {
   target: string; // Category name, Deal ID/Name, Config Option ID, Page Key (e.g., 'home', 'garages')
   url: string; // Image URL
   altText: string; // Alt text for accessibility
+  opacity?: number; // Optional opacity for background images (0-100)
 }
 
 // Placeholder data - Fetch from backend
@@ -31,14 +34,15 @@ const initialImages: ProductImage[] = [
   { id: 'img4', type: 'config_option', target: 'truss-curved', url: 'https://picsum.photos/seed/truss-curved/200/200', altText: 'Curved Truss Option Preview' },
   { id: 'img5', type: 'config_option', target: 'truss-straight', url: 'https://picsum.photos/seed/truss-straight/200/200', altText: 'Straight Truss Option Preview' },
   { id: 'img6', type: 'main_product', target: 'Garages', url: 'https://picsum.photos/seed/main-garage/400/300', altText: 'Main Garage Product Image' },
-   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image' },
+   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 }, // Example with opacity
+   { id: 'img8', type: 'background', target: 'about', url: 'https://picsum.photos/seed/about-bg/1920/1080', altText: 'About Page Background Image', opacity: 5 },
 ];
 
 // Updated imageTypes array
 const imageTypes: ImageType[] = ['category', 'main_product', 'background', 'special_deal', 'config_option'];
 const categoryTargets = ['Garages', 'Gazebos', 'Porches', 'Oak Beams', 'Oak Flooring', 'Special Deals'];
-// Placeholder targets for background images
-const pageTargets = ['home', 'products', 'gallery', 'about', 'contact'];
+// Placeholder targets for background images - add more as needed
+const pageTargets = ['home', 'products', 'gallery', 'about', 'contact', 'basket', 'checkout', 'account', 'admin', 'login', 'forgot-password', 'custom-order', 'delivery', 'faq', 'order-confirmation', 'privacy', 'terms'];
 // Add logic to fetch Special Deal IDs/Names and Config Option IDs
 
 export default function ProductPhotosPage() {
@@ -47,8 +51,9 @@ export default function ProductPhotosPage() {
   const [newImageTarget, setNewImageTarget] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageAlt, setNewImageAlt] = useState('');
+  const [newImageOpacity, setNewImageOpacity] = useState<number>(10); // Default opacity 10%
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
+  const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -62,7 +67,11 @@ export default function ProductPhotosPage() {
   const handleAddImage = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newImageType || !newImageTarget || (!newImageUrl && !selectedFile) || !newImageAlt) {
-        alert("Please fill in all fields and provide an image URL or upload a file."); // Use toast
+        toast({ // Use toast for validation
+            variant: "destructive",
+            title: "Validation Error",
+            description: "Please fill in Type, Target, Alt Text, and provide an Image URL or Upload.",
+        });
         return;
     }
 
@@ -77,6 +86,7 @@ export default function ProductPhotosPage() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`; // Placeholder URL after "upload"
         console.log("Simulated upload complete. URL:", finalImageUrl);
+        toast({ title: "Info", description: "Image upload simulated." });
     }
      // --- End Placeholder ---
 
@@ -87,16 +97,21 @@ export default function ProductPhotosPage() {
         target: newImageTarget,
         url: finalImageUrl,
         altText: newImageAlt,
+        // Only include opacity if it's a background image
+        opacity: newImageType === 'background' ? newImageOpacity : undefined,
     };
 
     setImages(prev => [...prev, newImage]);
      // TODO: API call to save image metadata to backend
+     console.log("Added Image:", newImage);
+     toast({ title: "Success", description: "Image association added." });
 
     // Reset form
     setNewImageType('');
     setNewImageTarget('');
     setNewImageUrl('');
     setNewImageAlt('');
+    setNewImageOpacity(10); // Reset opacity
     setSelectedFile(null);
      // Reset file input visually
      const fileInput = document.getElementById('image-upload') as HTMLInputElement;
@@ -109,6 +124,7 @@ export default function ProductPhotosPage() {
         setImages(prev => prev.filter(img => img.id !== id));
          // TODO: API call to delete image metadata from backend
         console.log("Deleted Image ID:", id);
+        toast({ title: "Deleted", description: "Image association removed." });
      }
   };
 
@@ -160,7 +176,7 @@ export default function ProductPhotosPage() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Product Image</CardTitle>
-          <CardDescription>Upload or link an image and associate it with a product category, special deal, configuration option, or page element.</CardDescription>
+          <CardDescription>Upload or link an image and associate it with a product category, special deal, configuration option, page element, or page background.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddImage} className="space-y-4">
@@ -212,7 +228,24 @@ export default function ProductPhotosPage() {
                  </div>
              </div>
 
-             <div className="flex justify-end">
+             {/* Opacity Slider (only shown for background images) */}
+             {newImageType === 'background' && (
+                 <div className="space-y-2 pt-4">
+                   <Label htmlFor="opacity-slider">Background Opacity ({newImageOpacity}%)</Label>
+                   <Slider
+                     id="opacity-slider"
+                     min={0}
+                     max={100}
+                     step={1}
+                     value={[newImageOpacity]}
+                     onValueChange={(value) => setNewImageOpacity(value[0])}
+                     className="py-2"
+                   />
+                   <p className="text-xs text-muted-foreground">Set how transparent the background image should be (0% = invisible, 100% = fully opaque). Low values (e.g., 5-10%) are recommended.</p>
+                 </div>
+             )}
+
+             <div className="flex justify-end pt-4 border-t">
                  <Button type="submit"><Upload className="mr-2 h-4 w-4"/> Add Image</Button>
              </div>
           </form>
@@ -223,7 +256,7 @@ export default function ProductPhotosPage() {
       <Card>
         <CardHeader>
           <CardTitle>Existing Images</CardTitle>
-           <CardDescription>Manage currently associated product images.</CardDescription>
+           <CardDescription>Manage currently associated product and page images.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -237,6 +270,9 @@ export default function ProductPhotosPage() {
                      <p><strong className="text-muted-foreground">Type:</strong> {formatImageType(img.type)}</p>
                      <p><strong className="text-muted-foreground">Target:</strong> {img.target}</p>
                      <p><strong className="text-muted-foreground">Alt:</strong> {img.altText}</p>
+                      {img.type === 'background' && img.opacity !== undefined && (
+                         <p><strong className="text-muted-foreground">Opacity:</strong> {img.opacity}%</p>
+                      )}
                       <p className="truncate"><strong className="text-muted-foreground">URL:</strong> <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{img.url}</a></p>
                   </div>
                    {/* Delete Button */}
@@ -260,3 +296,5 @@ export default function ProductPhotosPage() {
     </div>
   );
 }
+
+    

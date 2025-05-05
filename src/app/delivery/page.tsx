@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck, PackageCheck, AlertTriangle, Info, Building } from "lucide-react"; // Icons
 import type { Metadata } from 'next';
-import Image from 'next/image'; // Import Image
+// Removed Image import as it's handled globally
 
 export const metadata: Metadata = {
   title: "Delivery Information",
@@ -26,17 +26,8 @@ const formatPrice = (price: number) => {
 
 export default function DeliveryPage() {
   return (
-    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-       {/* Background Image */}
-       <Image
-         src="https://picsum.photos/seed/delivery-bg/1920/1080"
-         alt="Subtle background pattern logistics"
-         layout="fill"
-         objectFit="cover"
-         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
-         data-ai-hint="subtle texture road map logistics"
-         aria-hidden="true"
-       />
+    // Removed relative isolate and background image handling
+    <div>
         <div className="container mx-auto px-4 py-12 md:py-16">
             <div className="text-center mb-12">
                  <Truck className="h-12 w-12 mx-auto text-primary mb-4" />
@@ -48,7 +39,8 @@ export default function DeliveryPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
 
                 {/* Delivery Costs Card */}
-                <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm flex flex-col"> {/* Added transparency and blur */}
+                 {/* Added transparency and blur */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm flex flex-col">
                     <CardHeader className="flex flex-row items-center space-x-3 space-y-0 pb-2">
                         {/* <Truck className="h-6 w-6 text-primary" /> */}
                         <CardTitle className="text-xl text-card-foreground">Delivery Costs</CardTitle>
@@ -75,7 +67,8 @@ export default function DeliveryPage() {
                 </Card>
 
                 {/* Lead Times Card */}
-                <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm flex flex-col"> {/* Added transparency and blur */}
+                 {/* Added transparency and blur */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm flex flex-col">
                     <CardHeader className="flex flex-row items-center space-x-3 space-y-0 pb-2">
                          {/* <PackageCheck className="h-6 w-6 text-primary" /> */}
                         <CardTitle className="text-xl text-card-foreground">Estimated Lead Times</CardTitle>
@@ -96,7 +89,8 @@ export default function DeliveryPage() {
                 </Card>
 
                  {/* Delivery Requirements Card */}
-                 <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm flex flex-col"> {/* Added transparency and blur */}
+                  {/* Added transparency and blur */}
+                 <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm flex flex-col">
                     <CardHeader className="flex flex-row items-center space-x-3 space-y-0 pb-2">
                          {/* <AlertTriangle className="h-6 w-6 text-primary" /> */}
                         <CardTitle className="text-xl text-card-foreground">Delivery & Offloading</CardTitle>
@@ -124,12 +118,14 @@ export default function DeliveryPage() {
             </div>
 
              {/* General Info Section */}
-             <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm mt-12"> {/* Added transparency and blur */}
+              {/* Added transparency and blur */}
+             <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-sm mt-12">
                  <CardHeader className="flex flex-row items-center space-x-3 space-y-0 pb-2">
                      <Info className="h-6 w-6 text-primary" />
                      <CardTitle className="text-xl text-card-foreground">Important Notes</CardTitle>
                  </CardHeader>
-                 <CardContent className="space-y-3 text-sm text-muted-foreground columns-1 md:columns-2 gap-8"> {/* Multi-column layout */}
+                  {/* Multi-column layout */}
+                 <CardContent className="space-y-3 text-sm text-muted-foreground columns-1 md:columns-2 gap-8">
                      <p className="break-inside-avoid mb-3">We currently only deliver to standard UK mainland addresses. Please contact us for quotes to remote areas (Scottish Highlands, Islands, Northern Ireland etc.) as surcharges or different arrangements may apply.</p>
                      <p className="break-inside-avoid mb-3">Please inspect your delivery carefully upon arrival. Report any damage or discrepancies to the driver (note it on the delivery paperwork) and notify us with photos within 48 hours.</p>
                      <p className="break-inside-avoid mb-3">Delivery dates are scheduled in good faith but are estimates. We are not liable for delays outside our direct control (e.g., traffic, weather, carrier issues).</p>
@@ -142,3 +138,5 @@ export default function DeliveryPage() {
     </div>
   );
 }
+
+    

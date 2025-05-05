@@ -9,7 +9,7 @@ import Link from "next/link";
 import { CheckCircle, ShoppingBag, Home, Loader2 } from "lucide-react"; // Added Loader2
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import Image from 'next/image'; // Import Image
+// Removed Image import as it's handled globally
 
 // Inner component that uses searchParams
 function OrderConfirmationContent() {
@@ -20,20 +20,13 @@ function OrderConfirmationContent() {
     // const { data: orderDetails, isLoading, error } = useQuery(['order', orderId], () => fetchOrderDetails(orderId), { enabled: !!orderId });
 
     return (
-        <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
-           {/* Background Image */}
-           <Image
-             src="https://picsum.photos/seed/confirmation-bg/1920/1080"
-             alt="Subtle celebratory background"
-             layout="fill"
-             objectFit="cover"
-             className="absolute inset-0 -z-10 opacity-[0.03]" // Very very subtle opacity
-             data-ai-hint="subtle pattern confetti celebration light"
-             aria-hidden="true"
-           />
+        // Removed relative isolate and background image handling
+        <div>
             <div className="container mx-auto px-4 py-12 md:py-16 flex items-center justify-center min-h-[calc(100vh-12rem)]"> {/* Adjusted min-height */}
-                <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm border border-border shadow-xl text-center overflow-hidden"> {/* Added transparency and blur */}
-                    <CardHeader className="items-center pb-4 bg-muted/30 pt-8"> {/* Slightly adjusted bg opacity */}
+                 {/* Added transparency and blur */}
+                <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm border border-border shadow-xl text-center overflow-hidden">
+                     {/* Slightly adjusted bg opacity */}
+                    <CardHeader className="items-center pb-4 bg-muted/30 pt-8">
                         <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
                         <CardTitle className="text-3xl text-card-foreground">Order Confirmed!</CardTitle>
                         <CardDescription className="text-muted-foreground pt-2 max-w-md mx-auto">
@@ -42,7 +35,8 @@ function OrderConfirmationContent() {
                     </CardHeader>
                     <CardContent className="space-y-5 px-6 sm:px-10 py-8">
                         {orderId ? (
-                            <div className="bg-background/70 border border-border rounded-md p-4 shadow-sm"> {/* Adjusted background */}
+                             {/* Adjusted background */}
+                            <div className="bg-background/70 border border-border rounded-md p-4 shadow-sm">
                                 <p className="text-base sm:text-lg text-muted-foreground">
                                     Your Order ID is:
                                 </p>
@@ -78,16 +72,8 @@ function OrderConfirmationContent() {
 // Fallback component for Suspense
 function LoadingConfirmation() {
     return (
-         <div className="relative isolate overflow-hidden"> {/* Ensure fallback also has wrapper if needed */}
-             <Image
-               src="https://picsum.photos/seed/confirmation-bg/1920/1080"
-               alt="Subtle celebratory background"
-               layout="fill"
-               objectFit="cover"
-               className="absolute inset-0 -z-10 opacity-[0.03]"
-               data-ai-hint="subtle pattern confetti celebration light"
-               aria-hidden="true"
-             />
+        // Removed relative isolate and background image handling
+         <div>
             <div className="container mx-auto px-4 py-12 text-center flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                  <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                 <p className="text-muted-foreground">Loading confirmation details...</p>
@@ -105,3 +91,5 @@ export default function OrderConfirmationPage() {
         </Suspense>
     );
 }
+
+    
