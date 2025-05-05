@@ -1,3 +1,4 @@
+
 "use client"; // Needed for state management and Dropdown
 
 import Link from "next/link";
@@ -20,6 +21,7 @@ import {
   Info,
   HelpCircle,
   Phone,
+  LayoutDashboard, // Added Admin icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,8 +56,9 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Placeholder for user authentication status
-  const isLoggedIn = false; // Replace with actual auth check
+  // Placeholder for user authentication status and role
+  const isLoggedIn = true; // Replace with actual auth check - Assume logged in for testing admin link
+  const isAdmin = true; // Replace with actual role check - Assume admin for testing admin link
   // Placeholder for basket item count
   const basketItemCount = 3; // Replace with actual basket count logic
   // Placeholder for basket total price - fetch this from actual basket state
@@ -197,7 +200,8 @@ export function SiteHeader() {
 
 
         {/* Right Side: Icons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4"> {/* Increased gap slightly */}
+          {/* Basket Icon */}
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
@@ -209,6 +213,7 @@ export function SiteHeader() {
             </Link>
           </Button>
 
+          {/* User Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User Account" className="h-9 w-9">
@@ -220,6 +225,17 @@ export function SiteHeader() {
                 <>
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                   {/* Add Admin Link Here */}
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="flex items-center gap-2">
+                        <LayoutDashboard className="h-4 w-4" />
+                         Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                   {/* Separate admin link from user links */}
+                   {isAdmin && <DropdownMenuSeparator />}
                   <DropdownMenuItem asChild>
                     <Link href="/account/profile">Profile</Link>
                   </DropdownMenuItem>
