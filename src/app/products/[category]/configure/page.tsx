@@ -45,8 +45,7 @@ const configurations: { [key: string]: CategoryConfig } = {
   garages: {
     title: "Configure Your Garage",
     options: [
-      // Reordered options
-      { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' },
+      // Reordered options, removed oakType
       { id: 'bays', label: 'Number of Bays', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
       { id: 'sizeType', label: 'Size Type (Overall Dimensions)', type: 'select', options: [{ value: 'small', label: 'Small (e.g., 5m x 6m)' }, { value: 'medium', label: 'Medium (e.g., 6m x 6m)' }, { value: 'large', label: 'Large (e.g., 6m x 9m)' }], defaultValue: 'medium' },
@@ -104,10 +103,11 @@ const calculatePrice = (category: string, config: any): number => {
                 catSlideCost += 150; // Example cost per bay with cat slide
             }
         }
-        basePrice = 8000 + bays * 1500 + (config.oakType === 'reclaimed' ? 500 : 0) + catSlideCost;
+        // Removed oakType from pricing calculation
+        basePrice = 8000 + bays * 1500 + catSlideCost;
         break;
     case 'gazebos': basePrice = 3000 + (config.sizeType === '4x4' ? 500 : 0) + (config.oakType === 'reclaimed' ? 200 : 0); break;
-    case 'porches': basePrice = 2000 + (config.sizeType === 'wide' ? 400 : 0) + (config.legType === 'floor' ? 150 : 0); break;
+    case 'porches': basePrice = 2000 + (config.sizeType === 'wide' ? 400 : 0) + (config.legType === 'floor' ? 150 : 0) + (config.oakType === 'reclaimed' ? 200 : 0); break; // Added back oakType for porches
     case 'oak-beams':
         const dims = config.dimensions || { length: 0, width: 0, thickness: 0 };
         const volumeM3 = (dims.length / 100) * (dims.width / 100) * (dims.thickness / 100);
