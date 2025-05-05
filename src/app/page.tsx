@@ -23,30 +23,29 @@ const featuredDeals = [
 
 export default function Home() {
   return (
-    <div> {/* Removed relative isolate div */}
+    <div className="flex flex-col">
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted/50 backdrop-blur-sm"> {/* Semi-transparent background */}
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
-                 <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, border */}
-                   {/* Image fills the CardContent, CardContent is relative */}
-                   <CardContent className="p-0 flex-grow relative aspect-square w-full overflow-hidden">
+                 {/* Style 2: Image focus with bottom overlay title */}
+                 <Card className="overflow-hidden shadow-none border-none rounded-lg relative h-full bg-card/80 backdrop-blur-sm"> {/* Removed border/shadow, added relative */}
+                   <CardContent className="p-0 relative aspect-[4/3] w-full"> {/* Use aspect ratio */}
                     <Image
-                      src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/400`} // Use square image, create unique seed
+                      src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/300`} // Use appropriate ratio
                       alt={category.name}
                       layout="fill"
                       objectFit="cover"
                       data-ai-hint={category.dataAiHint}
-                      className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
+                      className="transition-transform duration-300 group-hover:scale-105"
                     />
-                     {/* Overlay div for gradient and title */}
-                     <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-black/40 to-transparent p-4">
-                       <CardTitle className="text-lg font-semibold text-primary-foreground drop-shadow-md">{category.name}</CardTitle>
+                     {/* Darker overlay at the bottom for title */}
+                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4">
+                       <CardTitle className="text-xl font-bold text-primary-foreground drop-shadow-lg">{category.name}</CardTitle>
                      </div>
                   </CardContent>
-                   {/* Footer removed */}
                  </Card>
               </Link>
             ))}
@@ -97,4 +96,3 @@ export default function Home() {
   );
 }
 
-    
