@@ -31,7 +31,7 @@ const handleGoogleRegister = () => {
 
 export default function RegisterPage() {
   return (
-    // Container and centering handled by AuthLayout
+    // The AuthLayout will center this Card
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Register</CardTitle>
@@ -49,7 +49,7 @@ export default function RegisterPage() {
               <Separator />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-card px-2 text-muted-foreground">
                 Or register with email
               </span>
             </div>

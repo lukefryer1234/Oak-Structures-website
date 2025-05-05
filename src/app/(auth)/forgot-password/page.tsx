@@ -15,7 +15,7 @@ const handlePasswordReset = (event: React.FormEvent<HTMLFormElement>) => {
 
 export default function ForgotPasswordPage() {
   return (
-    // Container and centering handled by AuthLayout
+    // The AuthLayout will center this Card
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Forgot Password</CardTitle>
