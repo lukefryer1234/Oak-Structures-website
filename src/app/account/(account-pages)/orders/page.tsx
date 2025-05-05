@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -56,8 +57,8 @@ export default function OrdersPage() {
                    </TableCell>
                   <TableCell className="text-right">
                      <Button variant="outline" size="sm" asChild>
-                        {/* Link to a detailed order view page */}
-                        <Link href={`/account/orders/${order.id}`}>View Details</Link>
+                        {/* Link to the main orders page for now as specific detail page doesn't exist */}
+                        <Link href={`/account/orders`}>View Details</Link>
                      </Button>
                   </TableCell>
                 </TableRow>

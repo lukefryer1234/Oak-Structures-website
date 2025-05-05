@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { ArrowRight } from 'lucide-react';
 
 const productCategories = [
-  { name: 'Garages', href: '/products/garages', description: 'Robust oak frame garages.', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
-  { name: 'Gazebos', href: '/products/gazebos', description: 'Elegant oak gazebos for your garden.', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
-  { name: 'Porches', href: '/products/porches', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
-  { name: 'Oak Beams', href: '/products/oak-beams', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
-  { name: 'Oak Flooring', href: '/products/oak-flooring', description: 'Beautiful and durable oak flooring.', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
+  { name: 'Garages', href: '/products/garages/configure', description: 'Robust oak frame garages.', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
+  { name: 'Gazebos', href: '/products/gazebos/configure', description: 'Elegant oak gazebos for your garden.', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
+  { name: 'Porches', href: '/products/porches/configure', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
+  { name: 'Oak Beams', href: '/products/oak-beams/configure', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
+  { name: 'Oak Flooring', href: '/products/oak-flooring/configure', description: 'Beautiful and durable oak flooring.', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
    { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' }, // Keep this link as is
 ];
 
@@ -25,7 +25,6 @@ export default function Home() {
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted">
         <div className="container mx-auto px-4">
-          {/* <h2 className="text-3xl font-bold text-center mb-12">Our Products</h2> Removed heading */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
@@ -74,7 +73,8 @@ export default function Home() {
                   <div className="flex items-center justify-between mt-4">
                      <span className="text-2xl font-semibold text-primary">{deal.price}</span>
                      <Button variant="secondary" asChild>
-                       <Link href={deal.href}>View Deal</Link>
+                        {/* Link to main special deals page */}
+                       <Link href="/special-deals">View Deal</Link>
                      </Button>
                   </div>
                 </CardContent>

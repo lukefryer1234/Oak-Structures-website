@@ -1,3 +1,4 @@
+
 "use client"; // Needed for state management
 
 import { useState } from 'react';
@@ -17,15 +18,16 @@ interface BasketItem {
   price: number;
   quantity: number;
   image: string;
-  href: string;
+  href: string; // Should point to the config page ideally
   dataAiHint: string;
+  category: string; // Added category to construct config link
 }
 
 // Placeholder basket data - replace with actual data fetching/state management
 const initialBasketItems: BasketItem[] = [
-  { id: 'garage1', name: 'Custom Garage (3-Bay)', description: 'Curved Truss, Reclaimed Oak, No Cat Slide', price: 12500, quantity: 1, image: '/images/basket-garage.jpg', href: '/products/garages/configure?id=garage1', dataAiHint: 'oak frame garage construction' },
-  { id: 'flooring1', name: 'Oak Flooring (25m²)', description: 'Kilned Dried Oak', price: 1875, quantity: 1, image: '/images/basket-flooring.jpg', href: '/products/oak-flooring/configure?id=flooring1', dataAiHint: 'oak flooring planks' },
-  { id: 'deal2', name: 'Garden Gazebo Kit', description: 'Special Deal Item', price: 3200, quantity: 1, image: '/images/special-deal-gazebo.jpg', href: '/special-deals/gazebo-kit', dataAiHint: 'garden gazebo wood structure' },
+  { id: 'garage1', category: 'garages', name: 'Custom Garage (3-Bay)', description: 'Curved Truss, Reclaimed Oak, No Cat Slide', price: 12500, quantity: 1, image: '/images/basket-garage.jpg', href: '/products/garages/configure?id=garage1', dataAiHint: 'oak frame garage construction' },
+  { id: 'flooring1', category: 'oak-flooring', name: 'Oak Flooring (25m²)', description: 'Kilned Dried Oak', price: 1875, quantity: 1, image: '/images/basket-flooring.jpg', href: '/products/oak-flooring/configure?id=flooring1', dataAiHint: 'oak flooring planks' },
+  { id: 'deal2', category: 'special-deals', name: 'Garden Gazebo Kit', description: 'Special Deal Item', price: 3200, quantity: 1, image: '/images/special-deal-gazebo.jpg', href: '/special-deals/gazebo-kit', dataAiHint: 'garden gazebo wood structure' },
 ];
 
 // Placeholder VAT rate and shipping calculation logic
@@ -42,10 +44,12 @@ export default function BasketPage() {
     setBasketItems(items =>
       items.map(item => (item.id === id ? { ...item, quantity: newQuantity } : item))
     );
+     alert(`Update quantity for item ${id} to ${newQuantity} (placeholder)`);
   };
 
   const removeItem = (id: string) => {
     setBasketItems(items => items.filter(item => item.id !== id));
+     alert(`Remove item ${id} (placeholder)`);
   };
 
   const subtotal = basketItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -82,44 +86,51 @@ export default function BasketPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {basketItems.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
-                <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-                   <div className="relative h-32 w-full sm:w-32 flex-shrink-0 bg-muted rounded-md overflow-hidden">
-                    <Image
-                      src={`https://picsum.photos/seed/${item.id}/200/200`} // Placeholder
-                      alt={item.name}
-                      layout="fill"
-                      objectFit="cover"
-                      data-ai-hint={item.dataAiHint}
-                    />
-                  </div>
-                  <div className="flex-grow flex flex-col justify-between">
-                    <div>
-                      <Link href={item.href} className="text-lg font-semibold hover:underline">{item.name}</Link>
-                      <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+            {basketItems.map((item) => {
+              // Construct link based on category
+              const itemLink = item.category === 'special-deals'
+                                 ? `/special-deals` // Link to deals page for deal items
+                                 : `/products/${item.category}/configure`; // Link to config for configurable items
+
+              return (
+                <Card key={item.id} className="overflow-hidden">
+                  <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+                    <div className="relative h-32 w-full sm:w-32 flex-shrink-0 bg-muted rounded-md overflow-hidden">
+                      <Image
+                        src={`https://picsum.photos/seed/${item.id}/200/200`} // Placeholder
+                        alt={item.name}
+                        layout="fill"
+                        objectFit="cover"
+                        data-ai-hint={item.dataAiHint}
+                      />
                     </div>
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center gap-2">
-                        <label htmlFor={`quantity-${item.id}`} className="text-sm sr-only">Quantity</label>
-                        <Input
-                          id={`quantity-${item.id}`}
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                          className="h-8 w-16"
-                        />
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id)} aria-label="Remove item">
-                           <Trash2 className="h-4 w-4 text-destructive" />
-                         </Button>
+                    <div className="flex-grow flex flex-col justify-between">
+                      <div>
+                        <Link href={itemLink} className="text-lg font-semibold hover:underline">{item.name}</Link>
+                        <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                       </div>
-                      <span className="text-lg font-medium">£{(item.price * item.quantity).toFixed(2)}</span>
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center gap-2">
+                          <label htmlFor={`quantity-${item.id}`} className="text-sm sr-only">Quantity</label>
+                          <Input
+                            id={`quantity-${item.id}`}
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                            className="h-8 w-16"
+                          />
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id)} aria-label="Remove item">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <span className="text-lg font-medium">£{(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
           <div className="lg:col-span-1">

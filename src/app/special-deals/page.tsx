@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -48,10 +49,11 @@ export default function SpecialDealsPage() {
                  </div>
                  <div className="flex gap-2">
                     <Button asChild className="flex-1">
-                      <Link href={deal.href}>View Details</Link>
+                      {/* Link to the main special deals page as specific pages don't exist */}
+                      <Link href="/special-deals">View Details</Link>
                     </Button>
-                    <Button variant="secondary" className="flex-1">
-                      {/* Add to Basket Functionality Here */}
+                    <Button variant="secondary" className="flex-1" onClick={() => alert(`Add ${deal.name} to basket (placeholder)`)}>
+                      {/* Placeholder Add to Basket Functionality */}
                        Add to Basket
                     </Button>
                  </div>
