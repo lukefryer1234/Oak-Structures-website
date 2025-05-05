@@ -15,10 +15,7 @@ const productCategories = [
    { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 
-const specialDeals = [
-  { name: 'Pre-Configured Double Garage', price: '£8,500', description: 'Limited time offer on our popular 2-bay garage.', image: '/images/special-deal-garage.jpg', href: '/special-deals/double-garage', dataAiHint: 'double oak frame garage' },
-  { name: 'Garden Gazebo Kit', price: '£3,200', description: 'Easy-to-assemble 3m x 3m gazebo kit.', image: '/images/special-deal-gazebo.jpg', href: '/special-deals/gazebo-kit', dataAiHint: 'garden gazebo kit wood' },
-];
+// Removed specialDeals array as the section was deleted
 
 export default function Home() {
   return (
