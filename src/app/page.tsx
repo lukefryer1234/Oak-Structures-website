@@ -130,9 +130,7 @@ export default function Home() {
       <section className="py-16 bg-secondary text-secondary-foreground">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Need Something Bespoke?</h2>
-          <p className="text-lg mb-8 max-w-2xl mx-auto">
-            Can't find exactly what you're looking for? We specialize in custom oak structures. Submit an inquiry, and let's build your vision together.
-          </p>
+
           <Button variant="accent" size="lg" asChild>
             <Link href="/custom-order">Request a Custom Order</Link>
           </Button>
