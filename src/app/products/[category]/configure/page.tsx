@@ -149,15 +149,14 @@ export default function ConfigureProductPage() {
   });
 
    const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
-   const [previewImage, setPreviewImage] = useState<string | null>(categoryConfig?.image || null);
+   // Removed previewImage state as preview is removed
 
-   // Recalculate initial price and set preview image when config is available
-   useEffect(() => { // Changed useState to useEffect
+   // Recalculate initial price when config is available
+   useEffect(() => {
       if (categoryConfig) {
           setCalculatedPrice(calculatePrice(category, configState));
-          setPreviewImage(categoryConfig.image || null);
       }
-   }, [category, categoryConfig]); // Re-run if category or its config changes
+   }, [category, categoryConfig, configState]); // Recalculate when configState changes too
 
 
    const handleConfigChange = (id: string, value: any) => {
@@ -165,17 +164,7 @@ export default function ConfigureProductPage() {
         const newState = { ...prev, [id]: value };
         // Update price dynamically
         setCalculatedPrice(calculatePrice(category, newState));
-
-        // Update preview image for radio buttons with images
-        if (id === 'trussType') {
-            const selectedOption = categoryConfig?.options.find(opt => opt.id === id)?.options?.find(o => o.value === value);
-            if(selectedOption?.image) {
-                setPreviewImage(selectedOption.image);
-            } else {
-                 setPreviewImage(categoryConfig?.image || null); // Revert to default if no specific image
-            }
-        }
-
+        // Removed preview image update logic
         return newState;
      });
    };
@@ -227,16 +216,17 @@ export default function ConfigureProductPage() {
     <div>
         <div className="container mx-auto px-4 py-12">
            {/* Adjusted card */}
-          <Card className="max-w-4xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
+          <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50"> {/* Changed max-w-4xl to max-w-3xl */}
             <CardHeader>
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
                {/* Link back to the dynamic product page (which doesn't exist) - better to remove or link to home */}
                {/* <Link href={`/products/${category}`} className="text-sm text-primary hover:underline">&larr; Back to {category.replace('-', ' ')}</Link> */}
                 <Link href="/" className="text-sm text-primary hover:underline">&larr; Back to Home</Link>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Changed grid layout to single column */}
+            <CardContent className="grid grid-cols-1 gap-8">
                 {/* Configuration Options */}
-               <div className="space-y-6 order-2 md:order-1">
+               <div className="space-y-6">
                  {categoryConfig.options.map((option) => (
                   <div key={option.id}>
                     <Label htmlFor={option.id} className="text-base font-medium">{option.label}</Label>
@@ -381,33 +371,10 @@ export default function ConfigureProductPage() {
                 ))}
                </div>
 
-                {/* Preview & Price */}
-               <div className="space-y-6 order-1 md:order-2 sticky top-20 self-start">
-                  {/* Adjusted card */}
-                 <Card className="overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50">
-                   <CardContent className="p-0">
-                       {/* Adjusted background */}
-                      <div className="relative aspect-video bg-muted/50">
-                         {previewImage ? (
-                             <Image
-                                src={`https://picsum.photos/seed/${category}-${JSON.stringify(configState).length}/600/400`} // Use key to force reload on change
-                                key={previewImage + JSON.stringify(configState)} // Force re-render/fetch if image source changes based on config
-                                alt={`${categoryConfig.title} Preview`}
-                                layout="fill"
-                                objectFit="contain"
-                                className="p-4"
-                                 data-ai-hint={categoryConfig.dataAiHint || category}
-                             />
-                         ) : (
-                             <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">Configuration Preview</p>
-                             </div>
-                         )}
-                      </div>
-                   </CardContent>
-                 </Card>
-                  {/* Lighter separator */}
-                 <Separator className="border-border/50"/>
+                {/* Price & Add to Basket Section */}
+               <div className="space-y-6 border-t border-border/50 pt-6"> {/* Added border-t and pt-6 */}
+                 {/* Lighter separator - removed as border-t is added above */}
+                 {/* <Separator className="border-border/50"/> */}
                  <div className="text-right space-y-2">
                     <p className="text-sm text-muted-foreground">Estimated Price (excl. VAT & Delivery)</p>
                     <p className="text-3xl font-bold">
@@ -424,5 +391,3 @@ export default function ConfigureProductPage() {
     </div>
   );
 }
-
-    
