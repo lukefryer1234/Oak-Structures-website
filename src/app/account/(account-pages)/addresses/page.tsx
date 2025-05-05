@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,8 @@ export default function AddressesPage() {
 
 
   return (
-    <Card>
+    // Card styling is inherited from layout, only need header/content adjustments if necessary
+    <>
       <CardHeader className="flex flex-row items-center justify-between">
          <div>
             <CardTitle>Manage Addresses</CardTitle>
@@ -46,7 +48,7 @@ export default function AddressesPage() {
         ) : (
           addresses.map((address, index) => (
             <div key={address.id}>
-              {index > 0 && <Separator className="my-4"/>}
+              {index > 0 && <Separator className="my-4 border-border/50"/>} {/* Lighter separator */}
               <div className="flex flex-col sm:flex-row justify-between">
                   <div className="mb-4 sm:mb-0">
                      <p className="font-medium flex items-center gap-2">
@@ -72,6 +74,6 @@ export default function AddressesPage() {
           ))
         )}
       </CardContent>
-    </Card>
+    </>
   );
 }

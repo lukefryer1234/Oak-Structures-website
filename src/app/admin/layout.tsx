@@ -19,7 +19,7 @@ import {
     BarChart3,
     Mail,
     FileText,
-    Image as ImageIcon,
+    Image as ImageIconLucide, // Renamed to avoid conflict with Next Image
     ScanSearch,
     Box,
     Sparkles,
@@ -43,6 +43,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from 'next/navigation'; // To highlight active link
+import Image from 'next/image'; // Import Next Image for background
 
 // --- Placeholder Authentication ---
 // In a real app, replace this with actual authentication context/logic
@@ -87,7 +88,7 @@ const adminNavLinks: NavItem[] = [
             { href: "/admin/products/configurable-prices", label: "Config Prices", icon: DollarSign },
             { href: "/admin/products/unit-prices", label: "Unit Prices", icon: Ruler },
             { href: "/admin/products/special-deals", label: "Special Deals", icon: Sparkles },
-            { href: "/admin/products/photos", label: "Photos", icon: ImageIcon },
+            { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide }, // Use renamed icon
         ]
     },
      {
@@ -226,9 +227,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                      </div>
                  </SidebarFooter>
             </Sidebar>
-            <SidebarInset>
+            <SidebarInset className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+                {/* Background Image */}
+               <Image
+                 src="https://picsum.photos/seed/admin-bg/1920/1080"
+                 alt="Subtle abstract background for admin area"
+                 layout="fill"
+                 objectFit="cover"
+                 className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+                 data-ai-hint="abstract pattern subtle grey texture geometric"
+                 aria-hidden="true"
+               />
                 {/* Main content area for admin pages */}
-                 <div className="p-4 md:p-8"> {/* Add padding to content area */}
+                 <div className="p-4 md:p-8 relative z-10"> {/* Add padding to content area, ensure content is above background */}
                     {children}
                  </div>
             </SidebarInset>

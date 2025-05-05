@@ -71,104 +71,116 @@ export default function BasketPage() {
   const total = subtotal + vat + shippingCost;
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-8">Shopping Basket</h1>
+     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+       {/* Background Image */}
+       <Image
+         src="https://picsum.photos/seed/basket-bg/1920/1080"
+         alt="Subtle abstract background shopping"
+         layout="fill"
+         objectFit="cover"
+         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+         data-ai-hint="subtle pattern texture shopping basket grey"
+         aria-hidden="true"
+       />
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-4xl font-bold mb-8">Shopping Basket</h1>
 
-      {basketItems.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground mb-4">Your basket is currently empty.</p>
-            <Button asChild>
-              <Link href="/">Continue Shopping</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            {basketItems.map((item) => {
-              // Construct link based on category
-              const itemLink = item.category === 'special-deals'
-                                 ? `/special-deals` // Link to deals page for deal items
-                                 : `/products/${item.category}/configure`; // Link to config for configurable items
+          {basketItems.length === 0 ? (
+            <Card className="bg-card/80 backdrop-blur-sm"> {/* Added transparency and blur */}
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground mb-4">Your basket is currently empty.</p>
+                <Button asChild>
+                  <Link href="/">Continue Shopping</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                {basketItems.map((item) => {
+                  // Construct link based on category
+                  const itemLink = item.category === 'special-deals'
+                                     ? `/special-deals` // Link to deals page for deal items
+                                     : `/products/${item.category}`; // Link to category page (not config)
 
-              return (
-                <Card key={item.id} className="overflow-hidden">
-                  <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-                    <div className="relative h-32 w-full sm:w-32 flex-shrink-0 bg-muted rounded-md overflow-hidden">
-                      <Image
-                        src={`https://picsum.photos/seed/${item.id}/200/200`} // Placeholder
-                        alt={item.name}
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint={item.dataAiHint}
-                      />
-                    </div>
-                    <div className="flex-grow flex flex-col justify-between">
-                      <div>
-                        <Link href={itemLink} className="text-lg font-semibold hover:underline">{item.name}</Link>
-                        <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                      </div>
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="flex items-center gap-2">
-                          <label htmlFor={`quantity-${item.id}`} className="text-sm sr-only">Quantity</label>
-                          <Input
-                            id={`quantity-${item.id}`}
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                            className="h-8 w-16"
+                  return (
+                    <Card key={item.id} className="overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, lighter border */}
+                      <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+                        <div className="relative h-32 w-full sm:w-32 flex-shrink-0 bg-muted/50 rounded-md overflow-hidden"> {/* Adjusted background */}
+                          <Image
+                            src={`https://picsum.photos/seed/${item.id}/200/200`} // Placeholder
+                            alt={item.name}
+                            layout="fill"
+                            objectFit="cover"
+                            data-ai-hint={item.dataAiHint}
                           />
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id)} aria-label="Remove item">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
                         </div>
-                        <span className="text-lg font-medium">£{(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
+                        <div className="flex-grow flex flex-col justify-between">
+                          <div>
+                            <Link href={itemLink} className="text-lg font-semibold hover:underline">{item.name}</Link>
+                            <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center gap-2">
+                              <label htmlFor={`quantity-${item.id}`} className="text-sm sr-only">Quantity</label>
+                              <Input
+                                id={`quantity-${item.id}`}
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                                className="h-8 w-16 bg-background/70" /* Adjusted background */
+                              />
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id)} aria-label="Remove item">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                            <span className="text-lg font-medium">£{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+
+              <div className="lg:col-span-1">
+                <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjusted card appearance */}
+                  <CardHeader>
+                    <CardTitle>Order Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="text-foreground">£{subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="text-foreground">{shippingCost === 0 ? 'FREE' : `£${shippingCost.toFixed(2)}`}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">VAT ({(VAT_RATE * 100).toFixed(0)}%)</span>
+                      <span className="text-foreground">£{vat.toFixed(2)}</span>
+                    </div>
+                    <Separator className="border-border/50"/>
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total</span>
+                      <span>£{total.toFixed(2)}</span>
                     </div>
                   </CardContent>
+                  <CardFooter className="border-t border-border/50 pt-6"> {/* Added border and padding */}
+                    <Button className="w-full" size="lg" asChild>
+                       <Link href="/checkout">Proceed to Checkout</Link>
+                    </Button>
+                  </CardFooter>
                 </Card>
-              )
-            })}
-          </div>
-
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>£{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{shippingCost === 0 ? 'FREE' : `£${shippingCost.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>VAT ({(VAT_RATE * 100).toFixed(0)}%)</span>
-                  <span>£{vat.toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>£{total.toFixed(2)}</span>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full" size="lg" asChild>
-                   <Link href="/checkout">Proceed to Checkout</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-             <div className="mt-4 text-center text-sm text-muted-foreground">
-               <Link href="/" className="hover:underline">Continue Shopping</Link>
-             </div>
-          </div>
+                 <div className="mt-4 text-center text-sm text-muted-foreground">
+                   <Link href="/" className="hover:underline">Continue Shopping</Link>
+                 </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+     </div>
   );
 }

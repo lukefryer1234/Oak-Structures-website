@@ -62,40 +62,52 @@ export default function ProductCategoryPage({ params }: { params: { category: st
     }
 
     return (
-        <div className="container mx-auto px-4 py-12">
-             {/* Category Hero/Introduction */}
-            <div className="relative mb-12 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center text-center p-8 bg-muted">
-                 <Image
-                    src={`https://picsum.photos/seed/${details.dataAiHint.split(' ')[0]}/1200/400`} // Placeholder
-                    alt={`${details.title} main image`}
-                    layout="fill"
-                    objectFit="cover"
-                    className="absolute inset-0 z-0 opacity-30" // Faded background image
-                    data-ai-hint={details.dataAiHint}
-                    priority
-                 />
-                <div className="relative z-10 max-w-3xl">
-                    <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">{details.title}</h1>
-                    <p className="text-lg text-muted-foreground">{details.description}</p>
-                     <Button size="lg" asChild className="mt-8">
-                        <Link href={details.configureHref}>
-                           Configure Your {category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                           <ArrowRight className="ml-2 h-5 w-5" />
-                        </Link>
-                    </Button>
+        <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+           {/* Background Image */}
+           <Image
+             src={`https://picsum.photos/seed/${category}-page-bg/1920/1080`}
+             alt={`Subtle background for ${details.title}`}
+             layout="fill"
+             objectFit="cover"
+             className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+             data-ai-hint={`subtle pattern texture wood ${details.dataAiHint.split(' ')[0]}`}
+             aria-hidden="true"
+           />
+            <div className="container mx-auto px-4 py-12">
+                 {/* Category Hero/Introduction */}
+                <div className="relative mb-12 rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center text-center p-8 bg-muted/50 backdrop-blur-sm"> {/* Adjusted background */}
+                     <Image
+                        src={`https://picsum.photos/seed/${details.dataAiHint.split(' ')[0]}/1200/400`} // Placeholder
+                        alt={`${details.title} main image`}
+                        layout="fill"
+                        objectFit="cover"
+                        className="absolute inset-0 z-0 opacity-20" // Adjusted opacity
+                        data-ai-hint={details.dataAiHint}
+                        priority
+                     />
+                    <div className="relative z-10 max-w-3xl">
+                        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">{details.title}</h1>
+                        <p className="text-lg text-muted-foreground">{details.description}</p>
+                         <Button size="lg" asChild className="mt-8">
+                            <Link href={details.configureHref}>
+                               Configure Your {category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                               <ArrowRight className="ml-2 h-5 w-5" />
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
-            </div>
 
-            {/* Additional Content Area (Optional) */}
-            {/* Example: You could add sections here showing example configurations, benefits, etc. */}
-             {/* <Card>
-                <CardHeader>
-                    <CardTitle>Why Choose Our {details.title}?</CardTitle>
-                </CardHeader>
-                 <CardContent>
-                    <p>More details about the benefits, materials, or process...</p>
-                 </CardContent>
-            </Card> */}
+                {/* Additional Content Area (Optional) */}
+                {/* Example: You could add sections here showing example configurations, benefits, etc. */}
+                 {/* <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
+                    <CardHeader>
+                        <CardTitle>Why Choose Our {details.title}?</CardTitle>
+                    </CardHeader>
+                     <CardContent>
+                        <p>More details about the benefits, materials, or process...</p>
+                     </CardContent>
+                </Card> */}
+            </div>
         </div>
     );
 }

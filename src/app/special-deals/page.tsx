@@ -1,3 +1,4 @@
+
 "use client"; // Ensures client-side interactivity for onClick handlers
 
 import Link from 'next/link';
@@ -16,53 +17,65 @@ const specialDeals = [
 
 export default function SpecialDealsPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold text-center mb-12">Special Deals</h1>
-      <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-        Check out our limited-time offers and pre-configured items available at special prices. These deals won't last long!
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {specialDeals.map((deal) => (
-          <Card key={deal.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col">
-             <CardHeader className="p-0 relative">
-               <Badge variant="destructive" className="absolute top-2 right-2 z-10">DEAL</Badge>
-               <div className="relative h-56 w-full">
-                 <Image
-                   src={`https://picsum.photos/seed/${deal.id}/400/300`} // Placeholder
-                   alt={deal.name}
-                   layout="fill"
-                   objectFit="cover"
-                   data-ai-hint={deal.dataAiHint}
-                 />
-               </div>
-            </CardHeader>
-            <CardContent className="p-6 flex flex-col justify-between flex-grow">
-              <div>
-                <CardTitle className="text-xl mb-2">{deal.name}</CardTitle>
-                <CardDescription className="mb-4 flex-grow">{deal.description}</CardDescription>
-              </div>
-              <div className="mt-4">
-                 <div className="flex items-baseline gap-2 mb-4">
-                   <span className="text-2xl font-semibold text-primary">{deal.price}</span>
-                   {deal.originalPrice && (
-                     <span className="text-sm text-muted-foreground line-through">{deal.originalPrice}</span>
-                   )}
-                 </div>
-                 <div className="flex gap-2">
-                    <Button asChild className="flex-1">
-                      {/* Link to the main special deals page as specific pages don't exist */}
-                      <Link href="/special-deals">View Details</Link>
-                    </Button>
-                    <Button variant="secondary" className="flex-1" onClick={() => alert(`Add ${deal.name} to basket (placeholder)`)}>
-                      {/* Placeholder Add to Basket Functionality */}
-                       Add to Basket
-                    </Button>
-                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+       {/* Background Image */}
+       <Image
+         src="https://picsum.photos/seed/deals-bg/1920/1080"
+         alt="Subtle background pattern sale tags"
+         layout="fill"
+         objectFit="cover"
+         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+         data-ai-hint="subtle pattern texture sale discount"
+         aria-hidden="true"
+       />
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-4xl font-bold text-center mb-12">Special Deals</h1>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Check out our limited-time offers and pre-configured items available at special prices. These deals won't last long!
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {specialDeals.map((deal) => (
+              <Card key={deal.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, lighter border */}
+                 <CardHeader className="p-0 relative">
+                   <Badge variant="destructive" className="absolute top-2 right-2 z-10">DEAL</Badge>
+                   <div className="relative h-56 w-full">
+                     <Image
+                       src={`https://picsum.photos/seed/${deal.id}/400/300`} // Placeholder
+                       alt={deal.name}
+                       layout="fill"
+                       objectFit="cover"
+                       data-ai-hint={deal.dataAiHint}
+                     />
+                   </div>
+                </CardHeader>
+                <CardContent className="p-6 flex flex-col justify-between flex-grow">
+                  <div>
+                    <CardTitle className="text-xl mb-2">{deal.name}</CardTitle>
+                    <CardDescription className="mb-4 flex-grow">{deal.description}</CardDescription>
+                  </div>
+                  <div className="mt-4">
+                     <div className="flex items-baseline gap-2 mb-4">
+                       <span className="text-2xl font-semibold text-primary">{deal.price}</span>
+                       {deal.originalPrice && (
+                         <span className="text-sm text-muted-foreground line-through">{deal.originalPrice}</span>
+                       )}
+                     </div>
+                     <div className="flex gap-2">
+                        <Button asChild className="flex-1">
+                          {/* Link to the main special deals page as specific pages don't exist */}
+                          <Link href="/special-deals">View Details</Link>
+                        </Button>
+                        <Button variant="secondary" className="flex-1" onClick={() => alert(`Add ${deal.name} to basket (placeholder)`)}>
+                          {/* Placeholder Add to Basket Functionality */}
+                           Add to Basket
+                        </Button>
+                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+     </div>
   );
 }

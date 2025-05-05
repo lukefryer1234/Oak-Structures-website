@@ -1,7 +1,9 @@
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { Metadata } from 'next';
 import { HelpCircle } from "lucide-react"; // Icon
 import { Button } from "@/components/ui/button";
+import Image from 'next/image'; // Import Image
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -51,35 +53,47 @@ const faqItems = [
 
 export default function FAQPage() {
   return (
-    <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="text-center mb-12">
-             <HelpCircle className="h-12 w-12 mx-auto text-primary mb-4" />
-            <h1 className="text-4xl font-bold text-foreground">Frequently Asked Questions</h1>
-            <p className="mt-2 text-lg text-muted-foreground max-w-2xl mx-auto">Find answers to common questions about our products and services.</p>
-        </div>
+    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+       {/* Background Image */}
+       <Image
+         src="https://picsum.photos/seed/faq-bg/1920/1080"
+         alt="Subtle background texture question marks"
+         layout="fill"
+         objectFit="cover"
+         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+         data-ai-hint="subtle pattern question marks paper texture"
+         aria-hidden="true"
+       />
+        <div className="container mx-auto px-4 py-12 md:py-16">
+            <div className="text-center mb-12">
+                 <HelpCircle className="h-12 w-12 mx-auto text-primary mb-4" />
+                <h1 className="text-4xl font-bold text-foreground">Frequently Asked Questions</h1>
+                <p className="mt-2 text-lg text-muted-foreground max-w-2xl mx-auto">Find answers to common questions about our products and services.</p>
+            </div>
 
 
-        <div className="max-w-3xl mx-auto bg-card p-6 md:p-8 rounded-lg shadow-md border border-border">
-            <Accordion type="single" collapsible className="w-full">
-                {faqItems.map((item, index) => (
-                    <AccordionItem key={index} value={`item-${index + 1}`} className="border-b border-border last:border-b-0">
-                        <AccordionTrigger className="text-left text-lg font-medium text-card-foreground hover:text-primary py-4 hover:no-underline [&[data-state=open]>svg]:text-primary">
-                            {item.question}
-                        </AccordionTrigger>
-                         <AccordionContent className="text-base text-muted-foreground leading-relaxed pb-4 pt-1 prose prose-sm max-w-none"> {/* Use prose for answer formatting */}
-                            <p>{item.answer}</p>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
-            </Accordion>
-        </div>
+            <div className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm p-6 md:p-8 rounded-lg shadow-md border border-border"> {/* Added transparency and blur */}
+                <Accordion type="single" collapsible className="w-full">
+                    {faqItems.map((item, index) => (
+                        <AccordionItem key={index} value={`item-${index + 1}`} className="border-b border-border/50 last:border-b-0"> {/* Lighter border */}
+                            <AccordionTrigger className="text-left text-lg font-medium text-card-foreground hover:text-primary py-4 hover:no-underline [&[data-state=open]>svg]:text-primary">
+                                {item.question}
+                            </AccordionTrigger>
+                             <AccordionContent className="text-base text-muted-foreground leading-relaxed pb-4 pt-1 prose prose-sm max-w-none"> {/* Use prose for answer formatting */}
+                                <p>{item.answer}</p>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            </div>
 
-        <div className="mt-12 text-center text-muted-foreground">
-           <p className="text-lg">Can't find the answer you're looking for?</p>
-           <Button variant="link" asChild className="text-lg px-1">
-                <a href="/contact">Contact our support team</a>
-           </Button>
+            <div className="mt-12 text-center text-muted-foreground">
+               <p className="text-lg">Can't find the answer you're looking for?</p>
+               <Button variant="link" asChild className="text-lg px-1">
+                    <a href="/contact">Contact our support team</a>
+               </Button>
 
+            </div>
         </div>
     </div>
   );

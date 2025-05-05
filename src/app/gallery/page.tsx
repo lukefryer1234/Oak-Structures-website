@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -15,42 +16,54 @@ const galleryItems = [
 
 export default function GalleryPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold text-center mb-4">Gallery</h1>
-      <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-        Browse images of our completed projects and see the quality of our craftsmanship. Get inspired for your own timber structure.
-      </p>
+    <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+       {/* Background Image */}
+       <Image
+         src="https://picsum.photos/seed/gallery-bg/1920/1080"
+         alt="Subtle wood grain background"
+         layout="fill"
+         objectFit="cover"
+         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+         data-ai-hint="subtle wood grain texture light"
+         aria-hidden="true"
+       />
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-4xl font-bold text-center mb-4">Gallery</h1>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Browse images of our completed projects and see the quality of our craftsmanship. Get inspired for your own timber structure.
+          </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {galleryItems.map((item) => (
-          <Card key={item.id} className="overflow-hidden group">
-            <CardContent className="p-0">
-              <div className="relative aspect-square w-full overflow-hidden">
-                 <Image
-                    src={`https://picsum.photos/seed/${item.id}/500/500`} // Placeholder
-                    alt={item.alt}
-                    layout="fill"
-                    objectFit="cover"
-                    className="transition-transform duration-300 group-hover:scale-105"
-                    data-ai-hint={item.dataAiHint}
-                  />
-                  {/* Optional: Overlay for caption on hover */}
-                  {item.caption && (
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                       <p className="text-sm text-primary-foreground">{item.caption}</p>
-                    </div>
-                  )}
-              </div>
-             </CardContent>
-             {/* Optional: Caption below image */}
-             {/* {item.caption && (
-                <CardFooter className="p-4 text-sm text-muted-foreground">
-                    {item.caption}
-                </CardFooter>
-             )} */}
-          </Card>
-        ))}
-      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {galleryItems.map((item) => (
+              <Card key={item.id} className="overflow-hidden group bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, lighter border */}
+                <CardContent className="p-0">
+                  <div className="relative aspect-square w-full overflow-hidden">
+                     <Image
+                        src={`https://picsum.photos/seed/${item.id}/500/500`} // Placeholder
+                        alt={item.alt}
+                        layout="fill"
+                        objectFit="cover"
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        data-ai-hint={item.dataAiHint}
+                      />
+                      {/* Optional: Overlay for caption on hover */}
+                      {item.caption && (
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"> {/* Adjusted gradient */}
+                           <p className="text-sm text-primary-foreground">{item.caption}</p>
+                        </div>
+                      )}
+                  </div>
+                 </CardContent>
+                 {/* Optional: Caption below image */}
+                 {/* {item.caption && (
+                    <CardFooter className="p-4 text-sm text-muted-foreground">
+                        {item.caption}
+                    </CardFooter>
+                 )} */}
+              </Card>
+            ))}
+          </div>
+        </div>
     </div>
   );
 }

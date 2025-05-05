@@ -1,3 +1,4 @@
+
 "use client"; // Needed for form handling
 
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,7 @@ export default function CheckoutPage() {
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
+                  <Input placeholder="you@example.com" {...field} className="bg-background/70"/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -98,7 +99,7 @@ export default function CheckoutPage() {
               <FormItem>
                 <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="John" {...field} />
+                  <Input placeholder="John" {...field} className="bg-background/70"/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -111,7 +112,7 @@ export default function CheckoutPage() {
               <FormItem>
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Doe" {...field} />
+                  <Input placeholder="Doe" {...field} className="bg-background/70"/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,7 +126,7 @@ export default function CheckoutPage() {
               <FormItem>
                 <FormLabel>Address Line 1</FormLabel>
                 <FormControl>
-                  <Input placeholder="123 Timber Street" {...field} />
+                  <Input placeholder="123 Timber Street" {...field} className="bg-background/70"/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -138,7 +139,7 @@ export default function CheckoutPage() {
               <FormItem>
                 <FormLabel>Address Line 2 (Optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Apartment, suite, etc." {...field} />
+                  <Input placeholder="Apartment, suite, etc." {...field} className="bg-background/70"/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -152,7 +153,7 @@ export default function CheckoutPage() {
                 <FormItem>
                   <FormLabel>Town / City</FormLabel>
                   <FormControl>
-                    <Input placeholder="London" {...field} />
+                    <Input placeholder="London" {...field} className="bg-background/70"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,7 +166,7 @@ export default function CheckoutPage() {
                 <FormItem>
                   <FormLabel>Postcode</FormLabel>
                   <FormControl>
-                    <Input placeholder="SW1A 0AA" {...field} />
+                    <Input placeholder="SW1A 0AA" {...field} className="bg-background/70"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,7 +180,7 @@ export default function CheckoutPage() {
               <FormItem>
                 <FormLabel>Phone (Optional)</FormLabel>
                  <FormControl>
-                  <Input type="tel" placeholder="01234 567890" {...field} />
+                  <Input type="tel" placeholder="01234 567890" {...field} className="bg-background/70"/>
                 </FormControl>
                 <FormDescription>
                   In case we need to contact you about your order.
@@ -193,170 +194,182 @@ export default function CheckoutPage() {
 
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-8">Checkout</h1>
-      {/* Add Guest/Login options here if not already handled */}
+     <div className="relative isolate overflow-hidden"> {/* Added relative isolate */}
+       {/* Background Image */}
+       <Image
+         src="https://picsum.photos/seed/checkout-bg/1920/1080"
+         alt="Subtle abstract background secure checkout"
+         layout="fill"
+         objectFit="cover"
+         className="absolute inset-0 -z-10 opacity-5" // Very subtle opacity
+         data-ai-hint="subtle pattern texture security lock payment"
+         aria-hidden="true"
+       />
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-4xl font-bold mb-8">Checkout</h1>
+          {/* Add Guest/Login options here if not already handled */}
 
-       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Billing Address */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Address</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderAddressFields("billingAddress")}
-              </CardContent>
-            </Card>
+           <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              <div className="lg:col-span-2 space-y-8">
+                {/* Billing Address */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                  <CardHeader>
+                    <CardTitle>Billing Address</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {renderAddressFields("billingAddress")}
+                  </CardContent>
+                </Card>
 
-            {/* Shipping Address */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Shipping Address</CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="useBillingAsShipping"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-6 shadow">
-                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                             Same as billing address
-                          </FormLabel>
+                {/* Shipping Address */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                  <CardHeader>
+                    <CardTitle>Shipping Address</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <FormField
+                        control={form.control}
+                        name="useBillingAsShipping"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border/50 p-4 mb-6 shadow-sm bg-background/60"> {/* Adjust appearance */}
+                             <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                 Same as billing address
+                              </FormLabel>
+                            </div>
+                           </FormItem>
+                        )}
+                      />
+                     {!useBillingAsShipping && renderAddressFields("shippingAddress")}
+                  </CardContent>
+                </Card>
+
+                 {/* Shipping Method */}
+                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                    <CardHeader>
+                        <CardTitle>Shipping Method</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-md border border-border/50 p-4 bg-background/60"> {/* Adjust appearance */}
+                            <div className="flex justify-between items-center">
+                                <span>Standard UK Delivery</span>
+                                <span className="font-medium">
+                                    {orderSummary.shipping === 0 ? 'FREE' : `£${orderSummary.shipping.toFixed(2)}`}
+                                </span>
+                            </div>
+                             <p className="text-sm text-muted-foreground mt-1">
+                                Estimated delivery times vary based on product type and location.
+                             </p>
                         </div>
-                       </FormItem>
-                    )}
-                  />
-                 {!useBillingAsShipping && renderAddressFields("shippingAddress")}
-              </CardContent>
-            </Card>
+                    </CardContent>
+                 </Card>
 
-             {/* Shipping Method */}
-             <Card>
-                <CardHeader>
-                    <CardTitle>Shipping Method</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border p-4">
-                        <div className="flex justify-between items-center">
-                            <span>Standard UK Delivery</span>
-                            <span className="font-medium">
-                                {orderSummary.shipping === 0 ? 'FREE' : `£${orderSummary.shipping.toFixed(2)}`}
-                            </span>
-                        </div>
-                         <p className="text-sm text-muted-foreground mt-1">
-                            Estimated delivery times vary based on product type and location.
-                         </p>
+
+                {/* Payment Method */}
+                <Card className="bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust card appearance */}
+                  <CardHeader>
+                    <CardTitle>Payment Method</CardTitle>
+                     <CardDescription>All transactions are secure and encrypted.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <FormField
+                      control={form.control}
+                      name="paymentMethod"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-3" // Adjusted spacing
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60"> {/* Adjust appearance */}
+                                <FormControl>
+                                  <RadioGroupItem value="stripe" />
+                                </FormControl>
+                                 <Image src="https://picsum.photos/seed/stripe-logo/60/25" alt="Stripe" width={60} height={25} data-ai-hint="stripe logo" />
+                                <FormLabel className="font-normal flex-grow cursor-pointer"> {/* Added cursor-pointer */}
+                                  Credit/Debit Card (Stripe)
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60"> {/* Adjust appearance */}
+                                <FormControl>
+                                  <RadioGroupItem value="paypal" />
+                                </FormControl>
+                                 <Image src="https://picsum.photos/seed/paypal-logo/80/25" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
+                                 <FormLabel className="font-normal flex-grow cursor-pointer"> {/* Added cursor-pointer */}
+                                  PayPal
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {/* Placeholder for Stripe Elements / PayPal Button */}
+                     <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm"> {/* Adjust appearance */}
+                        Payment gateway integration placeholder. Secure payment form/button will appear here based on selection.
+                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Order Summary */}
+              <div className="lg:col-span-1">
+                <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust appearance */}
+                  <CardHeader>
+                    <CardTitle>Order Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     {/* Mini item list */}
+                     <div className="space-y-3 max-h-60 overflow-y-auto pr-2 border-b border-border/50 pb-4 mb-4"> {/* Add border and padding */}
+                        {orderSummary.items.map(item => (
+                            <div key={item.id} className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">{item.name} x {item.quantity}</span>
+                                <span className="text-foreground">£{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                        ))}
+                     </div>
+                     {/* <Separator className="border-border/50"/> */}
+                     <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-foreground">£{orderSummary.subtotal.toFixed(2)}</span>
+                     </div>
+                     <div className="flex justify-between text-sm">
+                       <span className="text-muted-foreground">Shipping</span>
+                       <span className="text-foreground">{orderSummary.shipping === 0 ? 'FREE' : `£${orderSummary.shipping.toFixed(2)}`}</span>
+                     </div>
+                     <div className="flex justify-between text-sm">
+                       <span className="text-muted-foreground">VAT</span>
+                       <span className="text-foreground">£{orderSummary.vat.toFixed(2)}</span>
+                     </div>
+                    <Separator className="border-border/50" />
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total</span>
+                      <span>£{orderSummary.total.toFixed(2)}</span>
                     </div>
-                </CardContent>
-             </Card>
-
-
-            {/* Payment Method */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
-                 <CardDescription>All transactions are secure and encrypted.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary">
-                            <FormControl>
-                              <RadioGroupItem value="stripe" />
-                            </FormControl>
-                             <Image src="/images/stripe-logo.svg" alt="Stripe" width={60} height={25} data-ai-hint="stripe logo" />
-                            <FormLabel className="font-normal flex-grow">
-                              Credit/Debit Card (Stripe)
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md has-[:checked]:border-primary">
-                            <FormControl>
-                              <RadioGroupItem value="paypal" />
-                            </FormControl>
-                             <Image src="/images/paypal-logo.svg" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
-                             <FormLabel className="font-normal flex-grow">
-                              PayPal
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {/* Placeholder for Stripe Elements / PayPal Button */}
-                 <div className="mt-6 p-4 border rounded-md bg-muted/50">
-                    Payment gateway integration placeholder. Secure payment form/button will appear here based on selection.
-                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20"> {/* Make summary sticky */}
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                 {/* Mini item list */}
-                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    {orderSummary.items.map(item => (
-                        <div key={item.id} className="flex justify-between items-center text-sm">
-                            <span>{item.name} x {item.quantity}</span>
-                            <span>£{(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                    ))}
-                 </div>
-                 <Separator/>
-                 <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>£{orderSummary.subtotal.toFixed(2)}</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                   <span>Shipping</span>
-                   <span>{orderSummary.shipping === 0 ? 'FREE' : `£${orderSummary.shipping.toFixed(2)}`}</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                   <span>VAT</span>
-                   <span>£{orderSummary.vat.toFixed(2)}</span>
-                 </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>£{orderSummary.total.toFixed(2)}</span>
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col space-y-4">
-                <Button type="submit" className="w-full" size="lg">
-                   Place Order & Pay
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                    By placing your order, you agree to our <Link href="/terms" className="underline hover:text-primary">Terms & Conditions</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
-                </p>
-              </CardFooter>
-            </Card>
-          </div>
-        </form>
-      </Form>
-    </div>
+                  </CardContent>
+                  <CardFooter className="flex-col space-y-4 border-t border-border/50 pt-6"> {/* Add border and padding */}
+                    <Button type="submit" className="w-full" size="lg">
+                       Place Order & Pay
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                        By placing your order, you agree to our <Link href="/terms" className="underline hover:text-primary">Terms & Conditions</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+                    </p>
+                  </CardFooter>
+                </Card>
+              </div>
+            </form>
+          </Form>
+        </div>
+     </div>
   );
 }

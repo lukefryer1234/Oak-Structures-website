@@ -27,7 +27,8 @@ const getStatusVariant = (status: string): "default" | "secondary" | "outline" |
 
 export default function OrdersPage() {
   return (
-    <Card>
+     // Card styling is inherited from layout, only need header/content adjustments if necessary
+     <>
       <CardHeader>
         <CardTitle>Order History</CardTitle>
         <CardDescription>View your past orders and their status.</CardDescription>
@@ -38,7 +39,7 @@ export default function OrdersPage() {
         ) : (
            <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-border/50"> {/* Lighter border */}
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -48,7 +49,7 @@ export default function OrdersPage() {
             </TableHeader>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order.id} className="border-border/50"> {/* Lighter border */}
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">£{order.total.toFixed(2)}</TableCell>
@@ -72,6 +73,6 @@ export default function OrdersPage() {
           <Button variant="outline">Previous</Button>
            <Button variant="outline" className="ml-2">Next</Button>
        </CardFooter> */}
-    </Card>
+     </>
   );
 }
