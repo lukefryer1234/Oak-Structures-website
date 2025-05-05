@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { notFound, useRouter } from 'next/navigation'; // Added useRouter
-import { ArrowRight, PlusCircle, Trash2 } from 'lucide-react'; // Added icons
+import { ArrowRight, PlusCircle, Trash2, ShoppingCart } from 'lucide-react'; // Added icons
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Import Table components
 import { Separator } from '@/components/ui/separator'; // Import Separator
@@ -39,6 +39,18 @@ interface BeamListItem {
     price: number;
 }
 
+// Placeholder Basket Item type (align with basket page)
+interface BasketItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  image: string;
+  href: string;
+  dataAiHint: string;
+  category: string;
+}
 
 // --- Config Data ---
 
@@ -131,32 +143,30 @@ export default function ConfigureOakBeamsPage() {
      });
   }
 
-  // Handle adding the current configuration to the cutting list
-  const handleAddToCuttingList = () => {
+  // Shared validation logic
+  const validateCurrentBeam = (): { isValid: boolean; beam?: Omit<BeamListItem, 'id'>, basketItem?: Omit<BasketItem, 'id' | 'quantity' | 'href'> } => {
       const dims = {
           length: parseDimension(configState.dimensions?.length),
           width: parseDimension(configState.dimensions?.width),
           thickness: parseDimension(configState.dimensions?.thickness),
       };
 
-      // Validation
       if (dims.length <= 0 || dims.width <= 0 || dims.thickness <= 0) {
             toast({
                 variant: "destructive",
                 title: "Invalid Dimensions",
                 description: "Please enter valid positive numbers for length, width, and thickness.",
             });
-            return;
+            return { isValid: false };
       }
-       if (!configState.oakType) {
+      if (!configState.oakType) {
             toast({
                  variant: "destructive",
                  title: "Missing Oak Type",
                  description: "Please select an oak type.",
             });
-            return;
-       }
-
+            return { isValid: false };
+      }
 
       const { volume, price } = calculateVolumeAndPrice(configState);
 
@@ -166,29 +176,80 @@ export default function ConfigureOakBeamsPage() {
                 title: "Calculation Error",
                 description: "Cannot add item with zero price. Check dimensions.",
            });
-           return;
+           return { isValid: false };
       }
 
+      const description = `${configState.oakType.charAt(0).toUpperCase() + configState.oakType.slice(1)} Oak Beam: ${dims.length}cm L x ${dims.width}cm W x ${dims.thickness}cm T`;
+      const productName = `Oak Beam (${configState.oakType.charAt(0).toUpperCase() + configState.oakType.slice(1)})`;
+
+      return {
+          isValid: true,
+          beam: {
+              oakType: configState.oakType,
+              dimensions: dims,
+              volume: volume,
+              description: description,
+              price: price,
+          },
+          basketItem: {
+              name: productName,
+              description: description,
+              price: price,
+              image: `https://picsum.photos/seed/oak-beam-${configState.oakType}/200/200`, // Placeholder image
+              dataAiHint: `oak beam ${configState.oakType}`,
+              category: category,
+          }
+      };
+  }
+
+  // Handle adding the current configuration to the cutting list
+  const handleAddToCuttingList = () => {
+      const { isValid, beam } = validateCurrentBeam();
+      if (!isValid || !beam) return;
 
       const newItem: BeamListItem = {
           id: `beam-${Date.now()}`, // Simple unique ID
-          oakType: configState.oakType,
-          dimensions: dims, // Store parsed dimensions
-          volume: volume,
-          description: `${configState.oakType.charAt(0).toUpperCase() + configState.oakType.slice(1)} Oak Beam: ${dims.length}cm L x ${dims.width}cm W x ${dims.thickness}cm T`,
-          price: price,
+          ...beam,
       };
 
       setCuttingList(prev => [...prev, newItem]);
 
       toast({
-          title: "Beam Added",
+          title: "Beam Added to List",
           description: newItem.description,
       });
-
-      // Optional: Reset form fields after adding
-      // setConfigState(initialState); // Need to define initialState based on defaults
   };
+
+  // Handle adding single beam directly to basket
+  const handleAddToBasket = () => {
+      const { isValid, basketItem } = validateCurrentBeam();
+      if (!isValid || !basketItem) return;
+
+      const newBasketItem: BasketItem = {
+          id: `beam-${Date.now()}`, // Use a unique ID for the basket item
+          ...basketItem,
+          quantity: 1, // Always add one at a time this way
+          href: `/products/${category}/configure`, // Link back
+      };
+
+      // --- Placeholder for adding to global basket state ---
+      // Example: Assume a function addToGlobalBasket exists
+      // addToGlobalBasket(newBasketItem);
+      console.log("Adding single beam to basket (placeholder):", newBasketItem);
+      // --- End Placeholder ---
+
+      toast({
+          title: "Beam Added to Basket",
+          description: newBasketItem.description,
+          action: (
+              <Button variant="outline" size="sm" asChild>
+                  <a href="/basket">View Basket</a>
+              </Button>
+          ),
+      });
+       // Optionally redirect or clear form here
+  }
+
 
   // Handle removing an item from the cutting list
    const handleRemoveFromList = (id: string) => {
@@ -202,7 +263,7 @@ export default function ConfigureOakBeamsPage() {
    // Calculate total price of the cutting list
    const cuttingListTotal = cuttingList.reduce((sum, item) => sum + item.price, 0);
 
-   // Handle proceeding to checkout (placeholder)
+   // Handle proceeding to checkout with the cutting list
     const handleProceedToCheckout = () => {
         if (cuttingList.length === 0) {
             toast({
@@ -212,10 +273,18 @@ export default function ConfigureOakBeamsPage() {
             });
             return;
         }
-        // TODO: Implement logic to add all items in cuttingList to the main shopping basket
-        console.log("Proceeding to checkout with:", cuttingList);
-        alert(`Proceeding to checkout with ${cuttingList.length} beam(s). (Placeholder - check console)`);
-        // router.push('/basket'); // Navigate to basket after adding items
+        // --- Placeholder for adding multiple items to global basket ---
+        // Example: Assume a function addMultipleToBasket exists
+        // addMultipleToBasket(cuttingList.map(beam => ({... convert beam to basketItem ...})));
+        console.log("Adding cutting list to basket (placeholder):", cuttingList);
+        // --- End Placeholder ---
+
+        toast({
+             title: "Cutting List Added to Basket",
+             description: `Added ${cuttingList.length} beam(s) to your basket.`,
+        });
+        setCuttingList([]); // Clear the list after adding
+        router.push('/basket'); // Navigate to basket
     };
 
   return (
@@ -274,7 +343,7 @@ export default function ConfigureOakBeamsPage() {
                   </div>
                 ))}
 
-                 {/* Price & Add Button */}
+                 {/* Price & Add Buttons */}
                   <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
                     <div className="text-center space-y-2">
                         <p className="text-sm text-muted-foreground">Estimated Price for this Beam (excl. VAT & Delivery)</p>
@@ -282,9 +351,15 @@ export default function ConfigureOakBeamsPage() {
                            {calculatedPrice !== null ? formatPrice(calculatedPrice) : 'Calculating...'}
                         </p>
                     </div>
-                    <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToCuttingList} disabled={calculatedPrice <= 0}>
-                        <PlusCircle className="mr-2 h-5 w-5" /> Add to Cutting List
-                    </Button>
+                    {/* Buttons container */}
+                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                        <Button size="lg" className="w-full sm:w-auto" onClick={handleAddToCuttingList} disabled={calculatedPrice <= 0}>
+                            <PlusCircle className="mr-2 h-5 w-5" /> Add to Cutting List
+                        </Button>
+                         <Button size="lg" variant="secondary" className="w-full sm:w-auto" onClick={handleAddToBasket} disabled={calculatedPrice <= 0}>
+                             <ShoppingCart className="mr-2 h-5 w-5" /> Add Direct to Basket
+                         </Button>
+                     </div>
                 </div>
                </div>
 
@@ -334,4 +409,3 @@ export default function ConfigureOakBeamsPage() {
     </div>
   );
 }
-
