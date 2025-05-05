@@ -11,7 +11,7 @@ const productCategories = [
   { name: 'Porches', href: '/products/porches', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
   { name: 'Oak Beams', href: '/products/oak-beams', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
   { name: 'Oak Flooring', href: '/products/oak-flooring', description: 'Beautiful and durable oak flooring.', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
-   { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' }, // Keep this link as is
+   { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' }, // Keep this link as is
 ];
 
 const specialDeals = [
