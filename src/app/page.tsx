@@ -25,28 +25,29 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Product Categories Section */}
-       <section id="categories" className="py-16">
+       {/* Added background tint and blur */}
+       <section id="categories" className="py-16 bg-muted/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
-                 {/* Style 3: Image with title below, subtle background */}
-                 <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col bg-card/80 backdrop-blur-sm border border-border/50">
-                   <CardContent className="p-0 relative aspect-[4/3] w-full"> {/* Use aspect ratio */}
+                 {/* Style 4: Image left, Title right */}
+                 <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-row items-center bg-card border border-border/50">
+                   <div className="p-0 relative w-1/3 h-full aspect-square flex-shrink-0"> {/* Image container */}
                     <Image
-                      src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/300`} // Use appropriate ratio
+                      src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/200/200`} // Square image
                       alt={category.name}
                       layout="fill"
                       objectFit="cover"
                       data-ai-hint={category.dataAiHint}
                       className="transition-transform duration-300 group-hover:scale-105"
                     />
-                   </CardContent>
-                   <CardFooter className="p-4 justify-center bg-muted/40 border-t border-border/50">
+                   </div>
+                    <CardContent className="p-4 flex items-center justify-center flex-grow"> {/* Text container */}
                      <CardTitle className="text-lg font-semibold text-center text-foreground">
                        {category.name}
                      </CardTitle>
-                   </CardFooter>
+                   </CardContent>
                  </Card>
               </Link>
             ))}
@@ -60,7 +61,9 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-center mb-12">Featured Deals</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {featuredDeals.map((deal) => (
-               <Card key={deal.name} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col sm:flex-row bg-card/80 backdrop-blur-sm border border-border/50"> {/* Adjust styles */}
+               // Added transparency and blur
+               <Card key={deal.name} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col sm:flex-row bg-card/80 backdrop-blur-sm border border-border/50">
+                 {/* Adjusted background */}
                  <div className="relative h-48 sm:h-auto sm:w-1/3 flex-shrink-0 bg-muted">
                      <Image
                        src={`https://picsum.photos/seed/${deal.name.replace(/\s+/g, '-')}/400/400`}
@@ -93,8 +96,7 @@ export default function Home() {
            </div>
         </div>
       </section>
+
     </div>
   );
 }
-
-
