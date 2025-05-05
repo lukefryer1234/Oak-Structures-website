@@ -31,7 +31,7 @@ export default function Home() {
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
                  <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, border */}
-                   {/* Image fills the CardContent */}
+                   {/* Image fills the CardContent, CardContent is relative */}
                    <CardContent className="p-0 flex-grow relative aspect-square w-full overflow-hidden">
                     <Image
                       src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/400`} // Use square image, create unique seed
@@ -41,14 +41,13 @@ export default function Home() {
                       data-ai-hint={category.dataAiHint}
                       className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
                     />
-                    {/* Optional: Overlay can be added here if desired for text contrast */}
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                     {/* Overlay div for gradient and title */}
+                     <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-black/40 to-transparent p-4">
+                       <CardTitle className="text-lg font-semibold text-primary-foreground drop-shadow-md">{category.name}</CardTitle>
+                     </div>
                   </CardContent>
-                   {/* Footer remains below content */}
-                   <CardFooter className="p-4 justify-center bg-card/90 border-t border-border/30"> {/* Slightly opaque footer for text readability */}
-                    <CardTitle className="text-lg font-semibold text-center text-card-foreground">{category.name}</CardTitle>
-                  </CardFooter>
-                </Card>
+                   {/* Footer removed */}
+                 </Card>
               </Link>
             ))}
           </div>
