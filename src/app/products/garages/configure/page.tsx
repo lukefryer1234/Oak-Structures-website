@@ -42,111 +42,46 @@ interface CategoryConfig {
   dataAiHint?: string;
 }
 
-// Ensure keys match the slugs used in the links (e.g., 'oak-beams')
-const configurations: { [key: string]: CategoryConfig } = {
-  garages: {
+// Specific configuration for Garages
+const garageConfig: CategoryConfig = {
     title: "Configure Your Garage",
     options: [
-      // Reordered options, removed oakType
       { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
-      { id: 'baySize', label: 'Size Per Bay', type: 'select', options: [{ value: 'standard', label: 'Standard (e.g., 3m wide)' }, { value: 'large', label: 'Large (e.g., 3.5m wide)' }], defaultValue: 'standard' },
       { id: 'preview', label: 'Preview', type: 'preview', dataAiHint: 'garage oak structure'}, // Placeholder for preview
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
-      // Removed sizeType (overall dimensions)
+      { id: 'baySize', label: 'Size Per Bay', type: 'select', options: [{ value: 'standard', label: 'Standard (e.g., 3m wide)' }, { value: 'large', label: 'Large (e.g., 3.5m wide)' }], defaultValue: 'standard' },
       { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false }, // Changed to apply to all
     ]
-  },
-  gazebos: {
-    title: "Configure Your Gazebo",
-    options: [
-       { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'full', label: 'Full Height Legs' }, { value: 'wall', label: 'Wall Mount (Half Legs)' }], defaultValue: 'full' },
-      { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: '3x3', label: '3m x 3m' }, { value: '4x3', label: '4m x 3m' }, { value: '4x4', label: '4m x 4m' }], defaultValue: '3x3' },
-      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
-       { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
-    ]
-  },
-   porches: {
-    title: "Configure Your Porch",
-    options: [
-      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
-       { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
-      { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: 'narrow', label: 'Narrow (e.g., 1.5m Wide)' }, { value: 'standard', label: 'Standard (e.g., 2m Wide)' }, { value: 'wide', label: 'Wide (e.g., 2.5m Wide)' }], defaultValue: 'standard' },
-       { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' },
-    ]
-  },
-   'oak-beams': {
-      title: "Configure Your Oak Beams",
-      options: [
-        { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }, { value: 'green', label: 'Green Oak' }], defaultValue: 'green' },
-        { id: 'dimensions', label: 'Dimensions (cm)', type: 'dimensions', unit: 'cm', defaultValue: { length: 200, width: 15, thickness: 15 } },
-      ]
-   },
-    'oak-flooring': {
-        title: "Configure Your Oak Flooring",
-        options: [
-         { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
-         { id: 'thickness', label: 'Thickness', type: 'area', fixedValue: '20mm' }, // Display only
-         { id: 'area', label: 'Area Required', type: 'area', unit: 'm²', defaultValue: { area: 10, length: '', width: '' } }, // Allows direct area or length*width
-        ]
-    }
 };
+
 
 // --- Helper Functions (Replace with actual pricing logic) ---
 
-const calculatePrice = (category: string, config: any): number => {
+const calculatePrice = (config: any): number => {
    // --- THIS IS A VERY BASIC PLACEHOLDER ---
    // --- Replace with actual pricing logic based on category ---
   let basePrice = 0;
-  switch (category) {
-    case 'garages':
-        const bays = config.bays?.[0] || 1;
-        // Calculate catSlide cost based on single checkbox and number of bays
-        const catSlideCost = config.catSlide ? (150 * bays) : 0; // Example: 150 per bay if selected
-        // Incorporate baySize into pricing (example logic)
-        const baySizeMultiplier = config.baySize === 'large' ? 1.1 : 1.0;
-        basePrice = (8000 + bays * 1500 + catSlideCost) * baySizeMultiplier;
-        break;
-    case 'gazebos': basePrice = 3000 + (config.sizeType === '4x4' ? 500 : 0) + (config.oakType === 'reclaimed' ? 200 : 0); break;
-    case 'porches': basePrice = 2000 + (config.sizeType === 'wide' ? 400 : 0) + (config.legType === 'floor' ? 150 : 0) + (config.oakType === 'reclaimed' ? 200 : 0); break; // Added back oakType for porches
-    case 'oak-beams':
-        const dims = config.dimensions || { length: 0, width: 0, thickness: 0 };
-        const volumeM3 = (dims.length / 100) * (dims.width / 100) * (dims.thickness / 100);
-        const unitPrice = config.oakType === 'reclaimed' ? 1200 : (config.oakType === 'kilned' ? 1000 : 800);
-        basePrice = volumeM3 * unitPrice;
-        break;
-     case 'oak-flooring':
-         const areaData = config.area || { area: 0, length: '', width: '' };
-         let areaM2 = parseFloat(areaData.area);
-         if (isNaN(areaM2) || areaM2 <= 0) {
-            const lengthM = parseFloat(areaData.length) / 100; // Assume cm input for L/W calc
-            const widthM = parseFloat(areaData.width) / 100;
-            if (!isNaN(lengthM) && !isNaN(widthM) && lengthM > 0 && widthM > 0) {
-                areaM2 = lengthM * widthM;
-            } else {
-                 areaM2 = 0;
-            }
-         }
-         const floorUnitPrice = config.oakType === 'reclaimed' ? 90 : 75;
-         basePrice = areaM2 * floorUnitPrice;
-         break;
-    default: basePrice = 500; // Default fallback
-  }
+  const bays = config.bays?.[0] || 1;
+  // Calculate catSlide cost based on single checkbox and number of bays
+  const catSlideCost = config.catSlide ? (150 * bays) : 0; // Example: 150 per bay if selected
+  // Incorporate baySize into pricing (example logic)
+  const baySizeMultiplier = config.baySize === 'large' ? 1.1 : 1.0;
+  basePrice = (8000 + bays * 1500 + catSlideCost) * baySizeMultiplier;
+
   return Math.max(0, basePrice); // Ensure price is not negative
 };
 
 // --- Component ---
 
-export default function ConfigureProductPage() {
-  const params = useParams();
-  const category = params.category as string; // Get category from URL
-  const categoryConfig = configurations[category];
+export default function ConfigureGaragePage() {
+  const category = 'garages'; // Hardcoded for this specific page
+  const categoryConfig = garageConfig; // Use the specific garage config
 
   // Initialize state based on the found category config
   const [configState, setConfigState] = useState<any>(() => {
     if (!categoryConfig) return {}; // Return empty if config not found
     const initialState: any = {};
     categoryConfig.options.forEach(opt => {
-      // Remove per-bay initialization logic
       initialState[opt.id] = opt.defaultValue;
     });
     return initialState;
@@ -154,60 +89,29 @@ export default function ConfigureProductPage() {
 
    const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-   // Remove useEffect related to per-bay state management as it's no longer needed
-
    // Recalculate initial price when config is available or changes
    useEffect(() => {
       if (categoryConfig) {
-          setCalculatedPrice(calculatePrice(category, configState));
+          setCalculatedPrice(calculatePrice(configState));
       }
-   }, [category, categoryConfig, configState]);
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []); // Run only once on mount with initial state
 
 
    const handleConfigChange = (id: string, value: any) => {
      setConfigState((prev: any) => {
         const newState = { ...prev, [id]: value };
         // Update price dynamically
-        setCalculatedPrice(calculatePrice(category, newState));
+        setCalculatedPrice(calculatePrice(newState));
         return newState;
      });
    };
 
 
   if (!categoryConfig) {
-    // If the category slug doesn't match any config, show 404
+    // Should not happen if garageConfig is defined, but good practice
     notFound();
   }
-
-   const handleAreaChange = (value: string, type: 'area' | 'length' | 'width') => {
-     setConfigState((prev: any) => {
-        const newAreaState = { ...prev.area, [type]: value };
-
-         // If length/width changed, clear direct area input
-         if (type === 'length' || type === 'width') {
-            newAreaState.area = '';
-         }
-         // If direct area changed, clear length/width
-         if(type === 'area') {
-             newAreaState.length = '';
-             newAreaState.width = '';
-         }
-
-        const newState = { ...prev, area: newAreaState };
-        setCalculatedPrice(calculatePrice(category, newState));
-        return newState;
-     });
-   }
-
-    const handleDimensionChange = (value: string, type: 'length' | 'width' | 'thickness') => {
-     setConfigState((prev: any) => {
-        const newDimState = { ...prev.dimensions, [type]: value };
-        const newState = { ...prev, dimensions: newDimState };
-        setCalculatedPrice(calculatePrice(category, newState));
-        return newState;
-     });
-   }
-
 
    const handleAddToBasket = () => {
       // TODO: Add logic to add configured item to basket state/API
@@ -216,12 +120,13 @@ export default function ConfigureProductPage() {
 
 
   return (
+    // Removed relative isolate and background image handling
     <div>
         <div className="container mx-auto px-4 py-12">
+           {/* Adjusted card appearance */}
           <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
             <CardHeader className="text-center"> {/* Center align header content */}
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
-               {/* Removed Back to Home link */}
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-8">
                 {/* Configuration Options */}
@@ -248,7 +153,8 @@ export default function ConfigureProductPage() {
                         value={configState[option.id]}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
-                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto"> {/* Center trigger */}
+                         {/* Adjusted background and centered */}
+                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto">
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
                         <SelectContent>
@@ -269,6 +175,7 @@ export default function ConfigureProductPage() {
                              )}
                          >
                            {option.options?.map((opt) => (
+                              // Adjusted background and added cursor pointer
                              <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
                                 <RadioGroupItem value={opt.value} id={`${option.id}-${opt.value}`} className="sr-only" />
                                  {/* Add image rendering for radio options */}
@@ -289,7 +196,8 @@ export default function ConfigureProductPage() {
                          </RadioGroup>
                      )}
                     {option.type === 'slider' && (
-                      <div className="mt-2 space-y-2 max-w-sm mx-auto"> {/* Center slider */}
+                       // Centered slider
+                      <div className="mt-2 space-y-2 max-w-sm mx-auto">
                          <Slider
                             id={option.id}
                             min={option.min}
@@ -312,90 +220,25 @@ export default function ConfigureProductPage() {
                             checked={configState[option.id]}
                             onCheckedChange={(checked) => handleConfigChange(option.id, checked)}
                           />
+                           {/* Added normal weight */}
                           <Label htmlFor={option.id} className="font-normal">Yes</Label>
                        </div>
                     )}
-                     {option.type === 'dimensions' && (
-                         <div className="mt-2 grid grid-cols-3 gap-4 max-w-md mx-auto"> {/* Center dimensions */}
-                             <div className="text-center">
-                               <Label htmlFor={`${option.id}-length`}>Length ({option.unit})</Label>
-                               <Input id={`${option.id}-length`} type="number" min="1" step="any"
-                                      value={configState[option.id]?.length || ''}
-                                      onChange={(e) => handleDimensionChange(e.target.value, 'length')}
-                                      className="mt-1 bg-background/70 text-center"/>
-                             </div>
-                             <div className="text-center">
-                                <Label htmlFor={`${option.id}-width`}>Width ({option.unit})</Label>
-                                <Input id={`${option.id}-width`} type="number" min="1" step="any"
-                                       value={configState[option.id]?.width || ''}
-                                       onChange={(e) => handleDimensionChange(e.target.value, 'width')}
-                                       className="mt-1 bg-background/70 text-center"/>
-                             </div>
-                              <div className="text-center">
-                                <Label htmlFor={`${option.id}-thickness`}>Thickness ({option.unit})</Label>
-                                <Input id={`${option.id}-thickness`} type="number" min="1" step="any"
-                                       value={configState[option.id]?.thickness || ''}
-                                       onChange={(e) => handleDimensionChange(e.target.value, 'thickness')}
-                                       className="mt-1 bg-background/70 text-center"/>
-                             </div>
-                         </div>
-                     )}
-                      {option.type === 'area' && (
-                         <div className="mt-2 space-y-4 max-w-md mx-auto"> {/* Center area */}
-                             {option.fixedValue && (
-                                 <div className="flex justify-between items-center text-sm px-4"> {/* Add padding */}
-                                     <span className="text-muted-foreground">{option.label}:</span>
-                                     <span className="font-medium">{option.fixedValue}</span>
-                                 </div>
-                             )}
-                             {!option.fixedValue && (
-                                <>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                        <div className="text-center">
-                                          <Label htmlFor={`${option.id}-area`}>Area ({option.unit})</Label>
-                                          <Input id={`${option.id}-area`} type="number" min="0.1" step="any"
-                                                 placeholder={`Enter area directly`}
-                                                 value={configState[option.id]?.area || ''}
-                                                 onChange={(e) => handleAreaChange(e.target.value, 'area')}
-                                                 className="mt-1 bg-background/70 text-center"/>
-                                        </div>
-                                        <div className="text-center text-sm text-muted-foreground pb-2">OR</div>
-                                    </div>
-                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="text-center">
-                                          <Label htmlFor={`${option.id}-length`}>Length (cm)</Label>
-                                          <Input id={`${option.id}-length`} type="number" min="1" step="any"
-                                                 placeholder="Calculate area"
-                                                 value={configState[option.id]?.length || ''}
-                                                 onChange={(e) => handleAreaChange(e.target.value, 'length')}
-                                                 className="mt-1 bg-background/70 text-center"/>
-                                        </div>
-                                        <div className="text-center">
-                                           <Label htmlFor={`${option.id}-width`}>Width (cm)</Label>
-                                           <Input id={`${option.id}-width`} type="number" min="1" step="any"
-                                                  placeholder="Calculate area"
-                                                  value={configState[option.id]?.width || ''}
-                                                  onChange={(e) => handleAreaChange(e.target.value, 'width')}
-                                                  className="mt-1 bg-background/70 text-center"/>
-                                        </div>
-                                     </div>
-                                </>
-                             )}
-                         </div>
-                     )}
                   </div>
                 ))}
                </div>
 
                 {/* Price & Add to Basket Section */}
-               <div className="space-y-6 border-t border-border/50 pt-6 mt-4"> {/* Add margin top */}
+                 {/* Added margin top */}
+               <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
                  <div className="text-center space-y-2">
                     <p className="text-sm text-muted-foreground">Estimated Price (excl. VAT & Delivery)</p>
                     <p className="text-3xl font-bold">
                        {calculatedPrice !== null ? `£${calculatedPrice.toFixed(2)}` : 'Calculating...'}
                     </p>
                  </div>
-                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}> {/* Center button */}
+                   {/* Centered button */}
+                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}>
                       Add to Basket <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                </div>
