@@ -71,7 +71,8 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6"> {/* justify-between here */}
+      {/* Use container for max-width and centering, but relative positioning to allow absolute positioning of icons */}
+      <div className="container relative flex h-16 items-center justify-between px-4 md:px-6">
 
         {/* Left Side: Hamburger Menus & Basket Total */}
         <div className="flex items-center gap-2">
@@ -182,9 +183,9 @@ export function SiteHeader() {
              )}
         </div>
 
-
-        {/* Right Side: Icons */}
-        <div className="flex items-center gap-2 md:gap-4"> {/* This group is positioned to the right by justify-between */}
+        {/* Right Side: Icons - Positioned absolutely to the right edge */}
+        {/* The container padding (px-4 md:px-6) determines the distance from the edge */}
+        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 md:right-6">
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
