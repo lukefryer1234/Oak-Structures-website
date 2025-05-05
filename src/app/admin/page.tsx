@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ShoppingCart, FileText, Settings, Users } from 'lucide-react'; // Example icons
+import { ShoppingCart, FileText, Settings, Users, Truck, GalleryHorizontal } from 'lucide-react'; // Example icons, Added Truck and GalleryHorizontal
 
 export default function AdminDashboardPage() {
   // Placeholder data - replace with actual data fetching
