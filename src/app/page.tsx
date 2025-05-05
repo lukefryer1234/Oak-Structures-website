@@ -25,29 +25,28 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Product Categories Section */}
-       {/* Added background tint and blur */}
        <section id="categories" className="py-16 bg-muted/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
-                 {/* Style 5: Image top, Title below, centered */}
-                 <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col bg-card border border-border/50">
-                   <CardContent className="p-0 flex-grow relative aspect-square w-full">
-                     <Image
-                       src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/400`} // Square image
-                       alt={category.name}
-                       layout="fill"
-                       objectFit="cover"
-                       data-ai-hint={category.dataAiHint}
-                       className="transition-transform duration-300 group-hover:scale-105"
-                     />
-                   </CardContent>
-                   <CardFooter className="p-4 justify-center">
-                     <CardTitle className="text-lg font-semibold text-center">
+                 {/* Style 5: Image with overlay and title */}
+                 <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col bg-card border border-border/50 relative aspect-[4/3]">
+                   {/* Image fills the card */}
+                   <Image
+                     src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/300`}
+                     alt={category.name}
+                     layout="fill"
+                     objectFit="cover"
+                     data-ai-hint={category.dataAiHint}
+                     className="transition-transform duration-300 group-hover:scale-105"
+                   />
+                   {/* Overlay for title */}
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-end p-4">
+                     <CardTitle className="text-xl font-semibold text-primary-foreground drop-shadow-md">
                        {category.name}
                      </CardTitle>
-                   </CardFooter>
+                   </div>
                  </Card>
               </Link>
             ))}
@@ -61,9 +60,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-center mb-12">Featured Deals</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {featuredDeals.map((deal) => (
-               // Added transparency and blur
                <Card key={deal.name} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col sm:flex-row bg-card/80 backdrop-blur-sm border border-border/50">
-                 {/* Adjusted background */}
                  <div className="relative h-48 sm:h-auto sm:w-1/3 flex-shrink-0 bg-muted">
                      <Image
                        src={`https://picsum.photos/seed/${deal.name.replace(/\s+/g, '-')}/400/400`}
