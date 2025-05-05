@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation'; // Added useRouter
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowRight } from 'lucide-react';
@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'; // Import cn utility
 interface ConfigOption {
   id: string;
   label: string;
-  type: 'select' | 'slider' | 'radio' | 'checkbox' | 'dimensions' | 'area' | 'preview'; // Added 'preview' type
+  type: 'select' | 'slider' | 'radio' | 'checkbox' | 'dimensions' | 'area'; // Removed 'preview' type
   options?: { value: string; label: string; image?: string, dataAiHint?: string }[]; // For select/radio, added dataAiHint
   min?: number; // For slider/numeric inputs
   max?: number; // For slider/numeric inputs
@@ -46,10 +46,9 @@ interface CategoryConfig {
 const garageConfig: CategoryConfig = {
     title: "Configure Your Garage",
     options: [
-       //{ id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' }, // Removed Oak Type
       { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
       { id: 'beamSize', label: 'Structural Beam Sizes', type: 'select', options: [ { value: '6x6', label: '6 inch x 6 inch' }, { value: '7x7', label: '7 inch x 7 inch' }, { value: '8x8', label: '8 inch x 8 inch' } ], defaultValue: '6x6' },
-      { id: 'preview', label: 'Preview', type: 'preview', dataAiHint: 'garage oak structure'}, // Placeholder for preview
+      // Removed preview option
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
       { id: 'baySize', label: 'Size Per Bay', type: 'select', options: [{ value: 'standard', label: 'Standard (e.g., 3m wide)' }, { value: 'large', label: 'Large (e.g., 3.5m wide)' }], defaultValue: 'standard' },
       { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false }, // Changed to apply to all
@@ -87,6 +86,7 @@ const calculatePrice = (config: any): number => {
 export default function ConfigureGaragePage() {
   const category = 'garages'; // Hardcoded for this specific page
   const categoryConfig = garageConfig; // Use the specific garage config
+  const router = useRouter(); // Initialize router
 
   // Initialize state based on the found category config
   const [configState, setConfigState] = useState<any>(() => {
@@ -124,9 +124,10 @@ export default function ConfigureGaragePage() {
     notFound();
   }
 
-   const handleAddToBasket = () => {
-      // TODO: Add logic to add configured item to basket state/API
-      alert(`Added ${categoryConfig.title} to basket with config: ${JSON.stringify(configState)} for £${calculatedPrice?.toFixed(2)}`);
+   const handlePreviewPurchase = () => {
+        const configString = encodeURIComponent(JSON.stringify(configState));
+        const price = calculatedPrice !== null ? calculatedPrice.toFixed(2) : '0.00';
+        router.push(`/preview?category=${category}&config=${configString}&price=${price}`);
    }
 
 
@@ -146,19 +147,6 @@ export default function ConfigureGaragePage() {
                   <div key={option.id} className="text-center"> {/* Center align each option block */}
                     {/* Added text-center to center the label */}
                     <Label htmlFor={option.id} className="text-base font-medium block mb-2">{option.label}</Label>
-                     {option.type === 'preview' && (
-                        <div className="mt-2 max-w-md mx-auto aspect-video bg-muted/50 rounded-md border border-border/50 flex items-center justify-center">
-                           {/* Preview Image placeholder */}
-                            <Image
-                                src={`https://picsum.photos/seed/${option.dataAiHint?.replace(/\s+/g, '-')}/400/225`} // Use placeholder URL
-                                alt="Configuration Preview"
-                                width={400}
-                                height={225}
-                                className="rounded object-cover"
-                                data-ai-hint={option.dataAiHint}
-                             />
-                        </div>
-                     )}
                     {option.type === 'select' && (
                       <Select
                         value={configState[option.id]}
@@ -251,8 +239,8 @@ export default function ConfigureGaragePage() {
                     </p>
                  </div>
                    {/* Centered button */}
-                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}>
-                      Add to Basket <ArrowRight className="ml-2 h-5 w-5" />
+                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handlePreviewPurchase} disabled={calculatedPrice === null || calculatedPrice <= 0}>
+                      Preview Purchase <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                </div>
             </CardContent>

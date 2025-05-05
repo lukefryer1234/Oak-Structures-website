@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation'; // Added useRouter
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -43,6 +43,7 @@ const porchConfig: CategoryConfig = {
 const calculatePrice = (config: any): number => {
   let basePrice = 2000; // Base price for Porch
   if (config.sizeType === 'wide') basePrice += 400;
+  if (config.sizeType === 'narrow') basePrice -= 200;
   if (config.legType === 'floor') basePrice += 150;
   // if (config.oakType === 'reclaimed') basePrice += 200; // Removed oak type condition
   // Add other pricing adjustments based on config.trussType if needed
@@ -54,6 +55,7 @@ const calculatePrice = (config: any): number => {
 export default function ConfigurePorchPage() {
   const category = 'porches';
   const categoryConfig = porchConfig;
+  const router = useRouter(); // Initialize router
 
   const [configState, setConfigState] = useState<any>(() => {
     const initialState: any = {};
@@ -78,8 +80,10 @@ export default function ConfigurePorchPage() {
      });
    };
 
-   const handleAddToBasket = () => {
-      alert(`Added ${categoryConfig.title} to basket with config: ${JSON.stringify(configState)} for £${calculatedPrice?.toFixed(2)}`);
+    const handlePreviewPurchase = () => {
+        const configString = encodeURIComponent(JSON.stringify(configState));
+        const price = calculatedPrice !== null ? calculatedPrice.toFixed(2) : '0.00';
+        router.push(`/preview?category=${category}&config=${configString}&price=${price}`);
    }
 
   return (
@@ -149,8 +153,8 @@ export default function ConfigurePorchPage() {
                        {calculatedPrice !== null ? `£${calculatedPrice.toFixed(2)}` : 'Calculating...'}
                     </p>
                  </div>
-                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}>
-                      Add to Basket <ArrowRight className="ml-2 h-5 w-5" />
+                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handlePreviewPurchase} disabled={calculatedPrice === null || calculatedPrice <= 0}>
+                      Preview Purchase <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                </div>
             </CardContent>
