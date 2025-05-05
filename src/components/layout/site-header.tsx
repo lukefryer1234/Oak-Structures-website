@@ -59,14 +59,21 @@ export function SiteHeader() {
   const isLoggedIn = false; // Replace with actual auth check
   // Placeholder for basket item count
   const basketItemCount = 3; // Replace with actual basket count logic
+  // Placeholder for basket total price - fetch this from actual basket state
+  const basketTotalPrice = 17575.00; // Example value
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  // Function to format price
+  const formatPrice = (price: number) => {
+      return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6"> {/* justify-between here */}
 
-        {/* Left Side: Hamburger Menus */}
+        {/* Left Side: Hamburger Menus & Basket Total */}
         <div className="flex items-center gap-2">
            {/* Mobile Hamburger Trigger (only for triggering the sheet) */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -166,6 +173,13 @@ export function SiteHeader() {
                  ))}
              </DropdownMenuContent>
            </DropdownMenu>
+
+            {/* Basket Total Price */}
+            {basketItemCount > 0 && (
+                <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
+                    {formatPrice(basketTotalPrice)}
+                </div>
+             )}
         </div>
 
 
