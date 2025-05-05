@@ -15,6 +15,12 @@ const productCategories = [
    { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 
+const featuredDeals = [
+   { name: 'Pre-Configured Double Garage', price: '£8,500', description: 'Limited time offer on our popular 2-bay garage.', image: '/images/featured-deal-1.jpg', href: '/special-deals/double-garage', dataAiHint: 'double oak frame garage' },
+   { name: 'Garden Gazebo Kit', price: '£3,200', description: 'Easy-to-assemble 3m x 3m gazebo kit.', image: '/images/featured-deal-2.jpg', href: '/special-deals/gazebo-kit', dataAiHint: 'garden gazebo kit wood' },
+]
+
+
 export default function Home() {
   return (
     <div className="relative isolate overflow-hidden">
@@ -31,11 +37,10 @@ export default function Home() {
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted/50 backdrop-blur-sm"> {/* Semi-transparent background */}
         <div className="container mx-auto px-4">
-           {/* Removed h2 title */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
-                <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, border */}
+                 <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col bg-card/80 backdrop-blur-sm border border-border/50"> {/* Added transparency, blur, border */}
                    {/* Image fills the CardContent */}
                    <CardContent className="p-0 flex-grow relative aspect-square w-full overflow-hidden">
                     <Image
@@ -50,7 +55,7 @@ export default function Home() {
                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                   </CardContent>
                    {/* Footer remains below content */}
-                  <CardFooter className="p-4 justify-center bg-card/90 border-t border-border/30"> {/* Slightly opaque footer for text readability */}
+                   <CardFooter className="p-4 justify-center bg-card/90 border-t border-border/30"> {/* Slightly opaque footer for text readability */}
                     <CardTitle className="text-lg font-semibold text-center text-card-foreground">{category.name}</CardTitle>
                   </CardFooter>
                 </Card>
@@ -63,4 +68,3 @@ export default function Home() {
     </div>
   );
 }
-
