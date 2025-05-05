@@ -31,7 +31,6 @@ export default function Home() {
           data-ai-hint="timber frame workshop landscape"
         />
         <div className="absolute inset-0 bg-black/50 z-10"></div>
-        {/* Removed hero content div */}
       </section>
 
       {/* Product Categories Section */}
