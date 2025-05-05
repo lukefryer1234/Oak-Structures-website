@@ -244,7 +244,7 @@ export default function ConfigureProductPage() {
                         <RadioGroup
                             value={configState[option.id]}
                             onValueChange={(value) => handleConfigChange(option.id, value)}
-                            className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4"
+                            className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4" // Changed from grid-cols-1 sm:grid-cols-2
                          >
                            {option.options?.map((opt) => (
                              <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
@@ -375,5 +375,3 @@ export default function ConfigureProductPage() {
     </div>
   );
 }
-
-    
