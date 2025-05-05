@@ -71,11 +71,11 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Use container for max-width and centering, but relative positioning to allow absolute positioning of icons */}
-      <div className="container relative flex h-16 items-center justify-between px-4 md:px-6">
+      {/* Main header div spans full width */}
+      <div className="relative flex h-16 items-center justify-between">
 
-        {/* Left Side: Hamburger Menus & Basket Total */}
-        <div className="flex items-center gap-2">
+        {/* Left Side: Hamburger Menus & Basket Total (Constrained by container padding) */}
+        <div className="flex items-center gap-2 pl-4 md:pl-6"> {/* Add padding here */}
            {/* Mobile Hamburger Trigger (only for triggering the sheet) */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -92,7 +92,7 @@ export function SiteHeader() {
                 {/* Mobile Sheet Content */}
                  <nav className="flex flex-col h-full">
                      <div className="p-4 border-b">
-                        {/* Removed Title from mobile menu header */}
+                        {/* Mobile menu header (no title) */}
                      </div>
                      <div className="flex-1 overflow-y-auto py-4 px-4">
                           <Link
@@ -183,9 +183,8 @@ export function SiteHeader() {
              )}
         </div>
 
-        {/* Right Side: Icons - Positioned absolutely to the right edge */}
-        {/* The container padding (px-4 md:px-6) determines the distance from the edge */}
-        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 md:right-6">
+        {/* Right Side: Icons - Positioned absolutely to the right edge of the viewport */}
+        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 md:right-6"> {/* Adjust right padding here */}
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
