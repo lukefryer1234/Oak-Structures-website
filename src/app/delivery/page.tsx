@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck, PackageCheck, AlertTriangle, Info, Building } from "lucide-react"; // Icons
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Delivery Information",

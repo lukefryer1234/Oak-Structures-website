@@ -20,8 +20,7 @@ const specialDeals = [
 
 export default function Home() {
   return (
-    <div className="flex flex-col">
-
+    <>
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted">
         <div className="container mx-auto px-4">
@@ -89,6 +88,6 @@ export default function Home() {
         </div>
       </section>
 
-    </div>
+    </>
   );
 }

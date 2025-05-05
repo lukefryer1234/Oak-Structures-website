@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'; // Added Send icon, Loader2
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react"; // For loading state
-import { Metadata } from 'next'; // Import Metadata
+import type { Metadata } from 'next'; // Import Metadata
 
 // Static metadata for the Contact page
 // export const metadata: Metadata = { // Cannot export metadata from client component

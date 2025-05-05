@@ -13,6 +13,7 @@ import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 // --- Configuration Interfaces & Data (Replace with actual data/logic) ---
 

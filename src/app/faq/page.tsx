@@ -1,6 +1,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { HelpCircle } from "lucide-react"; // Icon
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "FAQ",

@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="bg-background">
+    <>
       {/* Hero Section */}
       <div className="relative h-64 md:h-80">
           <Image
@@ -95,6 +95,6 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
