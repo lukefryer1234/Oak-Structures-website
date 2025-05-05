@@ -12,12 +12,13 @@ import Image from 'next/image'; // Use next/image for preview
 
 // --- Types and Placeholder Data ---
 
-type ImageType = 'category' | 'special_deal' | 'config_option';
+// Added 'main_product' and 'background' types
+type ImageType = 'category' | 'special_deal' | 'config_option' | 'main_product' | 'background';
 
 interface ProductImage {
   id: string;
   type: ImageType;
-  target: string; // Category name, Deal ID/Name, or Config Option ID (e.g., 'garages', 'deal123', 'truss-curved')
+  target: string; // Category name, Deal ID/Name, Config Option ID, Page Key (e.g., 'home', 'garages')
   url: string; // Image URL
   altText: string; // Alt text for accessibility
 }
@@ -29,11 +30,15 @@ const initialImages: ProductImage[] = [
   { id: 'img3', type: 'special_deal', target: 'deal1', url: 'https://picsum.photos/seed/deal1/200/200', altText: 'Pre-Configured Double Garage Deal' },
   { id: 'img4', type: 'config_option', target: 'truss-curved', url: 'https://picsum.photos/seed/truss-curved/200/200', altText: 'Curved Truss Option Preview' },
   { id: 'img5', type: 'config_option', target: 'truss-straight', url: 'https://picsum.photos/seed/truss-straight/200/200', altText: 'Straight Truss Option Preview' },
+  { id: 'img6', type: 'main_product', target: 'Garages', url: 'https://picsum.photos/seed/main-garage/400/300', altText: 'Main Garage Product Image' },
+   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image' },
 ];
 
-// Placeholder options - populate dynamically if possible
-const imageTypes: ImageType[] = ['category', 'special_deal', 'config_option'];
+// Updated imageTypes array
+const imageTypes: ImageType[] = ['category', 'main_product', 'background', 'special_deal', 'config_option'];
 const categoryTargets = ['Garages', 'Gazebos', 'Porches', 'Oak Beams', 'Oak Flooring', 'Special Deals'];
+// Placeholder targets for background images
+const pageTargets = ['home', 'products', 'gallery', 'about', 'contact'];
 // Add logic to fetch Special Deal IDs/Names and Config Option IDs
 
 export default function ProductPhotosPage() {
@@ -111,6 +116,7 @@ export default function ProductPhotosPage() {
   const renderTargetOptions = () => {
     switch (newImageType) {
       case 'category':
+      case 'main_product': // Main product images target categories
         return (
            <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
              <SelectTrigger id="target-select">
@@ -121,6 +127,17 @@ export default function ProductPhotosPage() {
              </SelectContent>
            </Select>
         );
+       case 'background': // Background images target pages
+           return (
+             <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
+               <SelectTrigger id="target-select">
+                 <SelectValue placeholder="Select Page" />
+               </SelectTrigger>
+               <SelectContent>
+                 {pageTargets.map(page => <SelectItem key={page} value={page}>{page.charAt(0).toUpperCase() + page.slice(1)}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           );
        case 'special_deal':
            // Replace with actual dynamic list of Deal IDs/Names
            return <Input id="target-input" placeholder="Enter Special Deal ID or Name" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
@@ -132,13 +149,18 @@ export default function ProductPhotosPage() {
     }
   };
 
+   // Helper function to format ImageType for display
+   const formatImageType = (type: ImageType): string => {
+       return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+   }
+
   return (
     <div className="space-y-8">
       {/* Add New Image Form */}
       <Card>
         <CardHeader>
           <CardTitle>Add New Product Image</CardTitle>
-          <CardDescription>Upload or link an image and associate it with a product category, special deal, or configuration option.</CardDescription>
+          <CardDescription>Upload or link an image and associate it with a product category, special deal, configuration option, or page element.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddImage} className="space-y-4">
@@ -151,7 +173,7 @@ export default function ProductPhotosPage() {
                           <SelectValue placeholder="Select Type" />
                        </SelectTrigger>
                        <SelectContent>
-                          {imageTypes.map(type => <SelectItem key={type} value={type}>{type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</SelectItem>)}
+                          {imageTypes.map(type => <SelectItem key={type} value={type}>{formatImageType(type)}</SelectItem>)}
                        </SelectContent>
                     </Select>
                  </div>
@@ -212,7 +234,7 @@ export default function ProductPhotosPage() {
                      <Image src={img.url} alt={img.altText} layout="fill" objectFit="cover" />
                   </div>
                    <div className="p-3 text-xs space-y-1 bg-card">
-                     <p><strong className="text-muted-foreground">Type:</strong> {img.type.replace('_', ' ')}</p>
+                     <p><strong className="text-muted-foreground">Type:</strong> {formatImageType(img.type)}</p>
                      <p><strong className="text-muted-foreground">Target:</strong> {img.target}</p>
                      <p><strong className="text-muted-foreground">Alt:</strong> {img.altText}</p>
                       <p className="truncate"><strong className="text-muted-foreground">URL:</strong> <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{img.url}</a></p>
