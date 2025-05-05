@@ -34,7 +34,7 @@ const porchConfig: CategoryConfig = {
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
       { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
       { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: 'narrow', label: 'Narrow (e.g., 1.5m Wide)' }, { value: 'standard', label: 'Standard (e.g., 2m Wide)' }, { value: 'wide', label: 'Wide (e.g., 2.5m Wide)' }], defaultValue: 'standard' },
-      { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' },
+      // { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' }, // Removed oak type
     ]
 };
 
@@ -44,7 +44,7 @@ const calculatePrice = (config: any): number => {
   let basePrice = 2000; // Base price for Porch
   if (config.sizeType === 'wide') basePrice += 400;
   if (config.legType === 'floor') basePrice += 150;
-  if (config.oakType === 'reclaimed') basePrice += 200;
+  // if (config.oakType === 'reclaimed') basePrice += 200; // Removed oak type condition
   // Add other pricing adjustments based on config.trussType if needed
   return Math.max(0, basePrice);
 };
@@ -99,12 +99,14 @@ export default function ConfigurePorchPage() {
                         value={configState[option.id]}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
-                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto">
+                        {/* Added justify-center */}
+                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto justify-center">
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {option.options?.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            // Added justify-center to SelectItem
+                            <SelectItem key={opt.value} value={opt.value} className="justify-center">{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -157,5 +159,3 @@ export default function ConfigurePorchPage() {
     </div>
   );
 }
-
-    

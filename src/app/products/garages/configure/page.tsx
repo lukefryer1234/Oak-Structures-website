@@ -165,12 +165,14 @@ export default function ConfigureGaragePage() {
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
                          {/* Adjusted background and centered */}
-                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto">
+                         {/* Added justify-center */}
+                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto justify-center">
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {option.options?.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            // Added justify-center to SelectItem
+                            <SelectItem key={opt.value} value={opt.value} className="justify-center">{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
