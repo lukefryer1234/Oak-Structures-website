@@ -8,10 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { notFound, useRouter } from 'next/navigation'; // Added useRouter
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, PlusCircle, Trash2 } from 'lucide-react'; // Added icons
 import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Import Table components
+import { Separator } from '@/components/ui/separator'; // Import Separator
+import { useToast } from "@/hooks/use-toast"; // Import toast
 
-// --- Configuration Interfaces & Data ---
+// --- Interfaces ---
 
 interface ConfigOption {
   id: string;
@@ -28,7 +31,16 @@ interface CategoryConfig {
   options: ConfigOption[];
 }
 
-// Specific configuration for Oak Flooring
+interface FlooringListItem {
+    id: string; // Unique ID for the list item
+    oakType: string;
+    area: number; // Area in m²
+    description: string;
+    price: number;
+}
+
+// --- Config Data ---
+
 const oakFlooringConfig: CategoryConfig = {
         title: "Configure Your Oak Flooring",
         options: [
@@ -38,9 +50,16 @@ const oakFlooringConfig: CategoryConfig = {
         ]
     };
 
+// --- Unit Prices (Fetch from admin settings in real app) ---
+const unitPrices = {
+    reclaimed: 90,
+    kilned: 75,
+};
+
+
 // --- Helper Functions ---
 
-const calculatePrice = (config: any): number => {
+const calculateAreaAndPrice = (config: any): { area: number; price: number } => {
   const areaData = config.area || { area: 0, length: '', width: '' };
   let areaM2 = parseFloat(areaData.area);
 
@@ -54,10 +73,15 @@ const calculatePrice = (config: any): number => {
     }
   }
 
-  const floorUnitPrice = config.oakType === 'reclaimed' ? 90 : 75;
-  const basePrice = areaM2 * floorUnitPrice;
-  return Math.max(0, basePrice);
+  const floorUnitPrice = config.oakType === 'reclaimed' ? unitPrices.reclaimed : unitPrices.kilned;
+  const price = areaM2 * floorUnitPrice;
+  return { area: Math.max(0, areaM2), price: Math.max(0, price) };
 };
+
+// Helper function to format currency
+const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
+}
 
 // --- Component ---
 
@@ -65,7 +89,9 @@ export default function ConfigureOakFlooringPage() {
   const category = 'oak-flooring';
   const categoryConfig = oakFlooringConfig;
   const router = useRouter(); // Initialize router
+  const { toast } = useToast();
 
+  // State for the current configuration input
   const [configState, setConfigState] = useState<any>(() => {
     const initialState: any = {};
     categoryConfig.options.forEach(opt => {
@@ -74,24 +100,28 @@ export default function ConfigureOakFlooringPage() {
     return initialState;
   });
 
-   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+   // State for the current calculated price
+   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
+   // State for the cutting list
+   const [cuttingList, setCuttingList] = useState<FlooringListItem[]>([]);
 
+
+  // Effect to calculate initial price and recalculate on config change
    useEffect(() => {
-      setCalculatedPrice(calculatePrice(configState));
-   // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, []); // Run only once
+      const { price } = calculateAreaAndPrice(configState);
+      setCalculatedPrice(price);
+   }, [configState]);
 
+   // Handle changes in configuration options (select)
    const handleConfigChange = (id: string, value: any) => {
-     setConfigState((prev: any) => {
-        const newState = { ...prev, [id]: value };
-        setCalculatedPrice(calculatePrice(newState));
-        return newState;
-     });
+     setConfigState((prev: any) => ({ ...prev, [id]: value }));
    };
 
+   // Handle changes in area inputs
    const handleAreaChange = (value: string, type: 'area' | 'length' | 'width') => {
      setConfigState((prev: any) => {
-        const newAreaState = { ...(prev.area || {}), [type]: value }; // Handle potential undefined area
+        const currentArea = prev.area || {};
+        const newAreaState = { ...currentArea, [type]: value };
 
          // If length/width changed, clear direct area input
          if (type === 'length' || type === 'width') {
@@ -103,17 +133,88 @@ export default function ConfigureOakFlooringPage() {
              newAreaState.width = '';
          }
 
-        const newState = { ...prev, area: newAreaState };
-        setCalculatedPrice(calculatePrice(newState));
-        return newState;
+        return { ...prev, area: newAreaState };
      });
    }
 
-   const handlePreviewPurchase = () => {
-        const configString = encodeURIComponent(JSON.stringify(configState));
-        const price = calculatedPrice !== null ? calculatedPrice.toFixed(2) : '0.00';
-        router.push(`/preview?category=${category}&config=${configString}&price=${price}`);
+   // Handle adding the current configuration to the cutting list
+   const handleAddToCuttingList = () => {
+      const { area, price } = calculateAreaAndPrice(configState);
+
+      // Validation
+      if (area <= 0) {
+          toast({
+              variant: "destructive",
+              title: "Invalid Area",
+              description: "Please enter a valid area (either directly or via length and width).",
+          });
+          return;
+      }
+       if (!configState.oakType) {
+            toast({
+                 variant: "destructive",
+                 title: "Missing Oak Type",
+                 description: "Please select an oak type.",
+            });
+            return;
+       }
+
+        if (price <= 0) {
+           toast({
+                variant: "destructive",
+                title: "Calculation Error",
+                description: "Cannot add item with zero price. Check area.",
+           });
+           return;
+        }
+
+
+      const newItem: FlooringListItem = {
+          id: `floor-${Date.now()}`, // Simple unique ID
+          oakType: configState.oakType,
+          area: area,
+          description: `${configState.oakType.charAt(0).toUpperCase() + configState.oakType.slice(1)} Oak Flooring: ${area.toFixed(2)}m²`,
+          price: price,
+      };
+
+      setCuttingList(prev => [...prev, newItem]);
+
+      toast({
+          title: "Flooring Added",
+          description: newItem.description,
+      });
+
+      // Optional: Reset form fields after adding
+      // setConfigState(initialState);
+   };
+
+    // Handle removing an item from the cutting list
+   const handleRemoveFromList = (id: string) => {
+        setCuttingList(prev => prev.filter(item => item.id !== id));
+        toast({
+            title: "Flooring Removed",
+            description: "Item removed from the cutting list.",
+        });
    }
+
+   // Calculate total price of the cutting list
+   const cuttingListTotal = cuttingList.reduce((sum, item) => sum + item.price, 0);
+
+   // Handle proceeding to checkout (placeholder)
+    const handleProceedToCheckout = () => {
+        if (cuttingList.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "Empty List",
+                description: "Please add at least one flooring area to the cutting list.",
+            });
+            return;
+        }
+        // TODO: Implement logic to add all items in cuttingList to the main shopping basket
+        console.log("Proceeding to checkout with:", cuttingList);
+        alert(`Proceeding to checkout with ${cuttingList.length} flooring area(s). (Placeholder - check console)`);
+        // router.push('/basket'); // Navigate to basket after adding items
+    };
 
   return (
     <div>
@@ -123,6 +224,7 @@ export default function ConfigureOakFlooringPage() {
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-8">
+               {/* --- Configuration Section --- */}
                <div className="space-y-6">
                  {categoryConfig.options.map((option) => (
                   <div key={option.id} className="text-center">
@@ -132,13 +234,11 @@ export default function ConfigureOakFlooringPage() {
                         value={configState[option.id]}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
-                         {/* Added justify-center */}
                         <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto justify-center">
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {option.options?.map((opt) => (
-                            // Added justify-center to SelectItem
                             <SelectItem key={opt.value} value={opt.value} className="justify-center">{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
@@ -147,7 +247,7 @@ export default function ConfigureOakFlooringPage() {
                      {option.type === 'area' && (
                          <div className="mt-2 space-y-4 max-w-md mx-auto">
                              {option.fixedValue && (
-                                 <div className="flex justify-between items-center text-sm px-4">
+                                 <div className="flex justify-between items-center text-sm px-4 max-w-sm mx-auto">
                                      <span className="text-muted-foreground">{option.label}:</span>
                                      <span className="font-medium">{option.fixedValue}</span>
                                  </div>
@@ -189,21 +289,65 @@ export default function ConfigureOakFlooringPage() {
                      )}
                   </div>
                 ))}
+                  {/* Price & Add Button */}
+                  <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
+                    <div className="text-center space-y-2">
+                        <p className="text-sm text-muted-foreground">Estimated Price for this Area (excl. VAT & Delivery)</p>
+                        <p className="text-3xl font-bold">
+                           {calculatedPrice !== null ? formatPrice(calculatedPrice) : 'Calculating...'}
+                        </p>
+                    </div>
+                    <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToCuttingList} disabled={calculatedPrice <= 0}>
+                        <PlusCircle className="mr-2 h-5 w-5" /> Add to Cutting List
+                    </Button>
+                </div>
                </div>
-               <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
-                 <div className="text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">Estimated Price (excl. VAT & Delivery)</p>
-                    <p className="text-3xl font-bold">
-                       {calculatedPrice !== null ? `£${calculatedPrice.toFixed(2)}` : 'Calculating...'}
-                    </p>
-                 </div>
-                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handlePreviewPurchase} disabled={calculatedPrice === null || calculatedPrice <= 0}>
-                      Preview Purchase <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-               </div>
+
+
+                {/* --- Cutting List Section --- */}
+               {cuttingList.length > 0 && (
+                  <div className="space-y-6 border-t border-border/50 pt-6 mt-8">
+                    <h3 className="text-xl font-semibold text-center">Cutting List</h3>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="text-right">Price</TableHead>
+                                <TableHead className="text-right w-[50px]">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {cuttingList.map((item) => (
+                                <TableRow key={item.id}>
+                                    <TableCell>{item.description}</TableCell>
+                                    <TableCell className="text-right font-medium">{formatPrice(item.price)}</TableCell>
+                                    <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleRemoveFromList(item.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Remove</span>
+                                    </Button>
+                                    </TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <Separator className="my-4 border-border/50" />
+                     <div className="text-right space-y-2">
+                        <p className="text-lg font-semibold">Cutting List Total: {formatPrice(cuttingListTotal)}</p>
+                        <p className="text-xs text-muted-foreground">(Excl. VAT & Delivery)</p>
+                         <Button size="lg" className="ml-auto block" onClick={handleProceedToCheckout}>
+                            Add List to Basket & Proceed <ArrowRight className="ml-2 h-5 w-5" />
+                         </Button>
+                    </div>
+                  </div>
+               )}
+
             </CardContent>
           </Card>
         </div>
     </div>
   );
 }
+
