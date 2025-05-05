@@ -20,20 +20,6 @@ const specialDeals = [
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative h-[60vh] w-full">
-        <Image
-          src="https://picsum.photos/1600/900"
-          alt="Hero background showing timber products"
-          layout="fill"
-          objectFit="cover"
-          className="z-0"
-          priority // Add priority for LCP
-          data-ai-hint="timber frame workshop landscape"
-        />
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
-        {/* Removed Hero Text Overlay */}
-      </section>
 
       {/* Product Categories Section */}
       <section id="categories" className="py-16 bg-muted">
