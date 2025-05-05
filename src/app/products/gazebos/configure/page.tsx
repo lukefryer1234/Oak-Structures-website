@@ -27,23 +27,23 @@ interface CategoryConfig {
   options: ConfigOption[];
 }
 
-// Specific configuration for Gazebos
+// Specific configuration for Gazebos - Removed Oak Type
 const gazeboConfig: CategoryConfig = {
     title: "Configure Your Gazebo",
     options: [
        { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'full', label: 'Full Height Legs' }, { value: 'wall', label: 'Wall Mount (Half Legs)' }], defaultValue: 'full' },
        { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: '3x3', label: '3m x 3m' }, { value: '4x3', label: '4m x 3m' }, { value: '4x4', label: '4m x 4m' }], defaultValue: '3x3' },
        { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
-       { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
+       // { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' }, // Removed Oak Type
     ]
 };
 
 // --- Helper Functions ---
 
+// Updated calculatePrice function without oakType dependency
 const calculatePrice = (config: any): number => {
   let basePrice = 3000; // Base price for Gazebo
   if (config.sizeType === '4x4') basePrice += 500;
-  if (config.oakType === 'reclaimed') basePrice += 200;
   // Add other pricing adjustments based on config.legType, config.trussType if needed
   return Math.max(0, basePrice);
 };
@@ -156,5 +156,3 @@ export default function ConfigureGazeboPage() {
     </div>
   );
 }
-
-    
