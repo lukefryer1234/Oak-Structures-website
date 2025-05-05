@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'; // Added CardFooter
 import { ArrowRight } from 'lucide-react';
 
 const productCategories = [
@@ -28,9 +28,11 @@ export default function Home() {
           layout="fill"
           objectFit="cover"
           className="z-0"
+          priority // Add priority for LCP
           data-ai-hint="timber frame workshop landscape"
         />
         <div className="absolute inset-0 bg-black/50 z-10"></div>
+        {/* Removed Hero Text Overlay */}
       </section>
 
       {/* Product Categories Section */}
@@ -39,48 +41,48 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-center mb-12">Our Products</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
-              <Card key={category.name} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="p-0">
-                   <div className="relative h-48 w-full">
-                    <Image
-                      src={`https://picsum.photos/seed/${category.name}/400/300`} // Placeholder
-                      alt={category.name}
-                      layout="fill"
-                      objectFit="cover"
-                      data-ai-hint={category.dataAiHint}
-                    />
-                   </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <CardTitle className="text-xl mb-2">{category.name}</CardTitle>
-                  <CardDescription className="mb-4">{category.description}</CardDescription>
-                  <Button variant="outline" asChild>
-                    <Link href={category.href}>Configure <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <Link href={category.href} key={category.name} className="group block">
+                <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
+                  <CardContent className="p-0 flex-grow">
+                    <div className="relative aspect-square w-full"> {/* Use aspect-square for consistent look */}
+                      <Image
+                        src={`https://picsum.photos/seed/${category.name}/400/400`} // Use square image
+                        alt={category.name}
+                        layout="fill"
+                        objectFit="cover"
+                        data-ai-hint={category.dataAiHint}
+                        className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 justify-center"> {/* Use CardFooter for title */}
+                    <CardTitle className="text-lg font-semibold text-center">{category.name}</CardTitle> {/* Centered title */}
+                  </CardFooter>
+                </Card>
+              </Link>
             ))}
              {/* Special Deals Category Link */}
-             <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 border-accent">
-                <CardHeader className="p-0">
-                   <div className="relative h-48 w-full">
-                    <Image
-                       src={`https://picsum.photos/seed/specialdeals/400/300`}
-                       alt="Special Deals"
-                       layout="fill"
-                       objectFit="cover"
-                       data-ai-hint="sale discount offer wood"
-                    />
-                   </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <CardTitle className="text-xl mb-2 text-accent">Special Deals</CardTitle>
-                  <CardDescription className="mb-4">Limited time offers and pre-configured items.</CardDescription>
-                  <Button variant="accent" asChild>
-                    <Link href="/special-deals">View Deals <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
-                </CardContent>
-              </Card>
+             <Link href="/special-deals" className="group block">
+               <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 border-accent h-full flex flex-col">
+                  <CardContent className="p-0 flex-grow">
+                    <div className="relative aspect-square w-full"> {/* Use aspect-square */}
+                      <Image
+                        src={`https://picsum.photos/seed/specialdeals/400/400`} // Use square image
+                        alt="Special Deals"
+                        layout="fill"
+                        objectFit="cover"
+                        data-ai-hint="sale discount offer wood"
+                        className="transition-transform duration-300 group-hover:scale-105" // Added group-hover effect
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 justify-center"> {/* Use CardFooter for title */}
+                    <CardTitle className="text-lg font-semibold text-center text-accent"> {/* Apply accent color */}
+                      Special Deals
+                    </CardTitle>
+                  </CardFooter>
+                </Card>
+              </Link>
           </div>
         </div>
       </section>
