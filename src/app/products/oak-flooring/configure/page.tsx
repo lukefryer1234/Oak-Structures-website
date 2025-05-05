@@ -45,9 +45,9 @@ interface BasketItem {
   description: string;
   price: number;
   quantity: number;
-  image: string;
+  // image: string; // Removed image
   href: string;
-  dataAiHint: string;
+  // dataAiHint: string; // Removed dataAiHint
   category: string;
 }
 
@@ -193,8 +193,8 @@ export default function ConfigureOakFlooringPage() {
                name: productName,
                description: description,
                price: price,
-               image: `https://picsum.photos/seed/oak-flooring-${configState.oakType}/200/200`, // Placeholder
-               dataAiHint: `oak flooring ${configState.oakType}`,
+              //  image: `https://picsum.photos/seed/oak-flooring-${configState.oakType}/200/200`, // Placeholder removed
+              //  dataAiHint: `oak flooring ${configState.oakType}`, // Removed
                category: category,
            }
        };
@@ -421,3 +421,5 @@ export default function ConfigureOakFlooringPage() {
     </div>
   );
 }
+
+    

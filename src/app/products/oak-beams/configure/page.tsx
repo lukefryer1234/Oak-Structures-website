@@ -46,9 +46,9 @@ interface BasketItem {
   description: string;
   price: number;
   quantity: number;
-  image: string;
+  // image: string; // Removed image
   href: string;
-  dataAiHint: string;
+  // dataAiHint: string; // Removed dataAiHint
   category: string;
 }
 
@@ -195,8 +195,8 @@ export default function ConfigureOakBeamsPage() {
               name: productName,
               description: description,
               price: price,
-              image: `https://picsum.photos/seed/oak-beam-${configState.oakType}/200/200`, // Placeholder image
-              dataAiHint: `oak beam ${configState.oakType}`,
+              // image: `https://picsum.photos/seed/oak-beam-${configState.oakType}/200/200`, // Placeholder image removed
+              // dataAiHint: `oak beam ${configState.oakType}`, // Removed
               category: category,
           }
       };
@@ -409,3 +409,5 @@ export default function ConfigureOakBeamsPage() {
     </div>
   );
 }
+
+    

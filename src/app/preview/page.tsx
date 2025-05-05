@@ -92,9 +92,9 @@ function PreviewContent() {
             description: description,
             price: parseFloat(price),
             quantity: 1,
-            image: `https://picsum.photos/seed/${category}/200/200`, // Placeholder image
+            // image: `https://picsum.photos/seed/${category}/200/200`, // Image removed from basket item
             href: `/products/${category}/configure`, // Link back to config if needed
-            dataAiHint: `${category} configured`,
+            // dataAiHint: `${category} configured`, // Removed dataAiHint
             category: category,
             configuration: config, // Store the full configuration
         };
@@ -151,7 +151,7 @@ function PreviewContent() {
                         </Button>
                     </CardFooter>
                      <CardFooter className="justify-center pt-4">
-                         <Link href={`/products/${category}/configure`} className="text-sm text-muted-foreground hover:text-primary hover:underline">
+                         <Link href={`/products/${category}/configure?config=${configString}`} className="text-sm text-muted-foreground hover:text-primary hover:underline">
                              &larr; Back to Configuration
                          </Link>
                      </CardFooter>
@@ -179,3 +179,5 @@ export default function PreviewPage() {
         </Suspense>
     );
 }
+
+    
