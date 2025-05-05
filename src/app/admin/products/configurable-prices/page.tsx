@@ -19,6 +19,8 @@ import {
   DialogTrigger,
   DialogClose, // Import DialogClose
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast"; // Import useToast
+
 
 // --- Types and Placeholder Data ---
 
@@ -51,14 +53,17 @@ export default function ConfigurablePricesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPrice, setEditingPrice] = useState<ConfigurablePrice | null>(null);
   const [formState, setFormState] = useState<Partial<ConfigurablePrice>>({}); // For Add/Edit form
+  const { toast } = useToast(); // Initialize useToast
 
   const handleFormChange = (field: keyof ConfigurablePrice, value: any) => {
     setFormState(prev => ({ ...prev, [field]: value }));
     // TODO: Add logic to generate configKey and configDescription based on selected options
      if (field !== 'price' && field !== 'category') {
         // Example: Combine selected options into a description (highly simplified)
-        const description = `Config: ${formState.category ?? ''} - Options...`;
-        const key = `key-${Date.now()}`; // Replace with actual key generation logic
+        // In a real app, this would involve iterating over actual option selections
+        const currentCategory = field === 'category' ? value : formState.category;
+        const description = `Config: ${currentCategory ?? ''} - Options...`; // Placeholder description
+        const key = `key-${Date.now()}`; // Placeholder key generation
          setFormState(prev => ({ ...prev, configDescription: description, configKey: key }));
      }
   };
@@ -67,7 +72,11 @@ export default function ConfigurablePricesPage() {
     event.preventDefault();
     const priceValue = parseFloat(formState.price as any);
     if (isNaN(priceValue) || priceValue <= 0 || !formState.category || !formState.configKey || !formState.configDescription) {
-        alert("Please fill in all required fields and enter a valid price."); // Use better validation/toast
+         toast({ // Use toast for validation message
+             variant: "destructive",
+             title: "Validation Error",
+             description: "Please fill in all required fields (Category, Options, Price) and ensure the price is valid.",
+         });
         return;
     }
 
@@ -82,12 +91,14 @@ export default function ConfigurablePricesPage() {
     if (editingPrice) {
         // Update existing price
         setPrices(prev => prev.map(p => p.id === editingPrice.id ? newPriceEntry : p));
+         toast({ title: "Success", description: "Price configuration updated." });
          // TODO: API call to update price
         console.log("Updated Price:", newPriceEntry);
 
     } else {
         // Add new price
         setPrices(prev => [...prev, newPriceEntry]);
+         toast({ title: "Success", description: "New price configuration added." });
          // TODO: API call to add price
         console.log("Added Price:", newPriceEntry);
     }
@@ -111,6 +122,7 @@ export default function ConfigurablePricesPage() {
   const handleDeletePrice = (id: string) => {
      if (window.confirm("Are you sure you want to delete this price configuration?")) {
         setPrices(prev => prev.filter(p => p.id !== id));
+         toast({ title: "Deleted", description: "Price configuration removed." });
          // TODO: API call to delete price
         console.log("Deleted Price ID:", id);
      }
@@ -134,9 +146,10 @@ export default function ConfigurablePricesPage() {
      return options.map(opt => (
         <div key={opt} className="space-y-2">
            <Label>{opt.split(':')[0]}</Label>
-           <Input placeholder={`Enter/Select ${opt.split(':')[1]}`} disabled />
-            {/* Replace Input with actual Selects/Radios based on real options */}
-            {/* Example: <Select><SelectTrigger>...</SelectTrigger>...</Select> */}
+           {/* This Input needs to be replaced with actual interactive form elements (Select, Radio, Slider etc.)
+               based on the 'opt' value to capture the actual configuration. The current setup is just a placeholder. */}
+           <Input placeholder={`Select ${opt.split(':')[1]}`} disabled />
+           <p className="text-xs text-muted-foreground">Placeholder for selecting {opt.split(':')[0].toLowerCase()} options.</p>
         </div>
      ));
   }
@@ -163,7 +176,8 @@ export default function ConfigurablePricesPage() {
                  Define the price for a unique combination of product options. Ensure the combination is accurately described.
               </DialogDescription>
             </DialogHeader>
-             <form onSubmit={handleSavePrice} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
+             {/* Added ID to the form */}
+             <form onSubmit={handleSavePrice} id="addEditPriceForm" className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
                 {/* Category Select */}
                  <div className="space-y-2">
                     <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
@@ -182,7 +196,14 @@ export default function ConfigurablePricesPage() {
                  </div>
 
                 {/* Dynamic Options based on Category */}
-                 {formState.category && renderCategoryOptions()}
+                {/* Add a note that these are placeholders */}
+                {formState.category && (
+                    <div className="p-4 border rounded-md bg-muted/50 space-y-4">
+                         <p className="text-sm font-medium text-center text-muted-foreground">Configuration Options (Placeholders)</p>
+                         <p className="text-xs text-center text-muted-foreground">Note: Detailed option selection fields need implementation here based on the chosen category.</p>
+                         {renderCategoryOptions()}
+                    </div>
+                )}
 
                 {/* Price Input */}
                  <div className="space-y-2">
@@ -207,14 +228,13 @@ export default function ConfigurablePricesPage() {
                      <p className="text-xs text-muted-foreground mt-1">Ensure this accurately reflects the selected options before saving.</p>
                   </div>
 
-
              </form>
              <DialogFooter>
                <DialogClose asChild>
                   <Button type="button" variant="outline" onClick={closeDialog}>Cancel</Button>
                </DialogClose>
-               {/* Ensure the submit button is linked to the form */}
-                <Button type="submit" onClick={handleSavePrice} form="addEditPriceForm"> {/* Consider giving form an ID */}
+               {/* Submit button triggers the form's onSubmit */}
+                <Button type="submit" form="addEditPriceForm">
                     {editingPrice ? 'Save Changes' : 'Add Price'}
                 </Button>
              </DialogFooter>
@@ -266,3 +286,4 @@ export default function ConfigurablePricesPage() {
     </Card>
   );
 }
+
