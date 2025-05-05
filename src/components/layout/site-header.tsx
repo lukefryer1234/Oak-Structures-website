@@ -64,7 +64,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6"> {/* Changed to justify-between */}
+      <div className="container flex h-16 items-center justify-between px-4 md:px-6"> {/* justify-between here */}
 
         {/* Left Side: Hamburger Menus */}
         <div className="flex items-center gap-2">
@@ -84,14 +84,7 @@ export function SiteHeader() {
                 {/* Mobile Sheet Content */}
                  <nav className="flex flex-col h-full">
                      <div className="p-4 border-b">
-                        <Link
-                           href="/"
-                           className="flex items-center gap-2 text-lg font-semibold mb-4"
-                           onClick={closeMobileMenu}
-                         >
-                           <Building className="h-6 w-6 text-primary" />
-                           <span >Timberline Commerce</span>
-                         </Link>
+                        {/* Removed Title from mobile menu header */}
                      </div>
                      <div className="flex-1 overflow-y-auto py-4 px-4">
                           <Link
@@ -177,7 +170,7 @@ export function SiteHeader() {
 
 
         {/* Right Side: Icons */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4"> {/* This group is positioned to the right by justify-between */}
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
