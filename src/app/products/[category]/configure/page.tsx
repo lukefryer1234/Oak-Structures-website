@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils'; // Import cn utility
 
 // --- Configuration Interfaces & Data (Replace with actual data/logic) ---
 
@@ -29,6 +30,7 @@ interface ConfigOption {
   defaultValue?: any;
   unit?: string; // For dimensions/area
   fixedValue?: string | number; // For non-editable display like flooring thickness
+  perBay?: boolean; // Added for Cat Slide
 }
 
 interface CategoryConfig {
@@ -42,21 +44,17 @@ interface CategoryConfig {
 const configurations: { [key: string]: CategoryConfig } = {
   garages: {
     title: "Configure Your Garage",
-    image: "/images/config/garage-base.jpg",
-    dataAiHint: "oak frame garage structure schematic",
     options: [
       // Reordered options
       { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' },
       { id: 'bays', label: 'Number of Bays', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
       { id: 'sizeType', label: 'Size Type (Overall Dimensions)', type: 'select', options: [{ value: 'small', label: 'Small (e.g., 5m x 6m)' }, { value: 'medium', label: 'Medium (e.g., 6m x 6m)' }, { value: 'large', label: 'Large (e.g., 6m x 9m)' }], defaultValue: 'medium' },
-      { id: 'catSlide', label: 'Include Cat Slide Roof?', type: 'checkbox', defaultValue: false },
+      { id: 'catSlide', label: 'Include Cat Slide Roof?', type: 'checkbox', defaultValue: false, perBay: true }, // Mark as per bay
     ]
   },
   gazebos: {
     title: "Configure Your Gazebo",
-     image: "/images/config/gazebo-base.jpg",
-     dataAiHint: "oak frame gazebo structure diagram",
     options: [
        { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'full', label: 'Full Height Legs' }, { value: 'wall', label: 'Wall Mount (Half Legs)' }], defaultValue: 'full' },
       { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: '3x3', label: '3m x 3m' }, { value: '4x3', label: '4m x 3m' }, { value: '4x4', label: '4m x 4m' }], defaultValue: '3x3' },
@@ -66,8 +64,6 @@ const configurations: { [key: string]: CategoryConfig } = {
   },
    porches: {
     title: "Configure Your Porch",
-     image: "/images/config/porch-base.jpg",
-     dataAiHint: "oak frame porch structure plan",
     options: [
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg' }], defaultValue: 'curved' },
        { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
@@ -77,8 +73,6 @@ const configurations: { [key: string]: CategoryConfig } = {
   },
    'oak-beams': {
       title: "Configure Your Oak Beams",
-      image: "/images/config/beams-measure.jpg",
-      dataAiHint: "measuring tape oak beam",
       options: [
         { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }, { value: 'green', label: 'Green Oak' }], defaultValue: 'green' },
         { id: 'dimensions', label: 'Dimensions (cm)', type: 'dimensions', unit: 'cm', defaultValue: { length: 200, width: 15, thickness: 15 } },
@@ -86,8 +80,6 @@ const configurations: { [key: string]: CategoryConfig } = {
    },
     'oak-flooring': {
         title: "Configure Your Oak Flooring",
-        image: "/images/config/flooring-measure.jpg",
-        dataAiHint: "room measurement floor plan",
         options: [
          { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
          { id: 'thickness', label: 'Thickness', type: 'area', fixedValue: '20mm' }, // Display only
@@ -103,7 +95,17 @@ const calculatePrice = (category: string, config: any): number => {
    // --- Replace with actual pricing logic based on category ---
   let basePrice = 0;
   switch (category) {
-    case 'garages': basePrice = 8000 + (config.bays?.[0] || 1) * 1500 + (config.oakType === 'reclaimed' ? 500 : 0) + (config.catSlide ? 300 : 0); break;
+    case 'garages':
+        const bays = config.bays?.[0] || 1;
+        let catSlideCost = 0;
+        // Calculate catSlide cost based on per-bay selections
+        for (let i = 1; i <= bays; i++) {
+            if (config[`catSlide_bay_${i}`]) {
+                catSlideCost += 150; // Example cost per bay with cat slide
+            }
+        }
+        basePrice = 8000 + bays * 1500 + (config.oakType === 'reclaimed' ? 500 : 0) + catSlideCost;
+        break;
     case 'gazebos': basePrice = 3000 + (config.sizeType === '4x4' ? 500 : 0) + (config.oakType === 'reclaimed' ? 200 : 0); break;
     case 'porches': basePrice = 2000 + (config.sizeType === 'wide' ? 400 : 0) + (config.legType === 'floor' ? 150 : 0); break;
     case 'oak-beams':
@@ -144,19 +146,57 @@ export default function ConfigureProductPage() {
     if (!categoryConfig) return {}; // Return empty if config not found
     const initialState: any = {};
     categoryConfig.options.forEach(opt => {
-      initialState[opt.id] = opt.defaultValue;
+      if (opt.perBay) {
+        // Initialize per-bay options (start with default number of bays)
+        const defaultBays = categoryConfig.options.find(o => o.id === 'bays')?.defaultValue?.[0] || 1;
+        for (let i = 1; i <= defaultBays; i++) {
+          initialState[`${opt.id}_bay_${i}`] = opt.defaultValue;
+        }
+      } else {
+         initialState[opt.id] = opt.defaultValue;
+      }
     });
     return initialState;
   });
 
    const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-   // Recalculate initial price when config is available
+   // Update number of per-bay options when 'bays' changes
+   useEffect(() => {
+     if (category === 'garages') {
+       const numberOfBays = configState.bays?.[0] || 1;
+       const catSlideOption = categoryConfig?.options.find(o => o.id === 'catSlide');
+
+       if (catSlideOption) {
+         setConfigState(prev => {
+           const newState = { ...prev };
+           // Remove extra catSlide options if bays decreased
+           Object.keys(newState).forEach(key => {
+             if (key.startsWith('catSlide_bay_')) {
+               const bayNum = parseInt(key.split('_').pop() || '0');
+               if (bayNum > numberOfBays) {
+                 delete newState[key];
+               }
+             }
+           });
+           // Add missing catSlide options if bays increased
+           for (let i = 1; i <= numberOfBays; i++) {
+             if (!newState.hasOwnProperty(`catSlide_bay_${i}`)) {
+               newState[`catSlide_bay_${i}`] = catSlideOption.defaultValue;
+             }
+           }
+           return newState;
+         });
+       }
+     }
+   }, [configState.bays, category, categoryConfig?.options]);
+
+   // Recalculate initial price when config is available or changes
    useEffect(() => {
       if (categoryConfig) {
           setCalculatedPrice(calculatePrice(category, configState));
       }
-   }, [category, categoryConfig, configState]); // Recalculate when configState changes too
+   }, [category, categoryConfig, configState]);
 
 
    const handleConfigChange = (id: string, value: any) => {
@@ -214,7 +254,7 @@ export default function ConfigureProductPage() {
     <div>
         <div className="container mx-auto px-4 py-12">
           <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
-            <CardHeader>
+            <CardHeader className="text-center"> {/* Center align header content */}
               <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
                 <Link href="/" className="text-sm text-primary hover:underline">&larr; Back to Home</Link>
             </CardHeader>
@@ -222,15 +262,15 @@ export default function ConfigureProductPage() {
                 {/* Configuration Options */}
                <div className="space-y-6">
                  {categoryConfig.options.map((option) => (
-                  <div key={option.id}>
+                  <div key={option.id} className="text-center"> {/* Center align each option block */}
                     {/* Added text-center to center the label */}
-                    <Label htmlFor={option.id} className="text-base font-medium text-center block">{option.label}</Label>
+                    <Label htmlFor={option.id} className="text-base font-medium block mb-2">{option.label}</Label>
                     {option.type === 'select' && (
                       <Select
                         value={configState[option.id]}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
-                        <SelectTrigger id={option.id} className="mt-2 bg-background/70">
+                        <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto"> {/* Center trigger */}
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
                         <SelectContent>
@@ -244,7 +284,11 @@ export default function ConfigureProductPage() {
                         <RadioGroup
                             value={configState[option.id]}
                             onValueChange={(value) => handleConfigChange(option.id, value)}
-                            className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4" // Changed from grid-cols-1 sm:grid-cols-2
+                             // Make trussType options side-by-side
+                            className={cn(
+                                "mt-2 grid gap-4 justify-center", // Center the group
+                                option.id === 'trussType' ? "grid-cols-2 max-w-md mx-auto" : "grid-cols-1 sm:grid-cols-2" // Use grid-cols-2 for trussType
+                             )}
                          >
                            {option.options?.map((opt) => (
                              <Label key={opt.value} htmlFor={`${option.id}-${opt.value}`} className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
@@ -254,13 +298,13 @@ export default function ConfigureProductPage() {
                                     <Image src={`https://picsum.photos/seed/${opt.value}-${option.id}/200/150`} alt={opt.label} layout="fill" objectFit="contain" data-ai-hint={`${category} ${opt.label} truss schematic`} />
                                     </div>
                                 )}
-                                 <span className="text-sm font-medium">{opt.label}</span>
+                                 <span className="text-sm font-medium mt-auto">{opt.label}</span>
                              </Label>
                            ))}
                          </RadioGroup>
                      )}
                     {option.type === 'slider' && (
-                      <div className="mt-2 space-y-2">
+                      <div className="mt-2 space-y-2 max-w-sm mx-auto"> {/* Center slider */}
                          <Slider
                             id={option.id}
                             min={option.min}
@@ -270,13 +314,32 @@ export default function ConfigureProductPage() {
                             onValueChange={(value) => handleConfigChange(option.id, value)}
                             className="py-2"
                           />
-                          <div className="text-center text-sm text-muted-foreground"> {/* Changed text-right to text-center */}
+                          <div className="text-center text-sm text-muted-foreground">
                             {configState[option.id]?.[0]} {option.unit || ''}{configState[option.id]?.[0] > 1 ? 's' : ''}
                           </div>
                       </div>
                     )}
-                    {option.type === 'checkbox' && (
-                       <div className="flex items-center justify-center space-x-2 mt-2"> {/* Added justify-center */}
+                    {/* Conditional rendering for per-bay checkbox */}
+                    {option.type === 'checkbox' && option.perBay && category === 'garages' && (
+                        <div className="mt-4 space-y-2">
+                            {/* Render checkboxes for each bay */}
+                            {Array.from({ length: configState.bays?.[0] || 1 }, (_, i) => i + 1).map((bayNum) => (
+                                <div key={bayNum} className="flex items-center justify-center space-x-2">
+                                    <Checkbox
+                                        id={`${option.id}_bay_${bayNum}`}
+                                        checked={configState[`${option.id}_bay_${bayNum}`] || false}
+                                        onCheckedChange={(checked) => handleConfigChange(`${option.id}_bay_${bayNum}`, checked)}
+                                    />
+                                    <Label htmlFor={`${option.id}_bay_${bayNum}`} className="font-normal">
+                                        Apply to Bay {bayNum}
+                                    </Label>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {/* Standard checkbox rendering */}
+                    {option.type === 'checkbox' && !option.perBay && (
+                       <div className="flex items-center justify-center space-x-2 mt-2">
                          <Checkbox
                             id={option.id}
                             checked={configState[option.id]}
@@ -286,34 +349,34 @@ export default function ConfigureProductPage() {
                        </div>
                     )}
                      {option.type === 'dimensions' && (
-                         <div className="mt-2 grid grid-cols-3 gap-4">
-                             <div className="text-center"> {/* Added text-center */}
+                         <div className="mt-2 grid grid-cols-3 gap-4 max-w-md mx-auto"> {/* Center dimensions */}
+                             <div className="text-center">
                                <Label htmlFor={`${option.id}-length`}>Length ({option.unit})</Label>
                                <Input id={`${option.id}-length`} type="number" min="1" step="any"
                                       value={configState[option.id]?.length || ''}
                                       onChange={(e) => handleDimensionChange(e.target.value, 'length')}
-                                      className="mt-1 bg-background/70 text-center"/> {/* Added text-center */}
+                                      className="mt-1 bg-background/70 text-center"/>
                              </div>
-                             <div className="text-center"> {/* Added text-center */}
+                             <div className="text-center">
                                 <Label htmlFor={`${option.id}-width`}>Width ({option.unit})</Label>
                                 <Input id={`${option.id}-width`} type="number" min="1" step="any"
                                        value={configState[option.id]?.width || ''}
                                        onChange={(e) => handleDimensionChange(e.target.value, 'width')}
-                                       className="mt-1 bg-background/70 text-center"/> {/* Added text-center */}
+                                       className="mt-1 bg-background/70 text-center"/>
                              </div>
-                              <div className="text-center"> {/* Added text-center */}
+                              <div className="text-center">
                                 <Label htmlFor={`${option.id}-thickness`}>Thickness ({option.unit})</Label>
                                 <Input id={`${option.id}-thickness`} type="number" min="1" step="any"
                                        value={configState[option.id]?.thickness || ''}
                                        onChange={(e) => handleDimensionChange(e.target.value, 'thickness')}
-                                       className="mt-1 bg-background/70 text-center"/> {/* Added text-center */}
+                                       className="mt-1 bg-background/70 text-center"/>
                              </div>
                          </div>
                      )}
                       {option.type === 'area' && (
-                         <div className="mt-2 space-y-4">
+                         <div className="mt-2 space-y-4 max-w-md mx-auto"> {/* Center area */}
                              {option.fixedValue && (
-                                 <div className="flex justify-between items-center text-sm">
+                                 <div className="flex justify-between items-center text-sm px-4"> {/* Add padding */}
                                      <span className="text-muted-foreground">{option.label}:</span>
                                      <span className="font-medium">{option.fixedValue}</span>
                                  </div>
@@ -321,32 +384,32 @@ export default function ConfigureProductPage() {
                              {!option.fixedValue && (
                                 <>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                                        <div className="text-center"> {/* Added text-center */}
+                                        <div className="text-center">
                                           <Label htmlFor={`${option.id}-area`}>Area ({option.unit})</Label>
                                           <Input id={`${option.id}-area`} type="number" min="0.1" step="any"
                                                  placeholder={`Enter area directly`}
                                                  value={configState[option.id]?.area || ''}
                                                  onChange={(e) => handleAreaChange(e.target.value, 'area')}
-                                                 className="mt-1 bg-background/70 text-center"/> {/* Added text-center */}
+                                                 className="mt-1 bg-background/70 text-center"/>
                                         </div>
                                         <div className="text-center text-sm text-muted-foreground pb-2">OR</div>
                                     </div>
                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="text-center"> {/* Added text-center */}
+                                        <div className="text-center">
                                           <Label htmlFor={`${option.id}-length`}>Length (cm)</Label>
                                           <Input id={`${option.id}-length`} type="number" min="1" step="any"
                                                  placeholder="Calculate area"
                                                  value={configState[option.id]?.length || ''}
                                                  onChange={(e) => handleAreaChange(e.target.value, 'length')}
-                                                 className="mt-1 bg-background/70 text-center"/> {/* Added text-center */}
+                                                 className="mt-1 bg-background/70 text-center"/>
                                         </div>
-                                        <div className="text-center"> {/* Added text-center */}
+                                        <div className="text-center">
                                            <Label htmlFor={`${option.id}-width`}>Width (cm)</Label>
                                            <Input id={`${option.id}-width`} type="number" min="1" step="any"
                                                   placeholder="Calculate area"
                                                   value={configState[option.id]?.width || ''}
                                                   onChange={(e) => handleAreaChange(e.target.value, 'width')}
-                                                  className="mt-1 bg-background/70 text-center"/> {/* Added text-center */}
+                                                  className="mt-1 bg-background/70 text-center"/>
                                         </div>
                                      </div>
                                 </>
@@ -358,14 +421,14 @@ export default function ConfigureProductPage() {
                </div>
 
                 {/* Price & Add to Basket Section */}
-               <div className="space-y-6 border-t border-border/50 pt-6">
-                 <div className="text-center space-y-2"> {/* Changed text-right to text-center */}
+               <div className="space-y-6 border-t border-border/50 pt-6 mt-4"> {/* Add margin top */}
+                 <div className="text-center space-y-2">
                     <p className="text-sm text-muted-foreground">Estimated Price (excl. VAT & Delivery)</p>
                     <p className="text-3xl font-bold">
                        {calculatedPrice !== null ? `£${calculatedPrice.toFixed(2)}` : 'Calculating...'}
                     </p>
                  </div>
-                  <Button size="lg" className="w-full" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}>
+                  <Button size="lg" className="w-full max-w-xs mx-auto block" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}> {/* Center button */}
                       Add to Basket <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                </div>
