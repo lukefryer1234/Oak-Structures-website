@@ -31,23 +31,23 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
-                 {/* Style 4: Image left, Title right */}
-                 <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-row items-center bg-card border border-border/50">
-                   <div className="p-0 relative w-1/3 h-full aspect-square flex-shrink-0"> {/* Image container */}
-                    <Image
-                      src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/200/200`} // Square image
-                      alt={category.name}
-                      layout="fill"
-                      objectFit="cover"
-                      data-ai-hint={category.dataAiHint}
-                      className="transition-transform duration-300 group-hover:scale-105"
-                    />
-                   </div>
-                    <CardContent className="p-4 flex items-center justify-center flex-grow"> {/* Text container */}
-                     <CardTitle className="text-lg font-semibold text-center text-foreground">
+                 {/* Style 5: Image top, Title below, centered */}
+                 <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col bg-card border border-border/50">
+                   <CardContent className="p-0 flex-grow relative aspect-square w-full">
+                     <Image
+                       src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/400`} // Square image
+                       alt={category.name}
+                       layout="fill"
+                       objectFit="cover"
+                       data-ai-hint={category.dataAiHint}
+                       className="transition-transform duration-300 group-hover:scale-105"
+                     />
+                   </CardContent>
+                   <CardFooter className="p-4 justify-center">
+                     <CardTitle className="text-lg font-semibold text-center">
                        {category.name}
                      </CardTitle>
-                   </CardContent>
+                   </CardFooter>
                  </Card>
               </Link>
             ))}
