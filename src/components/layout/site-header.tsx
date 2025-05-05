@@ -7,7 +7,7 @@ import {
   User,
   Menu,
   Home,
-  Building,
+  Building, // Keep import for mobile menu
   Image as ImageIcon,
   Mail,
   Wrench, // Example icon for a product category
@@ -62,18 +62,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+      <div className="container flex h-16 items-center justify-end px-4 md:px-6"> {/* Changed justify-between to justify-end */}
 
-        {/* Logo (visible on all sizes) */}
-        <Link href="/" className="flex items-center gap-2 font-semibold mr-4">
-          <Building className="h-6 w-6 text-primary" />
-          <span className="text-lg hidden sm:inline-block">Timberline Commerce</span>
-          <span className="sr-only">Timberline Commerce</span>
-        </Link>
-
+        {/* Logo removed */}
 
         {/* Desktop Hamburger Menu & Right Icons */}
-        <div className="flex items-center gap-2 md:gap-4 ml-auto">
+        <div className="flex items-center gap-2 md:gap-4"> {/* Removed ml-auto */}
            {/* Desktop Hamburger Menu Trigger */}
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
