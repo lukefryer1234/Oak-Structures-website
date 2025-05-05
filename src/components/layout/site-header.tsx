@@ -1,4 +1,3 @@
-
 "use client"; // Needed for state management and Dropdown
 
 import Link from "next/link";
@@ -6,7 +5,7 @@ import {
   ShoppingCart,
   User,
   Menu,
-  Home,
+  Home, // Added Home icon
   Building,
   Image as ImageIcon,
   Mail,
@@ -37,11 +36,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge"; // Import Badge
 
 const mainNavLinks = [
-  { href: "/products/garages/configure", label: "Garages", icon: Wrench },
-  { href: "/products/gazebos/configure", label: "Gazebos", icon: TreeDeciduous },
-  { href: "/products/porches/configure", label: "Porches", icon: DoorOpen },
-  { href: "/products/oak-beams/configure", label: "Oak Beams", icon: Layers },
-  { href: "/products/oak-flooring/configure", label: "Oak Flooring", icon: Grid },
+  { href: "/products/garages", label: "Garages", icon: Wrench }, // Link to category page
+  { href: "/products/gazebos", label: "Gazebos", icon: TreeDeciduous }, // Link to category page
+  { href: "/products/porches", label: "Porches", icon: DoorOpen }, // Link to category page
+  { href: "/products/oak-beams", label: "Oak Beams", icon: Layers }, // Link to category page
+  { href: "/products/oak-flooring", label: "Oak Flooring", icon: Grid }, // Link to category page
   { href: "/special-deals", label: "Special Deals", icon: Sparkles },
 ];
 
@@ -71,11 +70,18 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Container to constrain content width */}
+      {/* Container to constrain content width and justify elements */}
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
 
-        {/* Left Side: Hamburger Menus & Basket Total */}
+        {/* Left Side: Home Icon, Hamburger Menus & Basket Total */}
         <div className="flex items-center gap-2">
+           {/* Home Icon Button */}
+           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+            <Link href="/" aria-label="Homepage">
+              <Home className="h-5 w-5" />
+            </Link>
+          </Button>
+
            {/* Mobile Hamburger Trigger */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -93,6 +99,7 @@ export function SiteHeader() {
                  <nav className="flex flex-col h-full">
                      <div className="p-4 border-b">
                         {/* Optional Mobile menu header */}
+                         <h2 className="text-lg font-semibold">Menu</h2>
                      </div>
                      <div className="flex-1 overflow-y-auto py-4 px-4">
                           <Link
@@ -183,6 +190,12 @@ export function SiteHeader() {
              )}
         </div>
 
+        {/* Center: Optional Logo/Title (Currently Removed) */}
+        {/* <div className="absolute left-1/2 transform -translate-x-1/2"> */}
+            {/* Optional: Add Logo here if needed */}
+        {/* </div> */}
+
+
         {/* Right Side: Icons */}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
@@ -238,4 +251,3 @@ export function SiteHeader() {
     </header>
   );
 }
-
