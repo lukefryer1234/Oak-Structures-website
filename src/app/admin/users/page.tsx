@@ -7,10 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Trash2, Edit, ShieldCheck } from 'lucide-react'; // Icons
+import { MoreHorizontal, Trash2, Edit, ShieldCheck, Search } from 'lucide-react'; // Ensure all icons are imported
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Search } from 'lucide-react';
 
 // --- Types and Placeholder Data ---
 
@@ -119,7 +118,7 @@ export default function UsersPage() {
                    <TableCell>
                       <Avatar className="h-8 w-8">
                           <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name}/>
-                          <AvatarFallback>{user.name[0]?.toUpperCase()}</AvatarFallback>
+                          <AvatarFallback>{user.name?.[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                    </TableCell>
                   <TableCell className="font-medium">{user.name}</TableCell>
