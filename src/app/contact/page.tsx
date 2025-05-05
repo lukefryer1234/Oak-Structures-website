@@ -1,0 +1,140 @@
+"use client"; // For potential form handling
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'; // Added Send icon, Loader2
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react"; // For loading state
+import { Metadata } from 'next'; // Import Metadata
+
+// Static metadata for the Contact page
+// export const metadata: Metadata = { // Cannot export metadata from client component
+//   title: "Contact Us",
+//   description: "Get in touch with Timberline Commerce. Contact us via phone, email, or our contact form for inquiries about oak frame structures and timber products.",
+// };
+
+
+// Placeholder contact details - Fetch from Admin settings ideally
+const companyInfo = {
+  name: "Timberline Commerce",
+  address: "12 Timber Yard, Forest Industrial Estate, Bristol, BS1 1AD",
+  phone: "01234 567 890",
+  email: "info@timberline.com",
+};
+
+export default function ContactPage() {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleContactFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+     event.preventDefault();
+     setIsSubmitting(true);
+     // TODO: Implement contact form submission (e.g., send email via API/server action)
+     // const formData = new FormData(event.target as HTMLFormElement);
+     // const response = await fetch('/api/contact', { method: 'POST', body: formData });
+     // if (response.ok) { ... } else { ... }
+
+     console.log("Contact form submitted");
+     // Simulate API call delay
+     await new Promise(resolve => setTimeout(resolve, 1000));
+
+     // Simulate success
+     toast({
+        title: "Message Sent!",
+        description: "Thank you for contacting us. We'll get back to you as soon as possible.",
+     });
+     (event.target as HTMLFormElement).reset();
+     setIsSubmitting(false);
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-12 md:py-16">
+      <h1 className="text-4xl font-bold text-center mb-12 text-foreground">Contact Us</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start"> {/* Ensure items align top */}
+
+        {/* Contact Information Section (Left Column) */}
+        <div className="lg:col-span-2 space-y-8">
+           <div>
+               <h2 className="text-2xl font-semibold text-foreground mb-3">Get In Touch</h2>
+               <p className="text-muted-foreground leading-relaxed">
+                 We're here to help! Whether you have questions about our products, need assistance with configuration, or want to discuss a custom project, feel free to reach out using the details below or the contact form.
+               </p>
+           </div>
+
+           <Card className="bg-card border border-border p-6 space-y-5 shadow-sm"> {/* Increased spacing */}
+               {/* Address */}
+               <div className="flex items-start gap-4">
+                  <MapPin className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
+                  <div>
+                      <h3 className="font-medium text-card-foreground">Our Address</h3>
+                      <p className="text-sm text-muted-foreground">{companyInfo.address}</p>
+                      {/* Optional: Link to Google Maps */}
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyInfo.address)}`}
+                         target="_blank" rel="noopener noreferrer"
+                         className="text-xs text-primary hover:underline mt-1 inline-block">
+                          View on Map
+                      </a>
+                  </div>
+               </div>
+                {/* Phone */}
+                <div className="flex items-start gap-4">
+                  <Phone className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
+                   <div>
+                      <h3 className="font-medium text-card-foreground">Phone</h3>
+                      <a href={`tel:${companyInfo.phone.replace(/\s/g, '')}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{companyInfo.phone}</a>
+                      <p className="text-xs text-muted-foreground">(Mon-Fri, 9am - 5pm)</p>
+                   </div>
+               </div>
+               {/* Email */}
+               <div className="flex items-start gap-4">
+                  <Mail className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
+                  <div>
+                     <h3 className="font-medium text-card-foreground">Email</h3>
+                     <a href={`mailto:${companyInfo.email}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{companyInfo.email}</a>
+                  </div>
+               </div>
+           </Card>
+        </div>
+
+        {/* Contact Form Section (Right Column) */}
+        <div className="lg:col-span-3">
+            <Card className="bg-card border border-border shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-xl text-card-foreground">Send Us a Message</CardTitle>
+                     <CardDescription className="text-muted-foreground">Fill out the form below and we'll get back to you as soon as possible.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleContactFormSubmit} className="space-y-4">
+                         <div className="space-y-2">
+                           <Label htmlFor="contact-name" className="text-card-foreground">Name</Label>
+                           <Input id="contact-name" name="name" placeholder="Your Name" required className="bg-background border-input"/>
+                         </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="contact-email" className="text-card-foreground">Email</Label>
+                            <Input id="contact-email" name="email" type="email" placeholder="your.email@example.com" required className="bg-background border-input"/>
+                         </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="contact-subject" className="text-card-foreground">Subject</Label>
+                            <Input id="contact-subject" name="subject" placeholder="e.g., Question about Garages" required className="bg-background border-input"/>
+                         </div>
+                          <div className="space-y-2">
+                             <Label htmlFor="contact-message" className="text-card-foreground">Message</Label>
+                             <Textarea id="contact-message" name="message" rows={5} placeholder="Your message..." required className="bg-background border-input"/>
+                          </div>
+                           {/* Use custom accent button class */}
+                          <Button type="submit" className="w-full sm:w-auto btn-accent" disabled={isSubmitting}>
+                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                             {isSubmitting ? 'Sending...' : 'Send Message'}
+                          </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
