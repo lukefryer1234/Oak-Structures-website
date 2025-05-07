@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
@@ -26,7 +25,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   setError: Dispatch<SetStateAction<string | null>>;
-  signUpWithEmail: typeof createUserWithEmailAndPassword;
+  signUpWithEmail: (authInstance: Auth, email: string, pass: string) => Promise<User | null>;
   signInWithEmail: typeof signInWithEmailAndPassword;
   signInWithGoogle: () => Promise<User | null>;
   // signInWithPayPal: () => Promise<User | null>; // Uncomment if PayPal added
@@ -44,6 +43,30 @@ export function useAuth() {
   return context;
 }
 
+async function createUserDocument(user: User): Promise<void> {
+  if (!user) return;
+  try {
+    const response = await fetch('/api/createUser', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user: { uid: user.uid, email: user.email, displayName: user.displayName } }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Failed to create user document:', errorData.message);
+      throw new Error(errorData.message || 'Failed to create user document');
+    }
+    console.log('User document created/updated successfully');
+  } catch (error) {
+    console.error('Error in createUserDocument:', error);
+    // Potentially re-throw or handle more gracefully depending on requirements
+    throw error;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +81,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsubscribe; // Cleanup subscription on unmount
   }, []);
+
+  const signUpWithEmail = async (authInstance: Auth, email: string, pass: string): Promise<User | null> => {
+    setError(null);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(authInstance, email, pass);
+      if (userCredential.user) {
+        await createUserDocument(userCredential.user);
+      }
+      setCurrentUser(userCredential.user);
+      return userCredential.user;
+    } catch (e: any) {
+      console.error("Sign up error:", e);
+      setError(e.message);
+      toast({ variant: "destructive", title: "Sign Up Error", description: e.message });
+      return null;
+    }
+  };
+
 
   const signOut = async () => {
     setError(null);
@@ -78,6 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        await createUserDocument(result.user); // Ensure user doc is created/updated
+      }
       setCurrentUser(result.user);
       toast({ title: "Signed In", description: "Successfully signed in with Google." });
       return result.user;
@@ -89,33 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Placeholder for PayPal sign-in
-  // const signInWithPayPal = async (): Promise<User | null> => {
-  //   setError(null);
-  //   const provider = new OAuthProvider('paypal.com'); // Make sure this provider ID is correct
-  //   try {
-  //     const result = await signInWithPopup(auth, provider);
-  //     setCurrentUser(result.user);
-  //     toast({ title: "Signed In", description: "Successfully signed in with PayPal." });
-  //     return result.user;
-  //   } catch (e: any) {
-  //     console.error("PayPal sign in error:", e);
-  //     setError(e.message);
-  //     toast({ variant: "destructive", title: "PayPal Sign-In Error", description: e.message });
-  //     return null;
-  //   }
-  // };
-
-
   const value = {
     currentUser,
     loading,
     error,
     setError,
-    signUpWithEmail: (authInstance: Auth, email: string, pass: string) => createUserWithEmailAndPassword(authInstance, email, pass),
+    signUpWithEmail,
     signInWithEmail: (authInstance: Auth, email: string, pass: string) => signInWithEmailAndPassword(authInstance, email, pass),
     signInWithGoogle,
-    // signInWithPayPal, // Uncomment if PayPal added
     sendPasswordReset: (authInstance: Auth, email: string) => firebaseSendPasswordResetEmail(authInstance, email),
     signOut,
   };

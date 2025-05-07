@@ -1,37 +1,16 @@
+"use client";
 
-"use client"; // For state, potential actions
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Trash2, Edit, ShieldCheck, Search } from 'lucide-react'; // Ensure all icons are imported
+import { MoreHorizontal, Trash2, Edit, ShieldCheck, Search, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-
-// --- Types and Placeholder Data ---
-
-type UserRole = 'Customer' | 'Manager' | 'SuperAdmin';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  lastLogin?: string; // Optional: Date string or Date object
-  orderCount?: number; // Optional: Number of orders placed
-  avatarUrl?: string; // Optional
-}
-
-// Placeholder data - Fetch from backend
-const initialUsers: User[] = [
-  { id: 'usr1', name: 'Alice Smith', email: 'alice@example.com', role: 'Customer', lastLogin: '2024-05-01', orderCount: 3, avatarUrl: 'https://picsum.photos/seed/alice/40/40' },
-  { id: 'usr2', name: 'Bob Johnson', email: 'bob@example.com', role: 'Customer', lastLogin: '2024-04-28', orderCount: 1 },
-  { id: 'usr3', name: 'Admin User', email: 'admin@timberline.com', role: 'Manager', lastLogin: '2024-05-05' },
-  { id: 'usr4', name: 'Luke McConversions', email: 'luke@mcconversions.uk', role: 'SuperAdmin', lastLogin: '2024-05-06', avatarUrl: 'https://picsum.photos/seed/luke/40/40' },
-];
+import { useToast } from "@/hooks/use-toast";
+import { fetchUsersAction, updateUserRoleAction, deleteUserAction, type UserData, type UserRole } from './actions';
 
 const getRoleVariant = (role: UserRole): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
@@ -43,36 +22,60 @@ const getRoleVariant = (role: UserRole): "default" | "secondary" | "destructive"
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
+
+  const loadUsers = async () => {
+    setIsLoading(true);
+    const fetchedUsers = await fetchUsersAction();
+    setUsers(fetchedUsers);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const filteredUsers = users.filter(user =>
-     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
      user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // --- Actions (Placeholders) ---
   const handleEditUser = (userId: string) => {
-      // TODO: Implement edit user functionality (e.g., open modal/dialog)
-      // This simple version only allows editing own profile via /account/profile
-      alert(`Edit user ${userId} clicked (placeholder - use /account/profile for self-edit)`);
+      toast({ title: "Info", description: `Edit user ${userId} functionality not yet implemented. Manage profile via /account/profile for self-edit.`});
   };
 
-  const handleDeleteUser = (userId: string, userName: string) => {
-      // IMPORTANT: Add confirmation and safeguards, especially for admin roles
-     if (window.confirm(`Are you absolutely sure you want to delete user "${userName}" (${userId})? This action cannot be undone.`)) {
-          setUsers(prev => prev.filter(u => u.id !== userId));
-          // TODO: API call to delete user
-          console.log(`Deleted user ${userId}`);
+  const handleDeleteUser = async (userId: string, userName?: string) => {
+     if (window.confirm(`Are you sure you want to delete user "${userName || userId}" from Firestore? This action does not remove the user from Firebase Authentication.`)) {
+        setIsLoading(true); // Indicate loading for the specific action
+        const result = await deleteUserAction(userId);
+        if (result.success) {
+          toast({ title: "User Deleted from Firestore", description: result.message });
+          startTransition(() => { // use startTransition to batch state updates
+            loadUsers();
+          });
+        } else {
+          toast({ variant: "destructive", title: "Error", description: result.message });
+        }
+        setIsLoading(false); // Reset loading after action
      }
   };
 
-   const handleChangeRole = (userId: string, newRole: UserRole) => {
-       // IMPORTANT: Add confirmation and authorization checks
+   const handleChangeRole = async (userId: string, newRole: UserRole) => {
        if (window.confirm(`Change role for user ${userId} to ${newRole}?`)) {
-           setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-            // TODO: API call to update user role
-           console.log(`Changed role for user ${userId} to ${newRole}`);
+           setIsLoading(true); // Indicate loading for the specific action
+           const result = await updateUserRoleAction(userId, newRole);
+           if (result.success) {
+               toast({ title: "Role Updated", description: result.message });
+               startTransition(() => {
+                 loadUsers();
+               });
+           } else {
+               toast({ variant: "destructive", title: "Error", description: result.message });
+           }
+           setIsLoading(false); // Reset loading after action
        }
    };
 
@@ -83,9 +86,8 @@ export default function UsersPage() {
          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <CardTitle>User Management</CardTitle>
-              <CardDescription>View and manage user accounts and roles.</CardDescription>
+              <CardDescription>View and manage user accounts and roles from Firestore.</CardDescription>
             </div>
-            {/* Search Input */}
             <div className="relative w-full sm:w-auto">
                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                  <Input
@@ -99,6 +101,11 @@ export default function UsersPage() {
          </div>
       </CardHeader>
       <CardContent>
+        {isLoading && users.length === 0 ? (
+            <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        ) : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -117,11 +124,11 @@ export default function UsersPage() {
                 <TableRow key={user.id}>
                    <TableCell>
                       <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name}/>
-                          <AvatarFallback>{user.name?.[0]?.toUpperCase()}</AvatarFallback>
+                          <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name ?? user.email}/>
+                          <AvatarFallback>{user.name?.[0]?.toUpperCase() || user.email[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                    </TableCell>
-                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell className="font-medium">{user.name || 'N/A'}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell className="text-center">
                      <Badge variant={getRoleVariant(user.role)}>{user.role}</Badge>
@@ -131,30 +138,29 @@ export default function UsersPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLoading}>
+                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                           <span className="sr-only">User Actions</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditUser(user.id)}>
+                        <DropdownMenuItem onClick={() => handleEditUser(user.id)} disabled={isLoading}>
                            <Edit className="mr-2 h-4 w-4" /> Edit User (Placeholder)
                         </DropdownMenuItem>
                          <DropdownMenuSeparator />
                          <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-                         {/* Prevent changing own role or superadmin role easily */}
-                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Customer')} disabled={user.role === 'Customer'}>
+                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Customer')} disabled={user.role === 'Customer' || isLoading}>
                             Set as Customer
                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Manager')} disabled={user.role === 'Manager'}>
+                          <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Manager')} disabled={user.role === 'Manager' || isLoading}>
                             Set as Manager
                          </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'SuperAdmin')} disabled={user.role === 'SuperAdmin'}>
+                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'SuperAdmin')} disabled={user.role === 'SuperAdmin' || isLoading}>
                             <ShieldCheck className="mr-2 h-4 w-4"/>Set as SuperAdmin
                          </DropdownMenuItem>
                          <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id, user.name)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id, user.name)} className="text-destructive focus:bg-destructive/10 focus:text-destructive" disabled={isLoading}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete from Firestore
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -164,13 +170,13 @@ export default function UsersPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  No users found matching your search.
+                  {searchTerm ? 'No users found matching your search.' : 'No users found in the database.'}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-         {/* TODO: Add Pagination if needed */}
+        )}
       </CardContent>
     </Card>
   );
