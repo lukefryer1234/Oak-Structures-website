@@ -1,17 +1,16 @@
-
-"use client"; // Needed for form handling
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label"; // Keep if used outside FormField
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
-import { useForm } from "react-hook-form"; // Example form library
-import { zodResolver } from "@hookform/resolvers/zod"; // Example validation library
-import * as z from "zod"; // Example validation library
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Form,
   FormControl,
@@ -21,7 +20,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import Image from "next/image";
+import Image from 'next/image';
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import { placeOrderAction, type OrderData } from './actions'; // Import server action
+import { useAuth } from "@/context/auth-context"; // For getting current user
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 // Placeholder validation schema (adjust based on UK address specifics)
 const addressSchema = z.object({
@@ -31,49 +36,95 @@ const addressSchema = z.object({
   addressLine1: z.string().min(1, { message: "Address line 1 is required." }),
   addressLine2: z.string().optional(),
   town: z.string().min(1, { message: "Town/City is required." }),
-  postcode: z.string().min(5, { message: "Valid UK postcode is required." }).max(8), // Basic UK postcode validation
+  postcode: z.string().min(5, { message: "Valid UK postcode is required." }).max(8), 
   phone: z.string().optional(),
 });
 
-// Updated schema: only PayPal is allowed
 const checkoutSchema = z.object({
   billingAddress: addressSchema,
-  shippingAddress: addressSchema.optional(), // Optional if same as billing
+  shippingAddress: addressSchema.optional(), 
   useBillingAsShipping: z.boolean().default(true),
-  paymentMethod: z.literal("paypal", { required_error: "PayPal must be selected." }), // Only allow 'paypal'
+  paymentMethod: z.literal("paypal", { required_error: "PayPal must be selected." }),
+  orderNotes: z.string().optional(), // Added order notes
 });
 
-// Placeholder order summary data - fetch from basket state
+// Placeholder order summary data - fetch from basket state in a real app
 const orderSummary = {
   subtotal: 17575.00,
-  shipping: 25.00,
+  shippingCost: 25.00, // Renamed from shipping to shippingCost
   vat: 3515.00,
   total: 21115.00,
-  items: [
-    { id: 'garage1', name: 'Custom Garage (3-Bay)', quantity: 1, price: 12500 },
-    { id: 'flooring1', name: 'Oak Flooring (25m²)', quantity: 1, price: 1875 },
-    { id: 'deal2', name: 'Garden Gazebo Kit', quantity: 1, price: 3200 },
+  items: [ // Should match OrderItem schema in actions.ts
+    { id: 'garage1', name: 'Custom Garage (3-Bay)', quantity: 1, price: 12500, description: 'Curved Truss, Reclaimed Oak, 2 Bays', category: 'garages' },
+    { id: 'flooring1', name: 'Oak Flooring (25m²)', quantity: 1, price: 1875, description: 'Kilned Oak, 25m²', category: 'oak-flooring' },
+    { id: 'deal2', name: 'Garden Gazebo Kit', quantity: 1, price: 3200, description: 'Special Deal', category: 'special-deals' },
  ]
 };
 
 export default function CheckoutPage() {
+  const { currentUser } = useAuth();
+  const router = useRouter();
+  const { toast } } from "@/hooks/use-toast";
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       useBillingAsShipping: true,
-      billingAddress: { email: "", firstName: "", lastName: "", addressLine1: "", town: "", postcode: ""},
-      paymentMethod: "paypal", // Default to PayPal since it's the only option
+      billingAddress: { email: currentUser?.email || "", firstName: "", lastName: "", addressLine1: "", town: "", postcode: ""},
+      paymentMethod: "paypal", 
+      orderNotes: "",
     },
   });
 
    const useBillingAsShipping = form.watch("useBillingAsShipping");
 
-  function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    // Process checkout - validate address, process payment etc.
-    console.log(values);
-    // Redirect to order confirmation page on success
-    // router.push('/order-confirmation');
-    alert("Checkout Submitted! (Placeholder)");
+  async function onSubmit(values: z.infer<typeof checkoutSchema>) {
+    setIsSubmitting(true);
+
+    const finalShippingAddress = values.useBillingAsShipping 
+      ? values.billingAddress 
+      : values.shippingAddress;
+
+    if (!values.useBillingAsShipping && !finalShippingAddress) {
+        toast({ variant: "destructive", title: "Validation Error", description: "Shipping address is required if not same as billing." });
+        setIsSubmitting(false);
+        return;
+    }
+    
+    const orderDataPayload: OrderData = {
+        ...values,
+        shippingAddress: finalShippingAddress, // Ensure shippingAddress is always populated
+        items: orderSummary.items.map(item => ({ ...item, price: Number(item.price) })), // Ensure price is number
+        subtotal: orderSummary.subtotal,
+        shippingCost: orderSummary.shippingCost,
+        vat: orderSummary.vat,
+        total: orderSummary.total,
+    };
+
+    const result = await placeOrderAction(currentUser, orderDataPayload);
+    setIsSubmitting(false);
+
+    if (result.success && result.orderId) {
+      toast({ title: "Order Placed!", description: result.message });
+      router.push(`/order-confirmation?orderId=${result.orderId}`);
+    } else {
+      toast({ 
+        variant: "destructive", 
+        title: "Checkout Error", 
+        description: result.message || "An unexpected error occurred.",
+      });
+      // Display specific field errors if available
+      if (result.errors) {
+        Object.entries(result.errors).forEach(([key, value]) => {
+          if (Array.isArray(value) && value.length > 0) {
+            // For react-hook-form, errors are typically set on fields like 'billingAddress.email'
+            // This simplified error display might need adjustment for nested fields.
+            form.setError(key as any, { type: 'manual', message: value.join(', ') });
+          }
+        });
+      }
+    }
   }
 
   const renderAddressFields = (fieldName: "billingAddress" | "shippingAddress") => (
@@ -203,7 +254,6 @@ export default function CheckoutPage() {
            <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-8">
-                {/* Payment Method - Moved to top */}
                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Payment Method</CardTitle>
@@ -219,15 +269,14 @@ export default function CheckoutPage() {
                             <RadioGroup
                               onValueChange={field.onChange}
                               defaultValue={field.value}
-                              className="flex flex-col space-y-3" // Adjusted spacing
+                              className="flex flex-col space-y-3"
                             >
-                              {/* Only PayPal Option */}
                               <FormItem className="flex items-center space-x-3 space-y-0 p-4 border border-border/50 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 bg-background/60">
                                 <FormControl>
                                   <RadioGroupItem value="paypal" />
                                 </FormControl>
                                  <Image src="https://picsum.photos/seed/paypal-logo/80/25" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
-                                 <FormLabel className="font-normal flex-grow cursor-pointer"> {/* Added cursor-pointer */}
+                                 <FormLabel className="font-normal flex-grow cursor-pointer">
                                   PayPal
                                 </FormLabel>
                               </FormItem>
@@ -237,14 +286,12 @@ export default function CheckoutPage() {
                         </FormItem>
                       )}
                     />
-                    {/* Placeholder for PayPal Button */}
                      <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm">
                         Payment gateway integration placeholder. Secure PayPal button will appear here.
                      </div>
                   </CardContent>
                 </Card>
 
-                {/* Billing Address */}
                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Billing Address</CardTitle>
@@ -254,7 +301,6 @@ export default function CheckoutPage() {
                   </CardContent>
                 </Card>
 
-                {/* Shipping Address */}
                 <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
                     <CardTitle>Shipping Address</CardTitle>
@@ -283,7 +329,6 @@ export default function CheckoutPage() {
                   </CardContent>
                 </Card>
 
-                 {/* Shipping Method */}
                  <Card className="bg-card/80 backdrop-blur-sm border border-border/50">
                     <CardHeader>
                         <CardTitle>Shipping Method</CardTitle>
@@ -293,7 +338,7 @@ export default function CheckoutPage() {
                             <div className="flex justify-between items-center">
                                 <span>Standard UK Delivery</span>
                                 <span className="font-medium">
-                                    {orderSummary.shipping === 0 ? 'FREE' : `£${orderSummary.shipping.toFixed(2)}`}
+                                    {orderSummary.shippingCost === 0 ? 'FREE' : `£${orderSummary.shippingCost.toFixed(2)}`}
                                 </span>
                             </div>
                              <p className="text-sm text-muted-foreground mt-1">
@@ -305,7 +350,6 @@ export default function CheckoutPage() {
 
               </div>
 
-              {/* Order Summary */}
               <div className="lg:col-span-1">
                 <Card className="sticky top-20 bg-card/80 backdrop-blur-sm border border-border/50">
                   <CardHeader>
@@ -326,7 +370,7 @@ export default function CheckoutPage() {
                      </div>
                      <div className="flex justify-between text-sm">
                        <span className="text-muted-foreground">Shipping</span>
-                       <span className="text-foreground">{orderSummary.shipping === 0 ? 'FREE' : `£${orderSummary.shipping.toFixed(2)}`}</span>
+                       <span className="text-foreground">{orderSummary.shippingCost === 0 ? 'FREE' : `£${orderSummary.shippingCost.toFixed(2)}`}</span>
                      </div>
                      <div className="flex justify-between text-sm">
                        <span className="text-muted-foreground">VAT</span>
@@ -339,7 +383,8 @@ export default function CheckoutPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex-col space-y-4 border-t border-border/50 pt-6">
-                    <Button type="submit" className="w-full" size="lg">
+                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                        Place Order & Pay with PayPal
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
@@ -354,7 +399,3 @@ export default function CheckoutPage() {
      </div>
   );
 }
-
-    
-
-    

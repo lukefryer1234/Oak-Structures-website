@@ -1,55 +1,14 @@
-
-"use client"; // For state, form handling
+"use client"; 
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea"; // For address
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
-
-// --- Types and Placeholder Data/Functions ---
-
-interface CompanyInfo {
-  name: string;
-  address: string; // Multi-line address
-  contactEmail: string;
-  phone: string;
-  vatNumber?: string; // Optional VAT Number
-}
-
-// Placeholder fetch function
-const fetchCompanyInfo = async (): Promise<CompanyInfo> => {
-  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
-  // Replace with actual fetch logic
-   const storedData = localStorage.getItem('companyInfo');
-   if (storedData) {
-     try { return JSON.parse(storedData); } catch (e) { console.error("Failed to parse company info", e); }
-   }
-  // Default values
-  return {
-    name: "Timberline Commerce",
-    address: "12 Timber Yard\nForest Industrial Estate\nBristol\nBS1 1AD",
-    contactEmail: "info@timberline.com",
-    phone: "01234 567 890",
-    vatNumber: "GB123456789",
-  };
-};
-
-// Placeholder update function
-const updateCompanyInfo = async (info: CompanyInfo): Promise<boolean> => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-   // Replace with actual update logic
-    try {
-        localStorage.setItem('companyInfo', JSON.stringify(info));
-        return true;
-   } catch(e) {
-        console.error("Failed to save company info", e);
-        return false;
-   }
-};
+import { fetchCompanyInfoAction, updateCompanyInfoAction, type CompanyInfo } from './actions';
 
 export default function CompanySettingsPage() {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
@@ -58,10 +17,13 @@ export default function CompanySettingsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchCompanyInfo().then(data => {
+    async function loadData() {
+      setIsLoading(true);
+      const data = await fetchCompanyInfoAction();
       setCompanyInfo(data);
       setIsLoading(false);
-    });
+    }
+    loadData();
   }, []);
 
   const handleInputChange = (field: keyof CompanyInfo, value: string) => {
@@ -73,32 +35,30 @@ export default function CompanySettingsPage() {
   const handleSave = async () => {
     if (!companyInfo) return;
 
-    // Basic validation
+    // Basic client-side validation (server-side validation is primary)
     if (!companyInfo.name || !companyInfo.address || !companyInfo.contactEmail || !companyInfo.phone) {
          toast({ variant: "destructive", title: "Validation Error", description: "Please fill in all required fields (Name, Address, Email, Phone)." });
         return;
     }
-     // Email validation (basic)
      if (!/\S+@\S+\.\S+/.test(companyInfo.contactEmail)) {
         toast({ variant: "destructive", title: "Validation Error", description: "Please enter a valid email address." });
         return;
      }
 
-
     setIsSaving(true);
-    const success = await updateCompanyInfo(companyInfo);
+    const result = await updateCompanyInfoAction(companyInfo);
     setIsSaving(false);
 
-    if (success) {
+    if (result.success) {
       toast({
         title: "Success",
-        description: "Company information updated.",
+        description: result.message,
       });
     } else {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update company information. Please try again.",
+        description: result.message + (result.errors ? ` Details: ${result.errors.map(e => e.message).join(', ')}` : ''),
       });
     }
   };
@@ -118,7 +78,6 @@ export default function CompanySettingsPage() {
    }
 
   if (!companyInfo) {
-      // Handle case where data failed to load (optional)
       return <Card><CardContent><p className="text-destructive">Failed to load company information.</p></CardContent></Card>;
   }
 
@@ -132,7 +91,6 @@ export default function CompanySettingsPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Company Name */}
         <div className="space-y-2">
           <Label htmlFor="company-name">Company Name <span className="text-destructive">*</span></Label>
           <Input
@@ -144,7 +102,6 @@ export default function CompanySettingsPage() {
           />
         </div>
 
-        {/* Address */}
         <div className="space-y-2">
           <Label htmlFor="company-address">Company Address <span className="text-destructive">*</span></Label>
           <Textarea
@@ -159,7 +116,6 @@ export default function CompanySettingsPage() {
         </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {/* Contact Email */}
              <div className="space-y-2">
               <Label htmlFor="contact-email">Contact Email <span className="text-destructive">*</span></Label>
               <Input
@@ -173,7 +129,6 @@ export default function CompanySettingsPage() {
               />
             </div>
 
-            {/* Phone Number */}
              <div className="space-y-2">
                <Label htmlFor="phone-number">Phone Number <span className="text-destructive">*</span></Label>
                <Input
@@ -188,8 +143,6 @@ export default function CompanySettingsPage() {
              </div>
          </div>
 
-
-        {/* VAT Number (Optional) */}
         <div className="space-y-2">
           <Label htmlFor="vat-number">VAT Number (Optional)</Label>
           <Input
@@ -201,7 +154,7 @@ export default function CompanySettingsPage() {
           />
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-4 border-t border-border/50">
           <Button onClick={handleSave} disabled={isSaving || isLoading}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isSaving ? 'Saving...' : 'Save Company Info'}

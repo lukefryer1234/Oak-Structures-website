@@ -1,15 +1,15 @@
-
-"use client"; // For potential form handling
+"use client"; 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'; // Added Send icon, Loader2
+import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'; 
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react"; // For loading state
-// Removed Image import as it's handled globally
+import { useEffect, useState } from "react"; 
+import { useFormState, useFormStatus } from 'react-dom';
+import { submitContactForm, type ContactFormState } from './actions';
 
 // Placeholder contact details - Fetch from Admin settings ideally
 const companyInfo = {
@@ -19,40 +19,50 @@ const companyInfo = {
   email: "info@timberline.com",
 };
 
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full sm:w-auto btn-accent" disabled={pending}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+      {pending ? 'Sending...' : 'Send Message'}
+    </Button>
+  );
+}
+
 export default function ContactPage() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const initialState: ContactFormState = { message: '', success: false };
+  const [state, formAction] = useFormState(submitContactForm, initialState);
 
-  const handleContactFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-     event.preventDefault();
-     setIsSubmitting(true);
-     // TODO: Implement contact form submission (e.g., send email via API/server action)
-     // const formData = new FormData(event.target as HTMLFormElement);
-     // const response = await fetch('/api/contact', { method: 'POST', body: formData });
-     // if (response.ok) { ... } else { ... }
+  useEffect(() => {
+    if (state.message) {
+      if (state.success) {
+        toast({
+          title: "Message Sent!",
+          description: state.message,
+        });
+        // Reset form if needed by targeting the form element, or rely on state for displaying errors
+        const form = document.getElementById('contact-form') as HTMLFormElement;
+        form?.reset();
 
-     console.log("Contact form submitted");
-     // Simulate API call delay
-     await new Promise(resolve => setTimeout(resolve, 1000));
-
-     // Simulate success
-     toast({
-        title: "Message Sent!",
-        description: "Thank you for contacting us. We'll get back to you as soon as possible.",
-     });
-     (event.target as HTMLFormElement).reset();
-     setIsSubmitting(false);
-  };
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: state.message || "Failed to send message.",
+        });
+      }
+    }
+  }, [state, toast]);
 
   return (
-    // Removed relative isolate and background image handling
     <div>
       <div className="container mx-auto px-4 py-12 md:py-16">
         <h1 className="text-4xl font-bold text-center mb-12 text-foreground">Contact Us</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start"> {/* Ensure items align top */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
 
-          {/* Contact Information Section (Left Column) */}
           <div className="lg:col-span-2 space-y-8">
              <div>
                  <h2 className="text-2xl font-semibold text-foreground mb-3">Get In Touch</h2>
@@ -61,15 +71,12 @@ export default function ContactPage() {
                  </p>
              </div>
 
-             {/* Added transparency and blur */}
              <Card className="bg-card/80 backdrop-blur-sm border border-border p-6 space-y-5 shadow-sm">
-                 {/* Address */}
                  <div className="flex items-start gap-4">
                     <MapPin className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
                     <div>
                         <h3 className="font-medium text-card-foreground">Our Address</h3>
                         <p className="text-sm text-muted-foreground">{companyInfo.address}</p>
-                        {/* Optional: Link to Google Maps */}
                         <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyInfo.address)}`}
                            target="_blank" rel="noopener noreferrer"
                            className="text-xs text-primary hover:underline mt-1 inline-block">
@@ -77,7 +84,6 @@ export default function ContactPage() {
                         </a>
                     </div>
                  </div>
-                  {/* Phone */}
                   <div className="flex items-start gap-4">
                     <Phone className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
                      <div>
@@ -86,7 +92,6 @@ export default function ContactPage() {
                         <p className="text-xs text-muted-foreground">(Mon-Fri, 9am - 5pm)</p>
                      </div>
                  </div>
-                 {/* Email */}
                  <div className="flex items-start gap-4">
                     <Mail className="h-6 w-6 text-primary mt-1 flex-shrink-0" aria-hidden="true"/>
                     <div>
@@ -97,41 +102,35 @@ export default function ContactPage() {
              </Card>
           </div>
 
-          {/* Contact Form Section (Right Column) */}
           <div className="lg:col-span-3">
-               {/* Added transparency and blur */}
               <Card className="bg-card/80 backdrop-blur-sm border border-border shadow-lg">
                   <CardHeader>
                       <CardTitle className="text-xl text-card-foreground">Send Us a Message</CardTitle>
                        <CardDescription className="text-muted-foreground">Fill out the form below and we'll get back to you as soon as possible.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <form onSubmit={handleContactFormSubmit} className="space-y-4">
+                      <form action={formAction} id="contact-form" className="space-y-4">
                            <div className="space-y-2">
                              <Label htmlFor="contact-name" className="text-card-foreground">Name</Label>
-                              {/* Adjusted background */}
                              <Input id="contact-name" name="name" placeholder="Your Name" required className="bg-background/70 border-input"/>
+                             {state.errors?.name && <p className="text-sm text-destructive">{state.errors.name.join(', ')}</p>}
                            </div>
                            <div className="space-y-2">
                               <Label htmlFor="contact-email" className="text-card-foreground">Email</Label>
-                               {/* Adjusted background */}
                               <Input id="contact-email" name="email" type="email" placeholder="your.email@example.com" required className="bg-background/70 border-input"/>
+                              {state.errors?.email && <p className="text-sm text-destructive">{state.errors.email.join(', ')}</p>}
                            </div>
                             <div className="space-y-2">
                               <Label htmlFor="contact-subject" className="text-card-foreground">Subject</Label>
-                               {/* Adjusted background */}
                               <Input id="contact-subject" name="subject" placeholder="e.g., Question about Garages" required className="bg-background/70 border-input"/>
+                              {state.errors?.subject && <p className="text-sm text-destructive">{state.errors.subject.join(', ')}</p>}
                            </div>
                             <div className="space-y-2">
                                <Label htmlFor="contact-message" className="text-card-foreground">Message</Label>
-                                {/* Adjusted background */}
                                <Textarea id="contact-message" name="message" rows={5} placeholder="Your message..." required className="bg-background/70 border-input"/>
+                               {state.errors?.message && <p className="text-sm text-destructive">{state.errors.message.join(', ')}</p>}
                             </div>
-                             {/* Use custom accent button class */}
-                            <Button type="submit" className="w-full sm:w-auto btn-accent" disabled={isSubmitting}>
-                               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                               {isSubmitting ? 'Sending...' : 'Send Message'}
-                            </Button>
+                            <SubmitButton />
                       </form>
                   </CardContent>
               </Card>
@@ -141,5 +140,3 @@ export default function ContactPage() {
     </div>
   );
 }
-
-    

@@ -1,5 +1,4 @@
-
-"use client"; // For state, form handling
+"use client"; 
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -7,53 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff } from 'lucide-react'; // Icons for password visibility
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
-
-// --- Types and Placeholder Data/Functions ---
-
-interface PaymentSettings {
-  stripeEnabled: boolean;
-  stripePublishableKey: string;
-  stripeSecretKey: string; // Store securely - never expose client-side
-  paypalEnabled: boolean;
-  paypalClientId: string;
-  paypalClientSecret: string; // Store securely - never expose client-side
-  // Add other potential settings like sandbox mode toggles if needed
-  paypalSandboxMode: boolean;
-}
-
-// Placeholder fetch function - Keys should NOT be stored in localStorage in production
-const fetchPaymentSettings = async (): Promise<PaymentSettings> => {
-  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
-   const storedData = localStorage.getItem('paymentSettings');
-    if (storedData) {
-      try { return JSON.parse(storedData); } catch (e) { console.error("Failed to parse payment settings", e); }
-    }
-  // Default/Empty values - Keys should come from secure storage/env vars ideally
-  return {
-    stripeEnabled: true,
-    stripePublishableKey: "pk_test_...", // Placeholder
-    stripeSecretKey: "sk_test_...", // Placeholder - NEVER expose this directly in frontend code
-    paypalEnabled: true,
-    paypalClientId: "PayPalClientID...", // Placeholder
-    paypalClientSecret: "PayPalSecret...", // Placeholder - NEVER expose this directly
-    paypalSandboxMode: true, // Default to sandbox for safety
-  };
-};
-
-// Placeholder update function - Keys should be handled securely on the backend
-const updatePaymentSettings = async (settings: PaymentSettings): Promise<boolean> => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-  console.warn("Saving payment keys to localStorage is insecure. Use secure backend storage and environment variables in production.");
-   try {
-        localStorage.setItem('paymentSettings', JSON.stringify(settings));
-        return true;
-   } catch(e) {
-        console.error("Failed to save payment settings", e);
-        return false;
-   }
-};
+import { fetchPaymentSettingsAction, updatePaymentSettingsAction, type PaymentSettings } from './actions';
 
 export default function PaymentSettingsPage() {
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
@@ -64,10 +19,13 @@ export default function PaymentSettingsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPaymentSettings().then(data => {
+    async function loadData() {
+      setIsLoading(true);
+      const data = await fetchPaymentSettingsAction();
       setSettings(data);
       setIsLoading(false);
-    });
+    }
+    loadData();
   }, []);
 
   const handleInputChange = (field: keyof PaymentSettings, value: string | boolean) => {
@@ -79,7 +37,6 @@ export default function PaymentSettingsPage() {
   const handleSave = async () => {
     if (!settings) return;
 
-    // Basic validation (check required fields if enabled)
     if (settings.stripeEnabled && (!settings.stripePublishableKey || !settings.stripeSecretKey)) {
         toast({ variant: "destructive", title: "Validation Error", description: "Stripe is enabled but keys are missing." });
         return;
@@ -90,22 +47,19 @@ export default function PaymentSettingsPage() {
     }
 
     setIsSaving(true);
-     // IMPORTANT: In a real app, send only necessary data to backend.
-     // Do NOT send secret keys back if they haven't changed unless backend requires it.
-     // Ideally, only send flags (enabled/disabled) and let backend manage keys from secure env vars.
-    const success = await updatePaymentSettings(settings);
+    const result = await updatePaymentSettingsAction(settings);
     setIsSaving(false);
 
-    if (success) {
+    if (result.success) {
       toast({
         title: "Success",
-        description: "Payment settings updated.",
+        description: result.message,
       });
     } else {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update payment settings. Please try again.",
+        description: result.message + (result.errors ? ` Details: ${result.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}` : ''),
       });
     }
   };
@@ -127,7 +81,6 @@ export default function PaymentSettingsPage() {
 
   return (
     <div className="space-y-8">
-      {/* Stripe Settings */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -169,7 +122,7 @@ export default function PaymentSettingsPage() {
                   placeholder="sk_test_..."
                   disabled={isSaving || !settings.stripeEnabled}
                    required={settings.stripeEnabled}
-                   className="pr-10" // Add padding for the icon
+                   className="pr-10" 
                 />
                  <Button
                    type="button"
@@ -188,7 +141,6 @@ export default function PaymentSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* PayPal Settings */}
        <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -260,9 +212,7 @@ export default function PaymentSettingsPage() {
         </CardContent>
       </Card>
 
-
-      {/* Save Button */}
-      <div className="flex justify-end pt-4 border-t mt-8">
+      <div className="flex justify-end pt-4 border-t border-border/50 mt-8">
         <Button onClick={handleSave} disabled={isSaving || isLoading}>
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {isSaving ? 'Saving...' : 'Save Payment Settings'}

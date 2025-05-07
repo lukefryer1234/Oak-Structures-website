@@ -1,5 +1,4 @@
-
-"use client"; // For state, form handling
+"use client"; 
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -8,56 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
-
-// --- Types and Placeholder Data/Functions ---
-
-interface NotificationSettings {
-  adminEmailAddresses: string; // Comma-separated list of emails
-}
-
-// Placeholder fetch function
-const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
-  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
-  // Replace with actual fetch logic
-  const storedData = localStorage.getItem('notificationSettings');
-   if (storedData) {
-     try { return JSON.parse(storedData); } catch (e) { console.error("Failed to parse notification settings", e); }
-   }
-  // Default values
-  return {
-    adminEmailAddresses: "admin@timberline.com", // Default single admin email
-  };
-};
-
-// Placeholder update function
-const updateNotificationSettings = async (settings: NotificationSettings): Promise<boolean> => {
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-  // Replace with actual update logic
-  try {
-     localStorage.setItem('notificationSettings', JSON.stringify(settings));
-     return true;
-  } catch (e) {
-     console.error("Failed to save notification settings", e);
-     return false;
-  }
-};
-
-// Basic email validation function
-const isValidEmail = (email: string): boolean => {
-    return /\S+@\S+\.\S+/.test(email);
-}
+import { fetchNotificationSettingsAction, updateNotificationSettingsAction, type NotificationSettings } from './actions';
 
 export default function NotificationSettingsPage() {
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
+  const { toast } } from "@/hooks/use-toast";
 
   useEffect(() => {
-    fetchNotificationSettings().then(data => {
+    async function loadData() {
+      setIsLoading(true);
+      const data = await fetchNotificationSettingsAction();
       setSettings(data);
       setIsLoading(false);
-    });
+    }
+    loadData();
   }, []);
 
   const handleInputChange = (field: keyof NotificationSettings, value: string) => {
@@ -68,37 +33,33 @@ export default function NotificationSettingsPage() {
 
   const handleSave = async () => {
     if (!settings) return;
-
-    // Validate email addresses
+    
     const emails = settings.adminEmailAddresses.split(',').map(email => email.trim()).filter(email => email);
-    if (emails.length === 0) {
-        toast({ variant: "destructive", title: "Validation Error", description: "Please enter at least one valid admin email address." });
+    if (emails.length === 0 && settings.adminEmailAddresses.trim() !== "") { // Allow empty submission if field is empty, but not if only commas
+        toast({ variant: "destructive", title: "Validation Error", description: "Please enter at least one valid admin email address or leave the field empty." });
         return;
     }
-    const invalidEmails = emails.filter(email => !isValidEmail(email));
+    const invalidEmails = emails.filter(email => !/\S+@\S+\.\S+/.test(email));
     if (invalidEmails.length > 0) {
         toast({ variant: "destructive", title: "Validation Error", description: `Invalid email addresses found: ${invalidEmails.join(', ')}` });
         return;
     }
 
-    // Update settings with cleaned emails
-    const cleanedSettings = { ...settings, adminEmailAddresses: emails.join(',') };
-    setSettings(cleanedSettings); // Update local state with cleaned version
 
     setIsSaving(true);
-    const success = await updateNotificationSettings(cleanedSettings);
+    const result = await updateNotificationSettingsAction(settings);
     setIsSaving(false);
 
-    if (success) {
+    if (result.success) {
       toast({
         title: "Success",
-        description: "Admin notification settings updated.",
+        description: result.message,
       });
     } else {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update notification settings. Please try again.",
+        description: result.message + (result.errors ? ` Details: ${result.errors.map(e => e.message).join(', ')}` : ''),
       });
     }
   };
@@ -137,12 +98,12 @@ export default function NotificationSettingsPage() {
             onChange={(e) => handleInputChange('adminEmailAddresses', e.target.value)}
             placeholder="admin@example.com, support@example.com"
             disabled={isSaving}
-            required
+            required 
           />
            <p className="text-xs text-muted-foreground">Enter one or more email addresses, separated by commas.</p>
         </div>
 
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-end pt-4 border-t border-border/50">
           <Button onClick={handleSave} disabled={isSaving || isLoading}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isSaving ? 'Saving...' : 'Save Notification Settings'}

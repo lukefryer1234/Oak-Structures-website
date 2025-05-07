@@ -1,5 +1,4 @@
-
-"use client"; // For state management, form handling
+"use client"; 
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -8,57 +7,39 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
-
-// Placeholder for fetching/updating the text
-const fetchIntroText = async (): Promise<string> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    // Replace with actual fetch logic
-    return localStorage.getItem('customOrderIntroText') || "Use this form to tell us about your bespoke requirements for garages, gazebos, porches, beams, flooring, or any other custom timber project. Provide as much detail as possible, including desired dimensions, materials, features, and intended use. You can also upload sketches or inspiration images. Alternatively, contact us directly via email or phone.";
-};
-
-const updateIntroText = async (text: string): Promise<boolean> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-     // Replace with actual update logic
-     try {
-        localStorage.setItem('customOrderIntroText', text);
-        return true;
-     } catch (error) {
-         console.error("Failed to save text:", error);
-         return false;
-     }
-
-};
+import { fetchCustomOrderIntroTextAction, updateCustomOrderIntroTextAction } from './actions';
 
 export default function CustomOrderTextPage() {
   const [introText, setIntroText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
+  const { toast } } from "@/hooks/use-toast";
 
   useEffect(() => {
-    fetchIntroText().then(text => {
+    async function loadData() {
+      setIsLoading(true);
+      const text = await fetchCustomOrderIntroTextAction();
       setIntroText(text);
       setIsLoading(false);
-    });
+    }
+    loadData();
   }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
-    const success = await updateIntroText(introText);
+    const result = await updateCustomOrderIntroTextAction(introText);
     setIsSaving(false);
 
-    if (success) {
+    if (result.success) {
       toast({
         title: "Success",
-        description: "Custom order page introductory text updated.",
+        description: result.message,
       });
     } else {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update introductory text. Please try again.",
+        description: result.message + (result.errors ? ` Details: ${result.errors.map(e => e.message).join(', ')}` : ''),
       });
     }
   };
@@ -91,7 +72,7 @@ export default function CustomOrderTextPage() {
                <p className="text-xs text-muted-foreground">This text appears above the custom order form. You can use basic formatting like paragraphs.</p>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button onClick={handleSave} disabled={isSaving || isLoading}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
