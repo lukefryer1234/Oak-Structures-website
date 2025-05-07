@@ -1,6 +1,6 @@
 
 import type { Metadata } from "next";
-import { Geist_Sans, Geist_Mono } from "next/font/google"; // Corrected import
+import { Inter } from "next/font/google"; // Changed from Geist_Sans, Geist_Mono
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -9,14 +9,14 @@ import { SiteProvider } from "@/components/layout/site-provider";
 import { BackgroundImage } from "@/components/layout/background-image";
 import { AuthProvider } from "@/context/auth-context"; // Import AuthProvider
 
-const geistSans = Geist_Sans({ // Corrected usage
-  variable: "--font-geist-sans",
+const interSans = Inter({
   subsets: ["latin"],
+  variable: "--font-geist-sans", // Keep CSS variable name for compatibility
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const interMono = Inter({
   subsets: ["latin"],
+  variable: "--font-geist-mono", // Keep CSS variable name for compatibility
 });
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${interSans.variable} ${interMono.variable} font-sans antialiased`}
       >
         <SiteProvider>
           <AuthProvider> {/* Wrap with AuthProvider */}
