@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; // Not used directly, FormLabel is used
+// import { Label } from "@/components/ui/label"; // Not used directly, FormLabel is used
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { zodResolver } from "@hookform/resolvers/zod"; // For client-side, if kept
+import { zodResolver } from "@hookform/resolvers/zod"; 
 import * as z from "zod";
 import {
   Form,
@@ -21,15 +21,12 @@ import {
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
-import { useFormState, useFormStatus } from 'react-dom';
-import { submitCustomOrderForm, type CustomOrderFormState } from './actions';
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import { useForm } from "react-hook-form"; // Keep for client-side pre-fill
+import { Loader2, Send } from "lucide-react"; // Added Send icon
+import { useForm } from "react-hook-form"; 
 
 
-// Client-side schema for react-hook-form to handle pre-filling and basic structure
 const customOrderClientSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address").min(1, "Email is required"),
@@ -38,7 +35,7 @@ const customOrderClientSchema = z.object({
   postcode: z.string().optional(),
   companyName: z.string().optional(),
   productType: z.enum(["Garage", "Gazebo", "Porch", "Beams", "Flooring", "Other", ""]).optional(),
-  fileUpload: z.any().optional(),
+  // fileUpload: z.any().optional(), // File upload needs special handling for API routes
   contactMethod: z.enum(["Email", "Phone", ""]).optional(),
   budget: z.string().optional(),
   timescale: z.string().optional(),
@@ -50,24 +47,14 @@ const companyContact = {
   phone: "01234 567 890",
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="lg" disabled={pending}>
-      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-      {pending ? "Submitting..." : "Submit Inquiry"}
-    </Button>
-  );
-}
-
-
 export default function CustomOrderPage() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof customOrderClientSchema>>({
-    resolver: zodResolver(customOrderClientSchema), // Still useful for client-side hints if needed
+    resolver: zodResolver(customOrderClientSchema), 
     defaultValues: {
       fullName: "",
       email: "",
@@ -76,18 +63,16 @@ export default function CustomOrderPage() {
       postcode: "",
       companyName: "",
       productType: "",
-      fileUpload: undefined,
+      // fileUpload: undefined,
       contactMethod: "",
       budget: "",
       timescale: "",
     },
   });
   
-  const initialState: CustomOrderFormState = { message: '', success: false };
-  const [state, formAction] = useFormState(submitCustomOrderForm, initialState);
 
   useEffect(() => {
-    if (currentUser) {
+    if (!authLoading && currentUser) {
       form.reset({
         fullName: currentUser.displayName || "",
         email: currentUser.email || "",
@@ -101,38 +86,55 @@ export default function CustomOrderPage() {
         budget: form.getValues("budget") || "",
         timescale: form.getValues("timescale") || "",
       });
+    } else if (!authLoading && !currentUser) {
+        // Handled by redirect below
     }
-  }, [currentUser, form]);
+  }, [currentUser, authLoading, form]);
 
-  useEffect(() => {
-    if (state.message) {
-      if (state.success) {
+  async function onSubmit(values: z.infer<typeof customOrderClientSchema>) {
+    setIsSubmitting(true);
+    try {
+      // Replace with API call logic
+      const response = await fetch('/api/customorderform', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
         toast({
           title: "Inquiry Submitted!",
-          description: state.message,
+          description: result.message,
         });
-        form.reset({ // Reset react-hook-form as well
+        form.reset({ 
           fullName: currentUser?.displayName || "",
           email: currentUser?.email || "",
           description: "", phone: "", postcode: "", companyName: "",
           productType: "", contactMethod: "", budget: "", timescale: ""
         });
-        // Optionally reset the file input if you have a ref to it
-         const fileInput = document.getElementById('fileUpload') as HTMLInputElement;
-         if (fileInput) fileInput.value = '';
-
       } else {
         toast({
           variant: "destructive",
           title: "Submission Error",
-          description: state.message || "Failed to submit inquiry.",
+          description: result.message || "Failed to submit inquiry.",
         });
       }
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Submission Error",
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [state, toast, form, currentUser]);
+  }
 
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div>
         <div className="container mx-auto px-4 py-12 text-center flex items-center justify-center min-h-[calc(100vh-12rem)]">
@@ -143,6 +145,23 @@ export default function CustomOrderPage() {
   }
 
   if (!currentUser) {
+     // Redirect to login if not authenticated, including current page as redirect target
+     const redirectUrl = `/login?redirect=${encodeURIComponent('/custom-order')}`;
+     // useEffect is not ideal for redirects triggered by auth state in client components
+     // router.push should be called directly or conditionally rendering based on auth state.
+     // For immediate redirect:
+     if (typeof window !== 'undefined') { // Ensure it runs only on client
+        router.push(redirectUrl);
+        return ( // Render loading/null while redirecting
+          <div>
+            <div className="container mx-auto px-4 py-12 text-center flex items-center justify-center min-h-[calc(100vh-12rem)]">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Redirecting to login...</p>
+            </div>
+          </div>
+        );
+     }
+     // Fallback for server rendering or if redirect hasn't happened yet
      return (
       <div>
           <div className="container mx-auto px-4 py-12 text-center flex items-center justify-center min-h-[calc(100vh-12rem)]">
@@ -153,7 +172,7 @@ export default function CustomOrderPage() {
                 </CardHeader>
                 <CardContent>
                     <Button asChild>
-                        <Link href="/login?redirect=/custom-order">Login</Link>
+                        <Link href={redirectUrl}>Login</Link>
                     </Button>
                 </CardContent>
              </Card>
@@ -174,9 +193,8 @@ export default function CustomOrderPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* We use react-hook-form for client-side structure & prefill, but formAction for submission */}
               <Form {...form}> 
-                <form action={formAction} className="space-y-6" id="custom-order-form">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
                     name="fullName"
@@ -186,7 +204,7 @@ export default function CustomOrderPage() {
                         <FormControl>
                           <Input placeholder="Your full name" {...field} className="bg-background/70"/>
                         </FormControl>
-                        {state.errors?.fullName && <FormMessage>{state.errors.fullName.join(', ')}</FormMessage>}
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -199,7 +217,7 @@ export default function CustomOrderPage() {
                         <FormControl>
                           <Input type="email" placeholder="your.email@example.com" {...field} className="bg-background/70"/>
                         </FormControl>
-                         {state.errors?.email && <FormMessage>{state.errors.email.join(', ')}</FormMessage>}
+                         <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -215,7 +233,7 @@ export default function CustomOrderPage() {
                          <FormDescription>
                            Please be as detailed as possible.
                          </FormDescription>
-                         {state.errors?.description && <FormMessage>{state.errors.description.join(', ')}</FormMessage>}
+                         <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -228,7 +246,7 @@ export default function CustomOrderPage() {
                         <FormControl>
                           <Input type="tel" placeholder="Your contact number" {...field} className="bg-background/70"/>
                         </FormControl>
-                        {state.errors?.phone && <FormMessage>{state.errors.phone.join(', ')}</FormMessage>}
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -242,7 +260,7 @@ export default function CustomOrderPage() {
                           <Input placeholder="Delivery or site postcode/town" {...field} className="bg-background/70"/>
                         </FormControl>
                          <FormDescription>Helps us estimate delivery if applicable.</FormDescription>
-                         {state.errors?.postcode && <FormMessage>{state.errors.postcode.join(', ')}</FormMessage>}
+                         <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -255,7 +273,7 @@ export default function CustomOrderPage() {
                         <FormControl>
                           <Input placeholder="Your company name (if applicable)" {...field} className="bg-background/70"/>
                         </FormControl>
-                        {state.errors?.companyName && <FormMessage>{state.errors.companyName.join(', ')}</FormMessage>}
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -265,42 +283,48 @@ export default function CustomOrderPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Related Product Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""} name={field.name}>
-                            <FormControl>
+                          <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value} name={field.name}>
                               <SelectTrigger className="bg-background/70">
                                 <SelectValue placeholder="Select a product type (optional)" />
                               </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Garage">Garage</SelectItem>
-                              <SelectItem value="Gazebo">Gazebo</SelectItem>
-                              <SelectItem value="Porch">Porch</SelectItem>
-                              <SelectItem value="Beams">Oak Beams</SelectItem>
-                              <SelectItem value="Flooring">Oak Flooring</SelectItem>
-                              <SelectItem value="Other">Other / Not Sure</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {state.errors?.productType && <FormMessage>{state.errors.productType.join(', ')}</FormMessage>}
+                              <SelectContent>
+                                <SelectItem value="Garage">Garage</SelectItem>
+                                <SelectItem value="Gazebo">Gazebo</SelectItem>
+                                <SelectItem value="Porch">Porch</SelectItem>
+                                <SelectItem value="Beams">Oak Beams</SelectItem>
+                                <SelectItem value="Flooring">Oak Flooring</SelectItem>
+                                <SelectItem value="Other">Other / Not Sure</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
-                     <FormField
-                      control={form.control} // react-hook-form control for file input, though actual handling is server-side
+                     {/* <FormField
+                      control={form.control} 
                       name="fileUpload"
-                      render={({ field }) => ( // field here is just for react-hook-form to track, not directly for submission data
+                      render={({ field }) => ( 
                         <FormItem>
                           <FormLabel>File Upload</FormLabel>
                           <FormControl>
-                             {/* For use with formAction, the name attribute is key */}
-                            <Input type="file" name="fileUpload" id="fileUpload" className="bg-background/70"/>
+                            <Input 
+                                type="file" 
+                                name="fileUpload" 
+                                id="fileUpload" 
+                                className="bg-background/70"
+                                // onChange is handled by react-hook-form for validation,
+                                // but for actual file data, you'd handle via FormData in onSubmit if not using server actions
+                            />
                           </FormControl>
                           <FormDescription>
                             Upload sketches, plans, or inspiration images (optional, max 5MB).
                           </FormDescription>
-                          {/* Server-side errors for fileUpload are harder to display directly here without custom logic */}
+                          <FormMessage />
                         </FormItem>
                       )}
-                    />
+                    /> */}
                    <FormField
                       control={form.control}
                       name="contactMethod"
@@ -308,11 +332,10 @@ export default function CustomOrderPage() {
                         <FormItem className="space-y-3">
                           <FormLabel>Preferred Contact Method</FormLabel>
                           <FormControl>
-                             {/* For use with formAction, the name attribute on RadioGroup is important */}
                             <RadioGroup
                               onValueChange={field.onChange}
-                              value={field.value || ""}
-                              name={field.name} // Ensure name is passed for FormData
+                              value={field.value}
+                              name={field.name} 
                               className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4"
                             >
                               <FormItem className="flex items-center space-x-3 space-y-0">
@@ -333,7 +356,7 @@ export default function CustomOrderPage() {
                               </FormItem>
                             </RadioGroup>
                           </FormControl>
-                          {state.errors?.contactMethod && <FormMessage>{state.errors.contactMethod.join(', ')}</FormMessage>}
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -346,7 +369,7 @@ export default function CustomOrderPage() {
                             <FormControl>
                               <Input placeholder="e.g., £5,000 - £10,000 (optional)" {...field} className="bg-background/70"/>
                             </FormControl>
-                            {state.errors?.budget && <FormMessage>{state.errors.budget.join(', ')}</FormMessage>}
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -359,12 +382,15 @@ export default function CustomOrderPage() {
                             <FormControl>
                               <Input placeholder="e.g., Within 3 months, By September 2025 (optional)" {...field} className="bg-background/70"/>
                             </FormControl>
-                            {state.errors?.timescale && <FormMessage>{state.errors.timescale.join(', ')}</FormMessage>}
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
                   <div className="flex justify-end pt-4 border-t border-border/50">
-                     <SubmitButton />
+                     <Button type="submit" size="lg" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
+                        {isSubmitting ? "Submitting..." : "Submit Inquiry"}
+                    </Button>
                   </div>
                 </form>
               </Form>

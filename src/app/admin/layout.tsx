@@ -1,7 +1,6 @@
+"use client"; 
 
-"use client"; // Needed for state management (sidebar) and auth check simulation
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import Link from 'next/link';
 import {
     LayoutDashboard,
@@ -19,11 +18,12 @@ import {
     BarChart3,
     Mail,
     FileText,
-    Image as ImageIconLucide, // Renamed to avoid conflict with Next Image
+    Image as ImageIconLucide, 
     ScanSearch,
     Box,
     Sparkles,
-    Ruler
+    Ruler,
+    Loader2 // Added Loader2
 } from 'lucide-react';
 import {
     Sidebar,
@@ -42,36 +42,9 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname } from 'next/navigation'; // To highlight active link
-// Removed Image import as it's handled globally
-
-// --- Placeholder Authentication ---
-// In a real app, replace this with actual authentication context/logic
-const useAdminAuth = () => {
-    // Simulate checking if the user is an admin
-    // For now, assume the user is authenticated and is an admin
-    const isAuthenticated = true; // Replace with real check
-    const isAdmin = true; // Replace with role check
-    const user = {
-        name: "Admin User",
-        email: "admin@timberline.com", // Replace with actual user data
-        // imageUrl: "https://picsum.photos/seed/admin-avatar/40/40", // Optional avatar
-    };
-
-    if (!isAuthenticated || !isAdmin) {
-        // In a real app, you would redirect to a login page or show an unauthorized message
-        // For this placeholder, we'll allow access but you'd implement redirection here
-        // Example:
-        // import { redirect } from 'next/navigation';
-        // if (typeof window !== 'undefined') redirect('/login?unauthorized=true');
-        console.warn("Placeholder Auth: User is not an authorized admin.");
-         // return { isAuthenticated: false, user: null };
-    }
-
-    return { isAuthenticated: true, user };
-};
-// --- End Placeholder Authentication ---
-
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-context'; // Import useAuth
+import { useToast } from '@/hooks/use-toast';
 
 interface NavItem {
     href: string;
@@ -88,7 +61,7 @@ const adminNavLinks: NavItem[] = [
             { href: "/admin/products/configurable-prices", label: "Config Prices", icon: DollarSign },
             { href: "/admin/products/unit-prices", label: "Unit Prices", icon: Ruler },
             { href: "/admin/products/special-deals", label: "Special Deals", icon: Sparkles },
-            { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide }, // Use renamed icon
+            { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide }, 
         ]
     },
      {
@@ -108,39 +81,71 @@ const adminNavLinks: NavItem[] = [
             { href: "/admin/settings/notifications", label: "Notifications", icon: Mail },
         ]
     },
-    { href: "/admin/users", label: "Users", icon: Users }, // Basic user management
+    { href: "/admin/users", label: "Users", icon: Users }, 
 ];
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated, user } = useAdminAuth();
+    const { currentUser, loading: authLoading, signOut } = useAuth();
+    const router = useRouter();
     const pathname = usePathname();
+    const { toast } = useToast();
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+    // TODO: Implement actual admin role check from Firestore user document
+    const isUserAdmin = () => {
+        // Placeholder: Check if user email is one of the hardcoded admin emails.
+        // In production, this should check a 'role' field in the user's Firestore document.
+        if (!currentUser) return false;
+        const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"]; // Example admin emails
+        return adminEmails.includes(currentUser.email || "");
+    };
+    
+    const isAdmin = isUserAdmin();
+
+    useEffect(() => {
+        if (!authLoading) {
+            if (!currentUser) {
+                toast({ variant: "destructive", title: "Access Denied", description: "Please log in to access the admin panel." });
+                router.push('/login?redirect=/admin');
+            } else if (!isAdmin) {
+                toast({ variant: "destructive", title: "Unauthorized", description: "You do not have permission to access the admin panel." });
+                router.push('/'); // Redirect to homepage if not an admin
+            }
+        }
+    }, [currentUser, authLoading, router, isAdmin, toast]);
+
 
     const toggleSubMenu = (label: string) => {
         setOpenSubMenus(prev => ({ ...prev, [label]: !prev[label] }));
     };
 
-    // Determine if a path or its subpath is active
     const isActive = (path: string, isSubItem = false): boolean => {
         if (isSubItem) {
             return pathname === path;
         }
-         // For main menu items, check if the current path starts with the item's href
-        // Special case for dashboard ('/admin') to avoid matching all '/admin/*' paths
         if (path === '/admin') {
              return pathname === '/admin';
         }
         return pathname.startsWith(path);
     };
 
+    const handleLogout = async () => {
+        try {
+          await signOut();
+        } catch (error: any) {
+          toast({ variant: "destructive", title: "Logout Error", description: error.message });
+        }
+    };
 
-    if (!isAuthenticated) {
-        // Render a simple message or redirect component if not authenticated
+
+    if (authLoading || !currentUser || !isAdmin) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p>Access Denied. Please log in as an admin.</p>
-                {/* Or <Redirect to="/login" /> */}
+            <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">
+                    {authLoading ? "Loading user..." : "Verifying admin access..."}
+                </p>
             </div>
         );
     }
@@ -156,7 +161,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                      <SidebarMenuSubItem key={link.href}>
                         <Link href={link.href} legacyBehavior passHref>
                            <SidebarMenuSubButton isActive={active}>
-                              {/* <link.icon /> */}
                               <span>{link.label}</span>
                            </SidebarMenuSubButton>
                         </Link>
@@ -169,15 +173,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <SidebarMenuButton
                         onClick={hasSubItems ? () => toggleSubMenu(link.label) : undefined}
                         asChild={!hasSubItems}
-                        isActive={active && !hasSubItems} // Only highlight main item if no sub-items or exact match
-                        className="justify-between" // Ensure button stretches
+                        isActive={active && !hasSubItems} 
+                        className="justify-between" 
                     >
                         {hasSubItems ? (
-                            // Use a div or button if it's just a trigger
                             <div className="flex items-center gap-2 w-full">
                                 <link.icon />
                                 <span>{link.label}</span>
-                                 <span className="ml-auto"> {/* Push chevron to the right */}
+                                 <span className="ml-auto"> 
                                    {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
                                  </span>
                             </div>
@@ -203,9 +206,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <SidebarProvider>
             <Sidebar>
                 <SidebarHeader>
-                    {/* Admin Header Content - e.g., Logo/Title */}
                     <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
-                     <SidebarTrigger/> {/* Optional: Button to toggle collapse */}
+                     <SidebarTrigger/> 
                 </SidebarHeader>
                 <SidebarContent>
                     <SidebarMenu>
@@ -215,22 +217,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                  <SidebarFooter>
                      <div className="flex items-center gap-2 p-2 border-t border-sidebar-border">
                          <Avatar className="h-8 w-8">
-                             <AvatarImage src={user?.imageUrl ?? undefined} alt={user?.name ?? 'Admin'} />
-                             <AvatarFallback>{user?.name?.[0] ?? 'A'}</AvatarFallback>
+                             <AvatarImage src={currentUser?.photoURL ?? undefined} alt={currentUser?.displayName ?? 'Admin'} />
+                             <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'A'}</AvatarFallback>
                          </Avatar>
                          <div className="flex flex-col text-xs truncate">
-                             <span className="font-medium text-sidebar-foreground">{user?.name}</span>
-                             <span className="text-muted-foreground">{user?.email}</span>
+                             <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email}</span>
+                             {currentUser?.displayName && <span className="text-muted-foreground">{currentUser.email}</span> }
                          </div>
-                         {/* Add Logout Button or Link here */}
-                         {/* <Button variant="ghost" size="sm" className="ml-auto">Logout</Button> */}
+                         <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
                      </div>
                  </SidebarFooter>
             </Sidebar>
-            {/* Removed relative isolate and background image handling from SidebarInset */}
             <SidebarInset>
-                {/* Main content area for admin pages */}
-                 {/* Removed relative z-10 */}
                  <div className="p-4 md:p-8">
                     {children}
                  </div>
@@ -238,5 +236,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </SidebarProvider>
     );
 }
-
-    

@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -33,7 +32,8 @@ export default function ForgotPasswordPage() {
       setEmailSent(true);
     } catch (e: any) {
       console.error("Password reset error:", e);
-      setError(e.message);
+      // Error is set in AuthContext and displayed via useEffect in AuthPage
+      // For this page, we can show a specific toast too.
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
         setIsSubmitting(false);
@@ -42,45 +42,50 @@ export default function ForgotPasswordPage() {
 
   if (emailSent) {
     return (
-         <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Reset Email Sent</CardTitle>
-              <CardDescription>A password reset link has been sent to your email address. Please check your inbox (and spam folder).</CardDescription>
-            </CardHeader>
-            <CardFooter className="text-center text-sm text-muted-foreground flex justify-center">
-               <Link href="/login" className="text-primary hover:underline ml-1">
-                 Back to Login
-               </Link>
-            </CardFooter>
-         </Card>
+        <div className="flex flex-col min-h-screen items-center justify-center bg-transparent p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Reset Email Sent</CardTitle>
+                <CardDescription>A password reset link has been sent to your email address. Please check your inbox (and spam folder).</CardDescription>
+                </CardHeader>
+                <CardFooter className="text-center text-sm text-muted-foreground flex justify-center">
+                <Link href="/login" className="text-primary hover:underline ml-1">
+                    Back to Login
+                </Link>
+                </CardFooter>
+            </Card>
+        </div>
     );
   }
 
 
   return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Forgot Password</CardTitle>
-          <CardDescription>Enter your email to receive a password reset link.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordReset} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" required disabled={isSubmitting} />
-            </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Send Reset Link
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="text-center text-sm text-muted-foreground flex justify-center">
-           Remembered your password?{' '}
-          <Link href="/login" className="text-primary hover:underline ml-1">
-            Login
-          </Link>
-        </CardFooter>
-      </Card>
+    <div className="flex flex-col min-h-screen items-center justify-center bg-transparent p-4">
+        <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Forgot Password</CardTitle>
+            <CardDescription>Enter your email to receive a password reset link.</CardDescription>
+            </CardHeader>
+            <CardContent>
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="you@example.com" required disabled={isSubmitting} />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Send Reset Link
+                </Button>
+            </form>
+            {error && <p className="text-sm text-destructive text-center mt-4">{error}</p>}
+            </CardContent>
+            <CardFooter className="text-center text-sm text-muted-foreground flex justify-center">
+            Remembered your password?{' '}
+            <Link href="/login" className="text-primary hover:underline ml-1">
+                Login
+            </Link>
+            </CardFooter>
+        </Card>
+    </div>
   );
 }
