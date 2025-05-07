@@ -1,5 +1,5 @@
 
-"use client"; // Required for form handling
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,10 +20,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-// Removed Image import as it's handled globally
-
-// Placeholder - In a real app, check authentication status here
-const isLoggedIn = true; // Assume user is logged in for now
+import { useAuth } from "@/context/auth-context"; // Import useAuth
+import { useRouter } from "next/navigation"; // Import useRouter
+import Link from "next/link"; // Import Link for redirect button
+import { useEffect } from "react"; // Import useEffect
 
 const customOrderSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -33,52 +33,79 @@ const customOrderSchema = z.object({
   postcode: z.string().optional(),
   companyName: z.string().optional(),
   productType: z.enum(["Garage", "Gazebo", "Porch", "Beams", "Flooring", "Other"]).optional(),
-  fileUpload: z.any().optional(), // Handle file uploads appropriately on the backend
+  fileUpload: z.any().optional(),
   contactMethod: z.enum(["Email", "Phone"]).optional(),
   budget: z.string().optional(),
   timescale: z.string().optional(),
 });
 
-// Placeholder contact details - fetch from admin settings in real app
 const companyContact = {
   email: "info@timberline.com",
   phone: "01234 567 890",
 };
 
 export default function CustomOrderPage() {
+  const { currentUser, loading } = useAuth(); // Get currentUser and loading state
+  const router = useRouter();
+
   const form = useForm<z.infer<typeof customOrderSchema>>({
     resolver: zodResolver(customOrderSchema),
-    // Pre-fill email if user is logged in and email is available
     defaultValues: {
-      email: isLoggedIn ? "user@example.com" : "", // Replace with actual user email
-      fullName: isLoggedIn ? "Logged In User" : "", // Replace with actual user name
+      fullName: currentUser?.displayName || "",
+      email: currentUser?.email || "",
     },
   });
 
+  // Update form default values when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      form.reset({
+        fullName: currentUser.displayName || "",
+        email: currentUser.email || "",
+        description: "", // Keep other fields empty or as previously set if needed
+        phone: "",
+        postcode: "",
+        companyName: "",
+        productType: undefined,
+        fileUpload: undefined,
+        contactMethod: undefined,
+        budget: "",
+        timescale: "",
+
+      });
+    }
+  }, [currentUser, form]);
+
+
   function onSubmit(values: z.infer<typeof customOrderSchema>) {
-    // TODO: Implement form submission logic
-    // - Handle file upload if present
-    // - Send email to admin
-    // - Optionally save submission to DB
     console.log(values);
     alert("Custom order inquiry submitted! (Placeholder)");
-    form.reset(); // Reset form after submission
+    form.reset();
   }
 
-  if (!isLoggedIn) {
-    // In a real app, you might redirect to login or show a message
+  if (loading) {
+    return (
+      <div>
+        <div className="container mx-auto px-4 py-12 text-center flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <p>Loading...</p> {/* Or a spinner component */}
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
      return (
-       // Removed wrapper for background
       <div>
           <div className="container mx-auto px-4 py-12 text-center flex items-center justify-center min-h-[calc(100vh-12rem)]">
-             {/* Adjusted card */}
              <Card className="max-w-lg mx-auto bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                    <CardTitle>Login Required</CardTitle>
                    <CardDescription>Please log in or register to submit a custom order inquiry.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={() => {/* Redirect to login */}}>Login</Button>
+                    <Button asChild>
+                        <Link href="/login?redirect=/custom-order">Login</Link>
+                    </Button>
                 </CardContent>
              </Card>
           </div>
@@ -87,10 +114,8 @@ export default function CustomOrderPage() {
    }
 
   return (
-     // Removed relative isolate and background image handling
      <div>
         <div className="container mx-auto px-4 py-12">
-           {/* Adjusted card */}
           <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
             <CardHeader>
               <CardTitle className="text-3xl">Custom Order Inquiry</CardTitle>
@@ -102,7 +127,6 @@ export default function CustomOrderPage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Required Fields */}
                   <FormField
                     control={form.control}
                     name="fullName"
@@ -110,14 +134,12 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Full Name <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
-                           {/* Adjusted background */}
                           <Input placeholder="Your full name" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="email"
@@ -125,14 +147,12 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Email Address <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
-                           {/* Adjusted background */}
                           <Input type="email" placeholder="your.email@example.com" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="description"
@@ -140,7 +160,6 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Description of Requirements <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
-                           {/* Adjusted background */}
                           <Textarea rows={6} placeholder="Describe your project, desired dimensions, materials, features, etc." {...field} className="bg-background/70"/>
                         </FormControl>
                          <FormDescription>
@@ -150,8 +169,6 @@ export default function CustomOrderPage() {
                       </FormItem>
                     )}
                   />
-
-                  {/* Optional Fields */}
                    <FormField
                     control={form.control}
                     name="phone"
@@ -159,14 +176,12 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                           {/* Adjusted background */}
                           <Input type="tel" placeholder="Your contact number" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                     <FormField
                     control={form.control}
                     name="postcode"
@@ -174,7 +189,6 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Postcode / Town</FormLabel>
                         <FormControl>
-                           {/* Adjusted background */}
                           <Input placeholder="Delivery or site postcode/town" {...field} className="bg-background/70"/>
                         </FormControl>
                          <FormDescription>Helps us estimate delivery if applicable.</FormDescription>
@@ -182,7 +196,6 @@ export default function CustomOrderPage() {
                       </FormItem>
                     )}
                   />
-
                    <FormField
                     control={form.control}
                     name="companyName"
@@ -190,14 +203,12 @@ export default function CustomOrderPage() {
                       <FormItem>
                         <FormLabel>Company Name</FormLabel>
                         <FormControl>
-                           {/* Adjusted background */}
                           <Input placeholder="Your company name (if applicable)" {...field} className="bg-background/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                     <FormField
                       control={form.control}
                       name="productType"
@@ -206,7 +217,6 @@ export default function CustomOrderPage() {
                           <FormLabel>Related Product Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                               {/* Adjusted background */}
                               <SelectTrigger className="bg-background/70">
                                 <SelectValue placeholder="Select a product type (optional)" />
                               </SelectTrigger>
@@ -224,7 +234,6 @@ export default function CustomOrderPage() {
                         </FormItem>
                       )}
                     />
-
                      <FormField
                       control={form.control}
                       name="fileUpload"
@@ -232,8 +241,6 @@ export default function CustomOrderPage() {
                         <FormItem>
                           <FormLabel>File Upload</FormLabel>
                           <FormControl>
-                             {/* Adjusted background */}
-                            {/* Basic file input. Enhance with drag-and-drop library if needed */}
                             <Input type="file" {...form.register("fileUpload")} className="bg-background/70"/>
                           </FormControl>
                           <FormDescription>
@@ -243,7 +250,6 @@ export default function CustomOrderPage() {
                         </FormItem>
                       )}
                     />
-
                    <FormField
                       control={form.control}
                       name="contactMethod"
@@ -278,7 +284,6 @@ export default function CustomOrderPage() {
                         </FormItem>
                       )}
                     />
-
                      <FormField
                         control={form.control}
                         name="budget"
@@ -286,14 +291,12 @@ export default function CustomOrderPage() {
                           <FormItem>
                             <FormLabel>Budget Indication</FormLabel>
                             <FormControl>
-                               {/* Adjusted background */}
                               <Input placeholder="e.g., £5,000 - £10,000 (optional)" {...field} className="bg-background/70"/>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                        <FormField
                         control={form.control}
                         name="timescale"
@@ -301,16 +304,12 @@ export default function CustomOrderPage() {
                           <FormItem>
                             <FormLabel>Desired Timescale / Date</FormLabel>
                             <FormControl>
-                               {/* Adjusted background */}
                               <Input placeholder="e.g., Within 3 months, By September 2025 (optional)" {...field} className="bg-background/70"/>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
-
-                   {/* Added border */}
                   <div className="flex justify-end pt-4 border-t border-border/50">
                      <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
                       {form.formState.isSubmitting ? "Submitting..." : "Submit Inquiry"}
@@ -324,5 +323,3 @@ export default function CustomOrderPage() {
      </div>
   );
 }
-
-    

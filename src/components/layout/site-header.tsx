@@ -1,14 +1,14 @@
 
-"use client"; // Needed for state management and Dropdown
+"use client";
 
 import Link from "next/link";
 import {
   ShoppingCart,
   User,
   Menu,
-  Home, // Added Home icon
+  Home,
   Building,
-  ImageIcon, // Use the aliased import
+  ImageIcon,
   Mail,
   Wrench,
   TreeDeciduous,
@@ -21,7 +21,7 @@ import {
   Info,
   HelpCircle,
   Phone,
-  LayoutDashboard, // Added Admin icon
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,10 +35,11 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge"; // Import Badge
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/auth-context"; // Import useAuth
+import { useToast } from "@/hooks/use-toast"; // For potential logout messages
 
 const mainNavLinks = [
-  // Updated hrefs to point to the configure pages
   { href: "/products/garages/configure", label: "Garages", icon: Wrench },
   { href: "/products/gazebos/configure", label: "Gazebos", icon: TreeDeciduous },
   { href: "/products/porches/configure", label: "Porches", icon: DoorOpen },
@@ -57,45 +58,62 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Placeholder for user authentication status and role
-  const isLoggedIn = true; // Replace with actual auth check - Assume logged in for testing admin link
-  const isAdmin = true; // Replace with actual role check - Assume admin for testing admin link
-  // Placeholder for basket item count
-  const basketItemCount = 3; // Replace with actual basket count logic
-  // Placeholder for basket total price - fetch this from actual basket state
-  const basketTotalPrice = 17575.00; // Example value
+  const { currentUser, signOut, loading } = useAuth(); // Use auth context
+  const { toast } = useToast();
+
+  // Placeholder for basket item count and total price
+  const basketItemCount = 3;
+  const basketTotalPrice = 17575.00;
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  // Function to format price
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // Success toast is handled in AuthContext
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Logout Error", description: error.message });
+    }
+  };
+
   const formatPrice = (price: number) => {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
+  // Show loading state or default icons if auth is still loading
+  if (loading && typeof window !== 'undefined') { // Avoid SSR issues with loading state
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+          <div>{/* Placeholder for left side during load */}</div>
+          <div>{/* Placeholder for right side during load */}</div>
+        </div>
+      </header>
+    );
+  }
+
+  // TODO: Check if user has admin role for displaying admin link
+  const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
+
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Container to constrain content width and justify elements */}
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-
-        {/* Left Side: Hamburger Menus, Home Icon & Basket Total */}
         <div className="flex items-center gap-2">
-           {/* Mobile Hamburger Trigger */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="shrink-0 md:hidden h-9 w-9" // Display only on mobile
+                  className="shrink-0 md:hidden h-9 w-9"
                   aria-label="Toggle navigation menu"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
-                 {/* Mobile Sheet Content */}
                  <nav className="flex flex-col h-full">
                      <div className="p-4 border-b">
-                        {/* Optional Mobile menu header */}
                          <h2 className="text-lg font-semibold">Menu</h2>
                      </div>
                      <div className="flex-1 overflow-y-auto py-4 px-4">
@@ -137,20 +155,19 @@ export function SiteHeader() {
               </SheetContent>
            </Sheet>
 
-           {/* Desktop Hamburger Menu Trigger */}
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
                <Button
                  variant="ghost"
                  size="icon"
-                 className="h-9 w-9 hidden md:inline-flex" // Hidden on mobile, inline-flex on desktop
+                 className="h-9 w-9 hidden md:inline-flex"
                  aria-label="Navigation Menu"
                >
                  <Menu className="h-5 w-5 text-muted-foreground" />
                  <span className="sr-only">Navigation Menu</span>
                </Button>
              </DropdownMenuTrigger>
-             <DropdownMenuContent align="start" className="w-56"> {/* Align start for left side */}
+             <DropdownMenuContent align="start" className="w-56">
                <DropdownMenuItem asChild>
                    <Link href="/" className="flex items-center gap-2">
                      <Home className="h-4 w-4" />
@@ -179,14 +196,12 @@ export function SiteHeader() {
              </DropdownMenuContent>
            </DropdownMenu>
 
-           {/* Home Icon Button */}
            <Button variant="ghost" size="icon" asChild className="h-9 w-9">
             <Link href="/" aria-label="Homepage">
               <Home className="h-5 w-5" />
             </Link>
           </Button>
 
-            {/* Basket Total Price */}
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
                     {formatPrice(basketTotalPrice)}
@@ -194,15 +209,7 @@ export function SiteHeader() {
              )}
         </div>
 
-        {/* Center: Optional Logo/Title (Currently Removed) */}
-        {/* <div className="absolute left-1/2 transform -translate-x-1/2"> */}
-            {/* Optional: Add Logo here if needed */}
-        {/* </div> */}
-
-
-        {/* Right Side: Icons */}
-        <div className="flex items-center gap-4"> {/* Increased gap slightly */}
-          {/* Basket Icon */}
+        <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
@@ -214,16 +221,14 @@ export function SiteHeader() {
             </Link>
           </Button>
 
-           {/* Admin Link (conditionally rendered) */}
-           {isLoggedIn && isAdmin && (
+           {currentUser && isAdmin && (
               <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                 <Link href="/admin" aria-label="Admin Dashboard">
-                  <LayoutDashboard className="h-5 w-5 text-primary" /> {/* Use primary color */}
+                  <LayoutDashboard className="h-5 w-5 text-primary" />
                 </Link>
               </Button>
             )}
 
-          {/* User Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User Account" className="h-9 w-9">
@@ -231,7 +236,7 @@ export function SiteHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isLoggedIn ? (
+              {currentUser ? (
                 <>
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -245,8 +250,7 @@ export function SiteHeader() {
                     <Link href="/account/addresses">Addresses</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  {/* Ensure onClick is handled correctly on client-side */}
-                  <DropdownMenuItem onClick={() => alert("Logout clicked (placeholder)")}>Logout</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                 </>
               ) : (
                 <>
@@ -254,7 +258,6 @@ export function SiteHeader() {
                     <Link href="/login">Login</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    {/* Point Register to /login as well */}
                     <Link href="/login?tab=register">Register</Link>
                   </DropdownMenuItem>
                 </>
@@ -262,7 +265,6 @@ export function SiteHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
       </div>
     </header>
   );
