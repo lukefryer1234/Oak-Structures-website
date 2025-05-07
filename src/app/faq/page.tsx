@@ -65,14 +65,14 @@ export default function FAQPage() {
             {/* Added transparency and blur */}
             <div className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm p-6 md:p-8 rounded-lg shadow-md border border-border">
                 <Accordion type="single" collapsible className="w-full">
+                    {/* Lighter border for accordion items */}
                     {faqItems.map((item, index) => (
-                         {/* Lighter border */}
                         <AccordionItem key={index} value={`item-${index + 1}`} className="border-b border-border/50 last:border-b-0">
                             <AccordionTrigger className="text-left text-lg font-medium text-card-foreground hover:text-primary py-4 hover:no-underline [&[data-state=open]>svg]:text-primary">
                                 {item.question}
                             </AccordionTrigger>
-                              {/* Use prose for answer formatting */}
-                             <AccordionContent className="text-base text-muted-foreground leading-relaxed pb-4 pt-1 prose prose-sm max-w-none">
+                            {/* Use prose for answer formatting */}
+                            <AccordionContent className="text-base text-muted-foreground leading-relaxed pb-4 pt-1 prose prose-sm max-w-none">
                                 <p>{item.answer}</p>
                             </AccordionContent>
                         </AccordionItem>

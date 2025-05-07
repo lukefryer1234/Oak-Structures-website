@@ -14,7 +14,7 @@ export default function DeliverySettingsPage() {
   const [settings, setSettings] = useState<DeliverySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } } from "@/hooks/use-toast";
+  const { toast } = useToast();
 
   useEffect(() => {
     async function loadData() {

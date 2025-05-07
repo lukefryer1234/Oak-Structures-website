@@ -2,7 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export', // Added for static export
+  // Removed 'output: export' to support Server Actions and dynamic functionality
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    unoptimized: true, // Required for static export with next/image
+    // Removed unoptimized: true as it's only needed for static export
   },
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

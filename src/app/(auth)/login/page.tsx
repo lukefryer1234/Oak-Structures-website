@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { auth } from '@/lib/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,10 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils'; // Import cn
 
-export default function AuthPage() {
+// Separate component that uses useSearchParams
+function AuthContent() {
   const { currentUser, signUpWithEmail, signInWithEmail, signInWithGoogle, setError, error, loading: authLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // This needs to be in a component wrapped by Suspense
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,8 +48,8 @@ export default function AuthPage() {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    const email = (event.target as HTMLFormElement).email.value;
-    const password = (event.target as HTMLFormElement).password.value;
+    const email = ((event.target as HTMLFormElement).elements.namedItem('email') as HTMLInputElement)?.value || '';
+    const password = ((event.target as HTMLFormElement).elements.namedItem('password') as HTMLInputElement)?.value || '';
 
     try {
       await signInWithEmail(auth, email, password);
@@ -66,10 +67,10 @@ export default function AuthPage() {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    const name = (event.target as HTMLFormElement).name.value; 
-    const email = (event.target as HTMLFormElement).email.value;
-    const password = (event.target as HTMLFormElement).password.value;
-    const confirmPassword = (event.target as HTMLFormElement)['confirm-password'].value;
+    const name = ((event.target as HTMLFormElement).elements.namedItem('name') as HTMLInputElement)?.value || '';
+    const email = ((event.target as HTMLFormElement).elements.namedItem('email') as HTMLInputElement)?.value || '';
+    const password = ((event.target as HTMLFormElement).elements.namedItem('password') as HTMLInputElement)?.value || '';
+    const confirmPassword = ((event.target as HTMLFormElement).elements.namedItem('confirm-password') as HTMLInputElement)?.value || '';
 
     if (password !== confirmPassword) {
       setError("Passwords do not match!");
@@ -236,5 +237,19 @@ export default function AuthPage() {
             </Tabs>
         </Card>
     </div>
+  );
+}
+
+// Main component wrapped with Suspense
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col min-h-screen items-center justify-center bg-transparent p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 }

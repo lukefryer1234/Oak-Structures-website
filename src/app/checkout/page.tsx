@@ -64,7 +64,7 @@ const orderSummary = {
 export default function CheckoutPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
-  const { toast } } from "@/hooks/use-toast";
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof checkoutSchema>>({

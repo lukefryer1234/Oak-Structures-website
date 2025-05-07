@@ -18,7 +18,7 @@ export default function SeoManagementPage() {
   const [seoData, setSeoData] = useState<PageSEO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } } from "@/hooks/use-toast";
+  const { toast } = useToast();
 
   useEffect(() => {
     async function loadData() {

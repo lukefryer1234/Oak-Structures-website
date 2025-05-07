@@ -9,11 +9,11 @@ const PAYMENT_SETTINGS_DOC_ID = 'paymentSettings';
 
 export interface PaymentSettings {
   stripeEnabled: boolean;
-  stripePublishableKey: string;
-  stripeSecretKey: string;
+  stripePublishableKey?: string; // Make optional to match schema
+  stripeSecretKey?: string;     // Make optional to match schema
   paypalEnabled: boolean;
-  paypalClientId: string;
-  paypalClientSecret: string;
+  paypalClientId?: string;     // Make optional to match schema
+  paypalClientSecret?: string; // Make optional to match schema
   paypalSandboxMode: boolean;
 }
 

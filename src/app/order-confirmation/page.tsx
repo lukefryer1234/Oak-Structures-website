@@ -34,8 +34,8 @@ function OrderConfirmationContent() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-5 px-6 sm:px-10 py-8">
+                        {/* Order ID display with adjusted background */}
                         {orderId ? (
-                             {/* Adjusted background */}
                             <div className="bg-background/70 border border-border rounded-md p-4 shadow-sm">
                                 <p className="text-base sm:text-lg text-muted-foreground">
                                     Your Order ID is:
@@ -43,9 +43,9 @@ function OrderConfirmationContent() {
                                 <p className="font-semibold text-primary text-lg sm:text-xl break-all mt-1">{orderId}</p>
                             </div>
                         ) : (
-                             <p className="text-lg text-card-foreground">
+                            <p className="text-lg text-card-foreground">
                                 Your order has been placed successfully.
-                             </p>
+                            </p>
                         )}
                         <p className="text-muted-foreground text-sm sm:text-base">
                             You will receive an email confirmation shortly with your order details and invoice.

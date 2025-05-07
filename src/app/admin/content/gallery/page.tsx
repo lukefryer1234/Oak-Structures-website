@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Trash2, Edit, Upload, GripVertical, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -27,8 +25,6 @@ import {
     updateGalleryOrderAction,
     type GalleryItem 
 } from './actions';
-// Placeholder for drag and drop if implemented:
-// import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 export default function GalleryContentPage() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
@@ -38,7 +34,7 @@ export default function GalleryContentPage() {
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [formState, setFormState] = useState<Partial<GalleryItem>>({ order: 0, altText: '', imageUrl: '', dataAiHint: '' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { toast } } from "@/hooks/use-toast";
+  const { toast } = useToast();
 
   useEffect(() => {
     loadGalleryItems();
@@ -177,112 +173,163 @@ export default function GalleryContentPage() {
 
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row justify-between items-center">
-        <div>
-          <CardTitle>Manage Gallery Content</CardTitle>
-          <CardDescription>Add, edit, remove, and reorder images shown on the gallery page.</CardDescription>
+    <div>
+      <div className="px-4 py-6 space-y-6 bg-white rounded-lg border shadow-sm">
+        <div className="flex flex-row justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-semibold">Manage Gallery Content</h3>
+            <p className="text-sm text-gray-500">Add, edit, remove, and reorder images shown on the gallery page.</p>
+          </div>
+          <Button size="sm" onClick={openAddDialog}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Gallery Item
+          </Button>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                 <Button size="sm" onClick={openAddDialog}>
-                   <PlusCircle className="mr-2 h-4 w-4" /> Add Gallery Item
-                 </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-                <DialogHeader>
-                    <DialogTitle>{editingItem ? 'Edit' : 'Add'} Gallery Item</DialogTitle>
-                 </DialogHeader>
-                 <form onSubmit={handleSaveItem} id="galleryItemForm" className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
-                     <div className="space-y-2">
-                         <Label htmlFor="gallery-image-upload">Upload Image <span className="text-destructive">*</span></Label>
-                         <Input id="gallery-image-upload" type="file" accept="image/*" onChange={handleFileChange} className="pt-2" disabled={isSaving}/>
-                         {formState.imageUrl && (formState.imageUrl.startsWith('blob:') || formState.imageUrl.startsWith('https://picsum.photos')) && (
-                            <div className="mt-2">
-                                <Image src={formState.imageUrl} alt="Preview" width={100} height={100} className="rounded-md object-cover aspect-square border" />
-                            </div>
-                         )}
-                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="gallery-image-url">Or Enter Image URL</Label>
-                        <Input id="gallery-image-url" type="url" placeholder="https://..." value={formState.imageUrl?.startsWith('blob:') ? '' : formState.imageUrl ?? ''} onChange={(e) => { handleFormChange('imageUrl', e.target.value); setSelectedFile(null); }} disabled={!!selectedFile || isSaving} />
-                     </div>
-                      <div className="space-y-2">
-                         <Label htmlFor="gallery-alt-text">Alt Text <span className="text-destructive">*</span></Label>
-                         <Input id="gallery-alt-text" placeholder="Descriptive text for the image" value={formState.altText ?? ''} onChange={(e) => handleFormChange('altText', e.target.value)} required disabled={isSaving}/>
-                      </div>
-                     <div className="space-y-2">
-                       <Label htmlFor="gallery-ai-hint">AI Hint <span className="text-destructive">*</span></Label>
-                       <Input id="gallery-ai-hint" placeholder="Keywords for placeholder (e.g., oak garage)" value={formState.dataAiHint ?? ''} onChange={(e) => handleFormChange('dataAiHint', e.target.value)} required disabled={isSaving}/>
-                     </div>
-                      <div className="space-y-2">
-                         <Label htmlFor="gallery-caption">Caption (Optional)</Label>
-                         <Textarea id="gallery-caption" placeholder="Optional text to display with the image" value={formState.caption ?? ''} onChange={(e) => handleFormChange('caption', e.target.value)} disabled={isSaving}/>
-                      </div>
-                      <div className="space-y-2">
-                         <Label htmlFor="gallery-order">Order</Label>
-                         <Input id="gallery-order" type="number" value={formState.order ?? 0} onChange={(e) => handleFormChange('order', parseInt(e.target.value,10))} required disabled={isSaving}/>
-                      </div>
-                 </form>
-                 <DialogFooter>
-                     <DialogClose asChild><Button type="button" variant="outline" onClick={closeDialog} disabled={isSaving}>Cancel</Button></DialogClose>
-                     <Button type="submit" form="galleryItemForm" disabled={isSaving}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {editingItem ? 'Save Changes' : 'Add Item'}
-                    </Button>
-                 </DialogFooter>
-            </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-         <p className="text-sm text-muted-foreground mb-4">Drag and drop items to reorder them (Drag & Drop functionality requires 'react-beautiful-dnd' or similar and is currently a placeholder).</p>
-         {isLoading && galleryItems.length === 0 ? (
+        
+        <div>
+          <p className="text-sm text-gray-500 mb-4">Drag and drop items to reorder them (Drag & Drop functionality is a placeholder).</p>
+          
+          {isLoading && galleryItems.length === 0 ? (
             <div className="flex justify-center items-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
-         ) : galleryItems.length > 0 ? (
-            // TODO: Implement DragDropContext here if using react-beautiful-dnd
-            // <DragDropContext onDragEnd={onDragEnd}>
-            //   <Droppable droppableId="galleryItems">
-            //     {(provided) => (
-            //       <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                    galleryItems.map((item, index) => (
-                        // <Draggable key={item.id} draggableId={item.id} index={index}>
-                        //   {(providedDraggable) => (
-                        //     <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} >
-                                 <Card key={item.id} className="flex items-center p-4 gap-4 relative group">
-                                     {/* <GripVertical {...providedDraggable.dragHandleProps} className="h-5 w-5 text-muted-foreground flex-shrink-0 cursor-grab" /> */}
-                                     <span className="text-sm font-mono text-muted-foreground w-6 text-center flex-shrink-0">{item.order}</span>
-                                     <Image src={item.imageUrl} alt={item.altText} width={80} height={80} className="rounded-md object-cover aspect-square bg-muted flex-shrink-0" data-ai-hint={item.dataAiHint}/>
-                                     <div className="flex-grow space-y-1 text-sm overflow-hidden">
-                                         <p className="font-medium truncate" title={item.altText}>{item.altText}</p>
-                                         <p className="text-muted-foreground truncate" title={item.caption}>{item.caption || <span className="italic">No caption</span></p>
-                                         <p className="text-xs text-muted-foreground truncate" title={item.imageUrl}>{item.imageUrl}</p>
-                                     </div>
-                                      <div className="flex-shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)} disabled={isSaving}>
-                                             <Edit className="h-4 w-4"/>
-                                             <span className="sr-only">Edit</span>
-                                         </Button>
-                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteItem(item.id)} disabled={isSaving || isLoading}>
-                                             {isLoading && editingItem?.id !== item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4"/>}
-                                             <span className="sr-only">Delete</span>
-                                         </Button>
-                                     </div>
-                                 </Card>
-                        //     </div>
-                        //   )}
-                        // </Draggable>
-                    ))
-            //      {provided.placeholder}
-            //      </div>
-            //    )}
-            // </Droppable>
-            // </DragDropContext>
+          ) : galleryItems.length > 0 ? (
+            <div className="space-y-4">
+              {galleryItems.map((item) => (
+                <div key={item.id} className="flex items-center p-4 gap-4 relative group bg-gray-50 rounded-lg border">
+                  <span className="text-sm font-mono text-gray-500 w-6 text-center flex-shrink-0">{item.order}</span>
+                  <div className="w-20 h-20 relative overflow-hidden bg-gray-200 rounded">
+                    <Image 
+                      src={item.imageUrl} 
+                      alt={item.altText} 
+                      width={80} 
+                      height={80} 
+                      className="object-cover" 
+                    />
+                  </div>
+                  <div className="flex-grow space-y-1 text-sm overflow-hidden">
+                    <p className="font-medium truncate">{item.altText}</p>
+                    <p className="text-gray-500 truncate">
+                      {item.caption ? item.caption : <span className="italic">No caption</span>}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)} disabled={isSaving}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteItem(item.id)} disabled={isSaving || isLoading}>
+                      {isLoading && editingItem?.id !== item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-             <p className="text-muted-foreground text-center py-10">No gallery items added yet.</p>
+            <p className="text-center py-10 text-gray-500">No gallery items added yet.</p>
           )}
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingItem ? 'Edit' : 'Add'} Gallery Item</DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleSaveItem} id="galleryItemForm" className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="gallery-image-upload">Upload Image <span className="text-red-500">*</span></Label>
+              <Input 
+                id="gallery-image-upload" 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileChange} 
+                disabled={isSaving}
+              />
+              {formState.imageUrl && (
+                <div className="mt-2">
+                  <Image 
+                    src={formState.imageUrl} 
+                    alt="Preview" 
+                    width={100} 
+                    height={100}
+                    className="rounded border" 
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="gallery-image-url">Or Enter Image URL</Label>
+              <Input 
+                id="gallery-image-url" 
+                type="url" 
+                placeholder="https://..." 
+                value={formState.imageUrl?.startsWith('blob:') ? '' : formState.imageUrl ?? ''} 
+                onChange={(e) => { 
+                  handleFormChange('imageUrl', e.target.value); 
+                  setSelectedFile(null); 
+                }} 
+                disabled={!!selectedFile || isSaving} 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="gallery-alt-text">Alt Text <span className="text-red-500">*</span></Label>
+              <Input 
+                id="gallery-alt-text" 
+                placeholder="Descriptive text for the image" 
+                value={formState.altText ?? ''} 
+                onChange={(e) => handleFormChange('altText', e.target.value)} 
+                required 
+                disabled={isSaving}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="gallery-ai-hint">AI Hint <span className="text-red-500">*</span></Label>
+              <Input 
+                id="gallery-ai-hint" 
+                placeholder="Keywords for placeholder (e.g., oak garage)" 
+                value={formState.dataAiHint ?? ''} 
+                onChange={(e) => handleFormChange('dataAiHint', e.target.value)} 
+                required 
+                disabled={isSaving}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="gallery-caption">Caption (Optional)</Label>
+              <Textarea 
+                id="gallery-caption" 
+                placeholder="Optional text to display with the image" 
+                value={formState.caption ?? ''} 
+                onChange={(e) => handleFormChange('caption', e.target.value)} 
+                disabled={isSaving}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="gallery-order">Order</Label>
+              <Input 
+                id="gallery-order" 
+                type="number" 
+                value={formState.order ?? 0} 
+                onChange={(e) => handleFormChange('order', parseInt(e.target.value, 10))} 
+                required 
+                disabled={isSaving}
+              />
+            </div>
+          </form>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeDialog} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button type="submit" form="galleryItemForm" disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {editingItem ? 'Save Changes' : 'Add Item'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

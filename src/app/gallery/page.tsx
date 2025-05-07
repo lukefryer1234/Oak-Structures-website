@@ -24,9 +24,9 @@ export default function GalleryPage() {
             Browse images of our completed projects and see the quality of our craftsmanship. Get inspired for your own timber structure.
           </p>
 
+          {/* Grid of gallery items - Added transparency, blur, lighter border for cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {galleryItems.map((item) => (
-               {/* Added transparency, blur, lighter border */}
               <Card key={item.id} className="overflow-hidden group bg-card/80 backdrop-blur-sm border border-border/50">
                 <CardContent className="p-0">
                   <div className="relative aspect-square w-full overflow-hidden">
@@ -38,21 +38,20 @@ export default function GalleryPage() {
                         className="transition-transform duration-300 group-hover:scale-105"
                         data-ai-hint={item.dataAiHint}
                       />
-                      {/* Optional: Overlay for caption on hover */}
+                      {/* Optional: Overlay for caption on hover with adjusted gradient */}
                       {item.caption && (
-                         {/* Adjusted gradient */}
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                            <p className="text-sm text-primary-foreground">{item.caption}</p>
                         </div>
                       )}
                   </div>
-                 </CardContent>
-                 {/* Optional: Caption below image */}
-                 {/* {item.caption && (
+                </CardContent>
+                {/* Optional: Caption below image - currently disabled
+                {item.caption && (
                     <CardFooter className="p-4 text-sm text-muted-foreground">
                         {item.caption}
                     </CardFooter>
-                 )} */}
+                )} */}
               </Card>
             ))}
           </div>

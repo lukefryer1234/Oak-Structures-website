@@ -55,17 +55,21 @@ export default function ConfigurablePricesPage() {
   const [formState, setFormState] = useState<Partial<ConfigurablePrice>>({}); // For Add/Edit form
   const { toast } = useToast(); // Initialize useToast
 
-  const handleFormChange = (field: keyof ConfigurablePrice, value: any) => {
-    setFormState(prev => ({ ...prev, [field]: value }));
-    // TODO: Add logic to generate configKey and configDescription based on selected options
-     if (field !== 'price' && field !== 'category') {
-        // Example: Combine selected options into a description (highly simplified)
-        // In a real app, this would involve iterating over actual option selections
-        const currentCategory = field === 'category' ? value : formState.category;
-        const description = `Config: ${currentCategory ?? ''} - Options...`; // Placeholder description
-        const key = `key-${Date.now()}`; // Placeholder key generation
-         setFormState(prev => ({ ...prev, configDescription: description, configKey: key }));
-     }
+          const handleFormChange = (field: keyof ConfigurablePrice, value: any) => {
+            setFormState(prev => ({ ...prev, [field]: value }));
+            // TODO: Add logic to generate configKey and configDescription based on selected options
+            
+            // Get current category value - using type assertion to tell TypeScript this is valid
+            const currentCategory = field === "category" ? value : formState.category;
+            
+            // Only update config description and key for non-price fields
+            if (field !== 'price') {
+                // Example: Combine selected options into a description (highly simplified)
+                // In a real app, this would involve iterating over actual option selections
+                const description = `Config: ${currentCategory ?? ''} - Options...`; // Placeholder description
+                const key = `key-${Date.now()}`; // Placeholder key generation
+                setFormState(prev => ({ ...prev, configDescription: description, configKey: key }));
+            }
   };
 
   const handleSavePrice = (event: React.FormEvent) => {

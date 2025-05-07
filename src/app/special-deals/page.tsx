@@ -24,21 +24,21 @@ export default function SpecialDealsPage() {
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
             Check out our limited-time offers and pre-configured items available at special prices. These deals won't last long!
           </p>
+          {/* Grid of deals - Added transparency, blur, lighter border for cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {specialDeals.map((deal) => (
-               {/* Added transparency, blur, lighter border */}
               <Card key={deal.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col bg-card/80 backdrop-blur-sm border border-border/50">
-                 <CardHeader className="p-0 relative">
-                   <Badge variant="destructive" className="absolute top-2 right-2 z-10">DEAL</Badge>
-                   <div className="relative h-56 w-full">
-                     <Image
-                       src={`https://picsum.photos/seed/${deal.id}/400/300`} // Placeholder
-                       alt={deal.name}
-                       layout="fill"
-                       objectFit="cover"
-                       data-ai-hint={deal.dataAiHint}
-                     />
-                   </div>
+                <CardHeader className="p-0 relative">
+                  <Badge variant="destructive" className="absolute top-2 right-2 z-10">DEAL</Badge>
+                  <div className="relative h-56 w-full">
+                    <Image
+                      src={`https://picsum.photos/seed/${deal.id}/400/300`} // Placeholder
+                      alt={deal.name}
+                      layout="fill"
+                      objectFit="cover"
+                      data-ai-hint={deal.dataAiHint}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="p-6 flex flex-col justify-between flex-grow">
                   <div>
@@ -46,22 +46,21 @@ export default function SpecialDealsPage() {
                     <CardDescription className="mb-4 flex-grow">{deal.description}</CardDescription>
                   </div>
                   <div className="mt-4">
-                     <div className="flex items-baseline gap-2 mb-4">
-                       <span className="text-2xl font-semibold text-primary">{deal.price}</span>
-                       {deal.originalPrice && (
-                         <span className="text-sm text-muted-foreground line-through">{deal.originalPrice}</span>
-                       )}
-                     </div>
-                     <div className="flex gap-2">
-                        <Button asChild className="flex-1">
-                          {/* Link to the main special deals page as specific pages don't exist */}
-                          <Link href="/special-deals">View Details</Link>
-                        </Button>
-                        <Button variant="secondary" className="flex-1" onClick={() => alert(`Add ${deal.name} to basket (placeholder)`)}>
-                          {/* Placeholder Add to Basket Functionality */}
-                           Add to Basket
-                        </Button>
-                     </div>
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <span className="text-2xl font-semibold text-primary">{deal.price}</span>
+                      {deal.originalPrice && (
+                        <span className="text-sm text-muted-foreground line-through">{deal.originalPrice}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button asChild className="flex-1">
+                        {/* Link to the main special deals page as specific pages don't exist */}
+                        <Link href="/special-deals">View Details</Link>
+                      </Button>
+                      <Button variant="secondary" className="flex-1" onClick={() => alert(`Add ${deal.name} to basket (placeholder)`)}>
+                        Add to Basket
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
