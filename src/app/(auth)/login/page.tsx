@@ -150,11 +150,11 @@ function AuthContent() {
                 <TabsContent value="login">
                     <CardContent className="space-y-4">
                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={handleGoogleAuth} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="https://picsum.photos/seed/google-logo/18/18" alt="Google" width={18} height={18} data-ai-hint="google logo" />}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="/images/google-logo.svg" alt="Google" width={18} height={18} />}
                             Continue with Google
                         </Button>
                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handlePayPalAuth('login')} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="https://picsum.photos/seed/paypal-logo/18/18" alt="PayPal" width={18} height={18} data-ai-hint="paypal logo" />}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="/images/paypal-logo.svg" alt="PayPal" width={18} height={18} />}
                             Continue with PayPal
                         </Button>
                         <div className="relative">
@@ -193,11 +193,11 @@ function AuthContent() {
                 <TabsContent value="register">
                     <CardContent className="space-y-4">
                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={handleGoogleAuth} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="https://picsum.photos/seed/google-logo/18/18" alt="Google" width={18} height={18} data-ai-hint="google logo" />}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="/images/google-logo.svg" alt="Google" width={18} height={18} data-ai-hint="google logo" />}
                             Continue with Google
                         </Button>
                         <Button variant="outline" className="w-full flex items-center gap-2" onClick={() => handlePayPalAuth('register')} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :  <Image src="https://picsum.photos/seed/paypal-logo/18/18" alt="PayPal" width={18} height={18} data-ai-hint="paypal logo" />}
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Image src="/images/paypal-logo.svg" alt="PayPal" width={18} height={18} />}
                             Continue with PayPal
                         </Button>
                         <div className="relative">

@@ -275,7 +275,7 @@ export default function CheckoutPage() {
                                 <FormControl>
                                   <RadioGroupItem value="paypal" />
                                 </FormControl>
-                                 <Image src="https://picsum.photos/seed/paypal-logo/80/25" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
+                                 <Image src="/images/paypal-logo.svg" alt="PayPal" width={80} height={25} data-ai-hint="paypal logo"/>
                                  <FormLabel className="font-normal flex-grow cursor-pointer">
                                   PayPal
                                 </FormLabel>

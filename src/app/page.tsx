@@ -36,13 +36,13 @@ export default function Home() {
                  <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col bg-card border border-border/50 relative aspect-[4/3]">
                    {/* Image fills the card */}
                    <Image
-                     src={`https://picsum.photos/seed/${category.name.replace(/\s+/g, '-')}/400/300`}
-                     alt={category.name}
-                     layout="fill"
-                     objectFit="cover"
-                     data-ai-hint={category.dataAiHint}
-                     className="transition-transform duration-300 group-hover:scale-105"
-                   />
+                             src={category.image}
+                             alt={category.name}
+                             layout="fill"
+                             objectFit="cover"
+                             data-ai-hint={category.dataAiHint}
+                             className="transition-transform duration-300 group-hover:scale-105"
+                           />
                    {/* Overlay for title */}
                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-end p-4">
                      <CardTitle className="text-xl font-semibold text-primary-foreground drop-shadow-md">
@@ -65,12 +65,12 @@ export default function Home() {
                <Card key={deal.name} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col sm:flex-row bg-card/80 backdrop-blur-sm border border-border/50">
                  <div className="relative h-48 sm:h-auto sm:w-1/3 flex-shrink-0 bg-muted">
                      <Image
-                       src={`https://picsum.photos/seed/${deal.name.replace(/\s+/g, '-')}/400/400`}
-                       alt={deal.name}
-                       layout="fill"
-                       objectFit="cover"
-                       data-ai-hint={deal.dataAiHint}
-                     />
+                               src={deal.image}
+                               alt={deal.name}
+                               layout="fill"
+                               objectFit="cover"
+                               data-ai-hint={deal.dataAiHint}
+                             />
                  </div>
                   <CardContent className="p-6 flex flex-col justify-between flex-grow">
                      <div>

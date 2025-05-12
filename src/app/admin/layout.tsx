@@ -23,7 +23,9 @@ import {
     Box,
     Sparkles,
     Ruler,
-    Loader2 // Added Loader2
+    Loader2,
+    UserPlus,
+    MessageSquare
 } from 'lucide-react';
 import {
     Sidebar,
@@ -81,7 +83,14 @@ const adminNavLinks: NavItem[] = [
             { href: "/admin/settings/notifications", label: "Notifications", icon: Mail },
         ]
     },
-    { href: "/admin/users", label: "Users", icon: Users }, 
+    { href: "/admin/users", label: "Users", icon: Users },
+    {
+        href: "/admin/crm", label: "CRM", icon: UserPlus, subItems: [
+            { href: "/admin/crm", label: "Dashboard", icon: LayoutDashboard },
+            { href: "/admin/crm/leads", label: "Lead Management", icon: UserPlus },
+            { href: "/admin/crm/contacts", label: "Contact History", icon: MessageSquare },
+        ]
+    }, 
 ];
 
 

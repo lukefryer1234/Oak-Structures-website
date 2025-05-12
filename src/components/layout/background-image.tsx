@@ -31,24 +31,23 @@ const fetchBackgroundImages = async (): Promise<ProductImage[]> => {
     }
      // Fallback data if nothing stored (should match placeholders in admin page)
     return [
-      { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 },
-      { id: 'img8', type: 'background', target: 'about', url: 'https://picsum.photos/seed/about-bg/1920/1080', altText: 'About Page Background Image', opacity: 5 },
-       // Add other default background images used in the app here initially
-        { id: 'bg-admin', type: 'background', target: 'admin', url: 'https://picsum.photos/seed/admin-bg/1920/1080', altText: 'Admin Area Background', opacity: 5 },
-        { id: 'bg-login', type: 'background', target: 'login', url: 'https://picsum.photos/seed/auth-background/1920/1080', altText: 'Login Page Background', opacity: 10 },
-        { id: 'bg-basket', type: 'background', target: 'basket', url: 'https://picsum.photos/seed/basket-bg/1920/1080', altText: 'Basket Background', opacity: 5 },
-        { id: 'bg-checkout', type: 'background', target: 'checkout', url: 'https://picsum.photos/seed/checkout-bg/1920/1080', altText: 'Checkout Background', opacity: 5 },
-         { id: 'bg-confirmation', type: 'background', target: 'order-confirmation', url: 'https://picsum.photos/seed/confirmation-bg/1920/1080', altText: 'Order Confirmation Background', opacity: 3 },
-         { id: 'bg-contact', type: 'background', target: 'contact', url: 'https://picsum.photos/seed/contact-bg/1920/1080', altText: 'Contact Background', opacity: 5 },
-         { id: 'bg-custom-order', type: 'background', target: 'custom-order', url: 'https://picsum.photos/seed/custom-order-bg/1920/1080', altText: 'Custom Order Background', opacity: 5 },
-         { id: 'bg-delivery', type: 'background', target: 'delivery', url: 'https://picsum.photos/seed/delivery-bg/1920/1080', altText: 'Delivery Background', opacity: 5 },
-         { id: 'bg-faq', type: 'background', target: 'faq', url: 'https://picsum.photos/seed/faq-bg/1920/1080', altText: 'FAQ Background', opacity: 5 },
-         { id: 'bg-gallery', type: 'background', target: 'gallery', url: 'https://picsum.photos/seed/gallery-bg/1920/1080', altText: 'Gallery Background', opacity: 5 },
-         { id: 'bg-privacy', type: 'background', target: 'privacy', url: 'https://picsum.photos/seed/privacy-bg/1920/1080', altText: 'Privacy Background', opacity: 5 },
-         { id: 'bg-terms', type: 'background', target: 'terms', url: 'https://picsum.photos/seed/terms-bg/1920/1080', altText: 'Terms Background', opacity: 5 },
-         { id: 'bg-account', type: 'background', target: 'account', url: 'https://picsum.photos/seed/account-bg/1920/1080', altText: 'Account Background', opacity: 5 },
-         { id: 'bg-products', type: 'background', target: 'products', url: 'https://picsum.photos/seed/products-bg/1920/1080', altText: 'Products Background', opacity: 5 },
-          { id: 'bg-special-deals', type: 'background', target: 'special-deals', url: 'https://picsum.photos/seed/deals-bg/1920/1080', altText: 'Special Deals Background', opacity: 5 },
+      { id: 'img7', type: 'background', target: 'home', url: '/images/backgrounds/home-bg.jpg', altText: 'Homepage Background Image', opacity: 5 },
+      { id: 'img8', type: 'background', target: 'about', url: '/images/backgrounds/about-bg.jpg', altText: 'About Page Background Image', opacity: 5 },
+        { id: 'bg-admin', type: 'background', target: 'admin', url: '/images/backgrounds/admin-bg.jpg', altText: 'Admin Area Background', opacity: 5 },
+        { id: 'bg-login', type: 'background', target: 'login', url: '/images/backgrounds/login-bg.jpg', altText: 'Login Page Background', opacity: 10 },
+        { id: 'bg-basket', type: 'background', target: 'basket', url: '/images/backgrounds/basket-bg.jpg', altText: 'Basket Background', opacity: 5 },
+        { id: 'bg-checkout', type: 'background', target: 'checkout', url: '/images/backgrounds/checkout-bg.jpg', altText: 'Checkout Background', opacity: 5 },
+         { id: 'bg-confirmation', type: 'background', target: 'order-confirmation', url: '/images/backgrounds/confirmation-bg.jpg', altText: 'Order Confirmation Background', opacity: 3 },
+         { id: 'bg-contact', type: 'background', target: 'contact', url: '/images/backgrounds/contact-bg.jpg', altText: 'Contact Background', opacity: 5 },
+         { id: 'bg-custom-order', type: 'background', target: 'custom-order', url: '/images/backgrounds/custom-order-bg.jpg', altText: 'Custom Order Background', opacity: 5 },
+         { id: 'bg-delivery', type: 'background', target: 'delivery', url: '/images/backgrounds/delivery-bg.jpg', altText: 'Delivery Background', opacity: 5 },
+         { id: 'bg-faq', type: 'background', target: 'faq', url: '/images/backgrounds/faq-bg.jpg', altText: 'FAQ Background', opacity: 5 },
+         { id: 'bg-gallery', type: 'background', target: 'gallery', url: '/images/backgrounds/gallery-bg.jpg', altText: 'Gallery Background', opacity: 5 },
+         { id: 'bg-privacy', type: 'background', target: 'privacy', url: '/images/backgrounds/privacy-bg.jpg', altText: 'Privacy Background', opacity: 5 },
+         { id: 'bg-terms', type: 'background', target: 'terms', url: '/images/backgrounds/terms-bg.jpg', altText: 'Terms Background', opacity: 5 },
+         { id: 'bg-account', type: 'background', target: 'account', url: '/images/backgrounds/account-bg.jpg', altText: 'Account Background', opacity: 5 },
+         { id: 'bg-products', type: 'background', target: 'products', url: '/images/backgrounds/products-bg.jpg', altText: 'Products Background', opacity: 5 },
+          { id: 'bg-special-deals', type: 'background', target: 'special-deals', url: '/images/backgrounds/special-deals-bg.jpg', altText: 'Special Deals Background', opacity: 5 },
     ];
 };
 
