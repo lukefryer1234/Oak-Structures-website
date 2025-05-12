@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase'; 
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 interface UserPayload {
   uid: string;
@@ -16,49 +16,61 @@ export async function POST(req: RequestExtended) {
     const { user } = await req.json();
 
     if (!user || !user.uid) {
-      console.error('No user UID provided in request body for /api/createUser');
+      console.error('API:/api/createUser: No user UID provided in request body.');
       return new Response(JSON.stringify({ message: 'User UID is required.' }), { 
         status: 400, 
         headers: { 'Content-Type': 'application/json' } 
       });
     }
 
-    console.log('Received user for Firestore creation/update:', user);
+    console.log(`API:/api/createUser: Processing user: ${user.uid}, Email: ${user.email}, Name: ${user.displayName}`);
 
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
 
-    const userDataToSet: any = { // Use 'any' for flexibility or define a proper FirestoreUser type
-      email: user.email || "", 
-      displayName: user.displayName || "New User", 
-    };
-
     if (userSnap.exists()) {
       // User already exists, update displayName if provided and different
       const existingData = userSnap.data();
+      const updateData: { displayName?: string; email?: string } = {}; // Specify fields to potentially update
+
       if (user.displayName && user.displayName !== existingData.displayName) {
-        userDataToSet.displayName = user.displayName;
+        updateData.displayName = user.displayName;
+        console.log(`API:/api/createUser: Updating displayName for user ${user.uid} to "${user.displayName}"`);
       }
-      // Only update if there are actual changes or to ensure critical fields like email are set
-      // For simplicity, we'll use setDoc with merge: true which handles both create and update.
-      await setDoc(userRef, userDataToSet, { merge: true });
-      console.log(`User document for ${user.uid} updated (or ensured to exist) in Firestore.`);
+      if (user.email && user.email !== existingData.email) {
+        updateData.email = user.email; // Also update email if it changed (e.g. via Firebase Auth linking)
+         console.log(`API:/api/createUser: Updating email for user ${user.uid} to "${user.email}"`);
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await updateDoc(userRef, updateData);
+        console.log(`API:/api/createUser: User document for ${user.uid} updated in Firestore.`);
+      } else {
+        console.log(`API:/api/createUser: User document for ${user.uid} already up-to-date in Firestore.`);
+      }
+      return new Response(JSON.stringify({ message: 'User document ensured/updated successfully in Firestore.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     } else {
-      // User does not exist, create new document with default role and timestamp
-      userDataToSet.role = 'Customer'; // Default role
-      userDataToSet.createdAt = serverTimestamp(); // Firestore server timestamp
-      await setDoc(userRef, userDataToSet);
-      console.log(`Created new user document for ${user.uid} in Firestore.`);
+      // User does not exist, create new document
+      const newUserDocument = {
+        email: user.email || "", // Ensure email is always a string
+        displayName: user.displayName || "New User",
+        role: 'Customer', // Default role for new users
+        createdAt: serverTimestamp(), // Use Firestore server timestamp
+        // Add other default fields for a new user if necessary
+      };
+      await setDoc(userRef, newUserDocument);
+      console.log(`API:/api/createUser: Created new user document for ${user.uid} in Firestore.`);
+      return new Response(JSON.stringify({ message: 'New user document created successfully in Firestore.' }), {
+        status: 201, // 201 Created
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    return new Response(JSON.stringify({ message: 'User document processed successfully in Firestore.' }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
   } catch (e:any) {
-    console.error('Failed to process user document in Firestore (/api/createUser):', e);
+    console.error('API:/api/createUser: Failed to process user document in Firestore:', e);
     let errorMessage = 'Failed to process user document in Firestore.';
     if (e.message) {
         errorMessage += ` Details: ${e.message}`;

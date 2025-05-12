@@ -12,8 +12,7 @@ import {
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
-  updateProfile, // Added for updating display name
-  // OAuthProvider, // For PayPal if implemented
+  updateProfile,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -27,7 +26,6 @@ interface AuthContextType {
   signUpWithEmail: (authInstance: Auth, email: string, pass: string, displayName?: string) => Promise<User | null>;
   signInWithEmail: (authInstance: Auth, email: string, pass: string) => Promise<User | null>;
   signInWithGoogle: () => Promise<User | null>;
-  // signInWithPayPal: () => Promise<User | null>; 
   sendPasswordReset: (authInstance: Auth, email: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateUserProfile: (user: User, profileData: { displayName?: string; photoURL?: string }) => Promise<void>;
@@ -43,32 +41,33 @@ export function useAuth() {
   return context;
 }
 
-// This function calls the API endpoint to ensure user data is in Firestore.
 async function ensureUserDocumentInFirestore(user: User): Promise<void> {
-  if (!user) return;
+  if (!user) {
+    console.warn('ensureUserDocumentInFirestore called with null user.');
+    return;
+  }
   try {
-    const response = await fetch('/api/createUser', { // Ensure this matches your API route
+    console.log(`Attempting to ensure Firestore document for user: ${user.uid}`);
+    const response = await fetch('/api/createUser', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // Send only necessary serializable user data
-      body: JSON.stringify({ 
-        user: { 
-          uid: user.uid, 
-          email: user.email, 
-          displayName: user.displayName 
-        } 
+      body: JSON.stringify({
+        user: {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+        }
       }),
     });
 
+    const responseData = await response.json();
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Failed to create/update user document in Firestore:', errorData.message);
-      // Not throwing here to avoid breaking auth flow, but logging is important.
-      // The API route itself should handle retries or critical errors if necessary.
+      console.error('Failed to create/update user document in Firestore:', responseData.message);
+      // Optionally, you could set a non-critical error state here if needed
     } else {
-      console.log('User document processed successfully in Firestore.');
+      console.log('User document processed successfully in Firestore:', responseData.message);
     }
   } catch (error) {
     console.error('Error calling ensureUserDocumentInFirestore API:', error);
@@ -84,120 +83,148 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("Auth state changed. User:", user ? user.uid : null);
       if (user) {
-        // If user logs in or state changes, ensure their doc is in Firestore.
-        // This helps sync on first login or if the doc was missed.
         await ensureUserDocumentInFirestore(user);
       }
       setCurrentUser(user);
       setLoading(false);
     });
-    return unsubscribe; 
+    return unsubscribe;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signUpWithEmail = async (authInstance: Auth, email: string, pass: string, displayName?: string): Promise<User | null> => {
     setError(null);
+    setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(authInstance, email, pass);
       if (userCredential.user && displayName) {
         await updateProfile(userCredential.user, { displayName });
-      }
-      if (userCredential.user) {
-        // Call the function to create/verify user document in Firestore
+         // Re-fetch the user to get the updated profile
+        const updatedUser = authInstance.currentUser;
+        if (updatedUser) {
+            await ensureUserDocumentInFirestore(updatedUser);
+            setCurrentUser(updatedUser);
+        } else {
+            // Fallback if currentUser is somehow null after updateProfile
+            await ensureUserDocumentInFirestore(userCredential.user);
+            setCurrentUser(userCredential.user);
+        }
+      } else if (userCredential.user) {
         await ensureUserDocumentInFirestore(userCredential.user);
+        setCurrentUser(userCredential.user);
       }
-      setCurrentUser(userCredential.user); // Update context state
+      toast({ title: "Registration Successful", description: "Your account has been created." });
       return userCredential.user;
     } catch (e: any) {
       console.error("Sign up error:", e);
       setError(e.message);
       toast({ variant: "destructive", title: "Sign Up Error", description: e.message });
       return null;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithEmail = async (authInstance: Auth, email: string, pass: string): Promise<User | null> => {
     setError(null);
+    setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(authInstance, email, pass);
-      // Firestore document sync is handled by onAuthStateChanged
+      // ensureUserDocumentInFirestore will be called by onAuthStateChanged
       setCurrentUser(userCredential.user);
+      toast({ title: "Login Successful", description: "Welcome back!" });
       return userCredential.user;
     } catch (e: any) {
       console.error("Sign in error:", e);
       setError(e.message);
       toast({ variant: "destructive", title: "Sign In Error", description: e.message });
       return null;
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   const sendPasswordReset = async (authInstance: Auth, email: string): Promise<void> => {
     setError(null);
+    setLoading(true);
     try {
       await firebaseSendPasswordResetEmail(authInstance, email);
-      // Toast for success is handled in the component calling this
+      // Success toast handled by calling component
     } catch (e: any) {
       console.error("Password reset error:", e);
       setError(e.message);
-      throw e; // Re-throw to be caught by the calling component for specific UI updates
+      throw e; 
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     setError(null);
+    setLoading(true);
     try {
       await firebaseSignOut(auth);
       setCurrentUser(null);
-      router.push('/login'); 
+      router.push('/login');
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
-    } catch (e: any)      {
+    } catch (e: any) {
       console.error("Sign out error:", e);
       setError(e.message);
       toast({ variant: "destructive", title: "Sign Out Error", description: e.message });
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithGoogle = async (): Promise<User | null> => {
     setError(null);
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      // Firestore document sync is handled by onAuthStateChanged
+      // ensureUserDocumentInFirestore will be called by onAuthStateChanged
       setCurrentUser(result.user);
       toast({ title: "Signed In", description: "Successfully signed in with Google." });
       return result.user;
     } catch (e: any) {
       console.error("Google sign in error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Google Sign-In Error", description: e.message });
+      if (e.code === 'auth/popup-closed-by-user') {
+        toast({ variant: "default", title: "Sign-in Cancelled", description: "Google sign-in was cancelled." });
+      } else {
+        setError(e.message);
+        toast({ variant: "destructive", title: "Google Sign-In Error", description: e.message });
+      }
       return null;
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateUserProfile = async (user: User, profileData: { displayName?: string; photoURL?: string }) => {
     setError(null);
+    setLoading(true);
     try {
       await updateProfile(user, profileData);
-      // If display name changed, we should update Firestore too
-      if (profileData.displayName && user.email) { // Ensure user.email is not null
-        await ensureUserDocumentInFirestore({
-            ...user,
-            displayName: profileData.displayName,
-            // photoURL: profileData.photoURL || user.photoURL, // Keep existing or update
-        } as User); // Cast to User to satisfy ensureUserDocumentInFirestore
-      }
-      // Update context state for current user if it's the same user
-      if (currentUser && currentUser.uid === user.uid) {
-          setCurrentUser({...user, ...profileData});
+      // Re-fetch the user to ensure local state is up-to-date with Auth service
+      const updatedUser = auth.currentUser; 
+      if (updatedUser) {
+        await ensureUserDocumentInFirestore(updatedUser);
+         // Update context state for current user if it's the same user
+        if (currentUser && currentUser.uid === updatedUser.uid) {
+          setCurrentUser(updatedUser);
+        }
       }
       toast({ title: "Profile Updated", description: "Your profile has been updated." });
     } catch (e: any) {
       console.error("Profile update error:", e);
       setError(e.message);
       toast({ variant: "destructive", title: "Profile Update Error", description: e.message });
+    } finally {
+      setLoading(false);
     }
   };
-
 
   const value: AuthContextType = {
     currentUser,
