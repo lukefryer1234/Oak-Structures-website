@@ -1,11 +1,11 @@
-'use server';
+"use server";
 
-import { z } from 'zod';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { z } from "zod";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-const SETTINGS_COLLECTION = 'siteSettings';
-const ANALYTICS_SETTINGS_DOC_ID = 'analyticsSettings';
+const SETTINGS_COLLECTION = "siteSettings";
+const ANALYTICS_SETTINGS_DOC_ID = "analyticsSettings";
 
 export interface AnalyticsSettings {
   googleAnalyticsId: string;
@@ -26,7 +26,10 @@ export async function fetchAnalyticsSettingsAction(): Promise<AnalyticsSettings>
       if (parsed.success) {
         return { googleAnalyticsId: parsed.data.googleAnalyticsId || "" };
       } else {
-         console.warn("Fetched analytics settings from Firestore are invalid:", parsed.error.flatten().fieldErrors);
+        console.warn(
+          "Fetched analytics settings from Firestore are invalid:",
+          parsed.error.flatten().fieldErrors,
+        );
       }
     }
     return { googleAnalyticsId: "" }; // Default
@@ -43,13 +46,13 @@ export interface UpdateAnalyticsSettingsState {
 }
 
 export async function updateAnalyticsSettingsAction(
-  settings: AnalyticsSettings
+  settings: AnalyticsSettings,
 ): Promise<UpdateAnalyticsSettingsState> {
   const validatedFields = analyticsSettingsSchema.safeParse(settings);
 
   if (!validatedFields.success) {
     return {
-      message: 'Validation failed.',
+      message: "Validation failed.",
       success: false,
       errors: validatedFields.error.errors,
     };
@@ -58,9 +61,12 @@ export async function updateAnalyticsSettingsAction(
   try {
     const docRef = doc(db, SETTINGS_COLLECTION, ANALYTICS_SETTINGS_DOC_ID);
     await setDoc(docRef, validatedFields.data, { merge: true });
-    return { message: 'Analytics settings updated successfully.', success: true };
+    return {
+      message: "Analytics settings updated successfully.",
+      success: true,
+    };
   } catch (error) {
     console.error("Error updating analytics settings:", error);
-    return { message: 'Failed to update analytics settings.', success: false };
+    return { message: "Failed to update analytics settings.", success: false };
   }
 }

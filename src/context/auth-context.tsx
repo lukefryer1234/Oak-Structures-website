@@ -1,36 +1,47 @@
 "use client";
 
-import type { ReactNode, Dispatch, SetStateAction } from 'react';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { ReactNode, Dispatch, SetStateAction } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import {
-  Auth,
   User,
   onAuthStateChanged,
   signOut as firebaseSignOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile, // Added for updating display name
-  // OAuthProvider, // For PayPal if implemented
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
+} from "firebase/auth";
+import { FirebaseError } from "firebase/app";
+import { auth, db } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import { doc, getDoc } from "firebase/firestore";
+
+import {
+  UserRole,
+  getEffectiveRole,
+  EMAIL_ROLE_OVERRIDES,
+} from "@/lib/permissions";
+
+// Extended User type with role property
+export interface ExtendedUser extends User {
+  isAdmin?: boolean; // Legacy property
+  role?: UserRole | string; // Using our standardized UserRole enum
+  effectiveRole?: UserRole; // The computed role after applying overrides
+}
 
 interface AuthContextType {
-  currentUser: User | null;
+  currentUser: ExtendedUser | null;
   loading: boolean;
   error: string | null;
   setError: Dispatch<SetStateAction<string | null>>;
-  signUpWithEmail: (authInstance: Auth, email: string, pass: string, displayName?: string) => Promise<User | null>;
-  signInWithEmail: (authInstance: Auth, email: string, pass: string) => Promise<User | null>;
   signInWithGoogle: () => Promise<User | null>;
-  // signInWithPayPal: () => Promise<User | null>; 
-  sendPasswordReset: (authInstance: Auth, email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateUserProfile: (user: User, profileData: { displayName?: string; photoURL?: string }) => Promise<void>;
+  updateUserProfile: (
+    user: User,
+    profileData: { displayName?: string; photoURL?: string },
+  ) => Promise<void>;
+  isUserAdmin: () => boolean;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,7 +49,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -47,174 +58,295 @@ export function useAuth() {
 async function ensureUserDocumentInFirestore(user: User): Promise<void> {
   if (!user) return;
   try {
-    const response = await fetch('/api/createUser', { // Ensure this matches your API route
-      method: 'POST',
+    const response = await fetch("/api/createUser", {
+      // Ensure this matches your API route
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       // Send only necessary serializable user data
-      body: JSON.stringify({ 
-        user: { 
-          uid: user.uid, 
-          email: user.email, 
-          displayName: user.displayName 
-        } 
+      body: JSON.stringify({
+        user: {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+        },
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Failed to create/update user document in Firestore:', errorData.message);
+      console.error(
+        "Failed to create/update user document in Firestore:",
+        errorData.message,
+      );
       // Not throwing here to avoid breaking auth flow, but logging is important.
       // The API route itself should handle retries or critical errors if necessary.
     } else {
-      console.log('User document processed successfully in Firestore.');
+      console.log("User document processed successfully in Firestore.");
     }
   } catch (error) {
-    console.error('Error calling ensureUserDocumentInFirestore API:', error);
+    console.error("Error calling ensureUserDocumentInFirestore API:", error);
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
+  // Get the user's role with all overrides applied
+  const getEffectiveUserRole = (user: ExtendedUser | null): UserRole => {
+    if (!user) return UserRole.GUEST;
+
+    // Check for special email overrides first
+    if (user.email && EMAIL_ROLE_OVERRIDES[user.email]) {
+      console.log(
+        `[PERMISSIONS] Role override applied for ${user.email}: ${EMAIL_ROLE_OVERRIDES[user.email]}`,
+      );
+      return EMAIL_ROLE_OVERRIDES[user.email];
+    }
+
+    // Get the effective role from permissions system
+    const role = getEffectiveRole(user.email || null, user.role || null);
+
+    return role;
+  };
+
+  // Update user with role information
+  const updateUserWithRole = async (user: User): Promise<ExtendedUser> => {
+    const extendedUser = user as ExtendedUser;
+
+    try {
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        extendedUser.role = userDoc.data().role || "Customer";
+      } else {
+        extendedUser.role = "Customer";
+      }
+    } catch (error) {
+      console.error("Error getting user role from Firestore:", error);
+      extendedUser.role = "Customer";
+    }
+
+    // Apply role overrides
+    const effectiveRole = getEffectiveUserRole(extendedUser);
+    extendedUser.effectiveRole = effectiveRole;
+
+    // Set admin flag for backward compatibility
+    extendedUser.isAdmin =
+      effectiveRole === UserRole.ADMIN ||
+      effectiveRole === UserRole.SUPER_ADMIN;
+
+    console.log(
+      `User ${user.email} has role ${extendedUser.role}, effective role: ${effectiveRole}`,
+    );
+
+    return extendedUser;
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // If user logs in or state changes, ensure their doc is in Firestore.
-        // This helps sync on first login or if the doc was missed.
         await ensureUserDocumentInFirestore(user);
+
+        // Update user with role information
+        const extendedUser = await updateUserWithRole(user);
+        setCurrentUser(extendedUser);
+      } else {
+        setCurrentUser(null);
       }
-      setCurrentUser(user);
       setLoading(false);
     });
-    return unsubscribe; 
-  }, []);
-
-  const signUpWithEmail = async (authInstance: Auth, email: string, pass: string, displayName?: string): Promise<User | null> => {
-    setError(null);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(authInstance, email, pass);
-      if (userCredential.user && displayName) {
-        await updateProfile(userCredential.user, { displayName });
-      }
-      if (userCredential.user) {
-        // Call the function to create/verify user document in Firestore
-        await ensureUserDocumentInFirestore(userCredential.user);
-      }
-      setCurrentUser(userCredential.user); // Update context state
-      return userCredential.user;
-    } catch (e: any) {
-      console.error("Sign up error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Sign Up Error", description: e.message });
-      return null;
-    }
-  };
-
-  const signInWithEmail = async (authInstance: Auth, email: string, pass: string): Promise<User | null> => {
-    setError(null);
-    try {
-      const userCredential = await signInWithEmailAndPassword(authInstance, email, pass);
-      // Firestore document sync is handled by onAuthStateChanged
-      setCurrentUser(userCredential.user);
-      return userCredential.user;
-    } catch (e: any) {
-      console.error("Sign in error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Sign In Error", description: e.message });
-      return null;
-    }
-  };
-  
-  const sendPasswordReset = async (authInstance: Auth, email: string): Promise<void> => {
-    setError(null);
-    try {
-      await firebaseSendPasswordResetEmail(authInstance, email);
-      // Toast for success is handled in the component calling this
-    } catch (e: any) {
-      console.error("Password reset error:", e);
-      setError(e.message);
-      throw e; // Re-throw to be caught by the calling component for specific UI updates
-    }
-  };
+    return unsubscribe;
+  }, [updateUserWithRole, ensureUserDocumentInFirestore]); // Added missing dependencies
 
   const signOut = async () => {
     setError(null);
     try {
       await firebaseSignOut(auth);
       setCurrentUser(null);
-      router.push('/login'); 
-      toast({ title: "Signed Out", description: "You have been successfully signed out." });
-    } catch (e: any)      {
+      router.push("/login");
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (e: FirebaseError | unknown) {
+      const errorMessage = e instanceof FirebaseError ? e.message : 'An unknown error occurred';
       console.error("Sign out error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Sign Out Error", description: e.message });
+      setError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Sign Out Error",
+        description: errorMessage,
+      });
     }
   };
 
   const signInWithGoogle = async (): Promise<User | null> => {
     setError(null);
+
+    // Configure the Google provider with better options
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: "select_account", // Forces account selection even when only one account is available
+      // You can add additional parameters as needed
+    });
+
     try {
       const result = await signInWithPopup(auth, provider);
-      // Firestore document sync is handled by onAuthStateChanged
-      setCurrentUser(result.user);
-      toast({ title: "Signed In", description: "Successfully signed in with Google." });
+
+      // Update user with role information
+      const extendedUser = await updateUserWithRole(result.user);
+      setCurrentUser(extendedUser);
+
+      toast({
+        title: "Signed In",
+        description: "Successfully signed in with Google.",
+      });
       return result.user;
-    } catch (e: any) {
+    } catch (e: FirebaseError | unknown) {
       console.error("Google sign in error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Google Sign-In Error", description: e.message });
+      
+      if (e instanceof FirebaseError) {
+        console.error("Error code:", e.code);
+        
+        // Specific error handling for API key issues
+        if (
+          e.code === "auth/invalid-api-key" ||
+          e.code === "auth/key-not-valid"
+        ) {
+          const errorMsg =
+            "There's an issue with the site configuration. Please contact support.";
+          setError(errorMsg);
+          toast({
+            variant: "destructive",
+            title: "Configuration Error",
+            description: errorMsg,
+          });
+        } else if (e.code === "auth/popup-blocked") {
+          const errorMsg =
+            "Please allow popups for this site to use Google sign-in.";
+          setError(errorMsg);
+          toast({
+            variant: "destructive",
+            title: "Popup Blocked",
+            description: errorMsg,
+          });
+        } else if (e.code === "auth/cancelled-popup-request") {
+          // User closed the popup, don't show an error
+          console.log("User closed the login popup");
+          return null;
+        } else {
+          // Handle all other errors
+          setError(e.message);
+          toast({
+            variant: "destructive",
+            title: "Google Sign-In Error",
+            description: e.message,
+          });
+        }
+      } else {
+        // Handle non-Firebase errors
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred';
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Google Sign-In Error",
+          description: errorMessage,
+        });
+      }
       return null;
     }
   };
 
-  const updateUserProfile = async (user: User, profileData: { displayName?: string; photoURL?: string }) => {
+  const updateUserProfile = async (
+    user: User,
+    profileData: { displayName?: string; photoURL?: string },
+  ) => {
     setError(null);
     try {
       await updateProfile(user, profileData);
       // If display name changed, we should update Firestore too
-      if (profileData.displayName && user.email) { // Ensure user.email is not null
+      if (profileData.displayName && user.email) {
+        // Ensure user.email is not null
         await ensureUserDocumentInFirestore({
-            ...user,
-            displayName: profileData.displayName,
-            // photoURL: profileData.photoURL || user.photoURL, // Keep existing or update
+          ...user,
+          displayName: profileData.displayName,
+          // photoURL: profileData.photoURL || user.photoURL, // Keep existing or update
         } as User); // Cast to User to satisfy ensureUserDocumentInFirestore
       }
-      // Update context state for current user if it's the same user
+
+      // Update current user and apply role information
       if (currentUser && currentUser.uid === user.uid) {
-          setCurrentUser({...user, ...profileData});
+        const updatedUser = { ...user, ...profileData } as ExtendedUser;
+        const extendedUser = await updateUserWithRole(updatedUser);
+        setCurrentUser(extendedUser);
       }
-      toast({ title: "Profile Updated", description: "Your profile has been updated." });
-    } catch (e: any) {
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated.",
+      });
+    } catch (e: FirebaseError | unknown) {
+      const errorMessage = e instanceof FirebaseError ? e.message : e instanceof Error ? e.message : 'An unknown error occurred';
       console.error("Profile update error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Profile Update Error", description: e.message });
+      setError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Profile Update Error",
+        description: errorMessage,
+      });
     }
   };
 
+  // Function to check if current user is an admin
+  const isUserAdmin = () => {
+    if (!currentUser) return false;
+
+    // Use the effectiveRole that's already been computed
+    if (currentUser.effectiveRole) {
+      return (
+        currentUser.effectiveRole === UserRole.ADMIN ||
+        currentUser.effectiveRole === UserRole.SUPER_ADMIN
+      );
+    }
+
+    // Or compute it again if needed
+    const effectiveRole = getEffectiveUserRole(currentUser);
+    return (
+      effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN
+    );
+  };
+
+  // Function to manually refresh user data from Firestore
+  const refreshUserData = async () => {
+    if (!currentUser) return;
+
+    try {
+      const updatedUser = await updateUserWithRole(currentUser);
+      setCurrentUser(updatedUser);
+      console.log("User data refreshed from Firestore");
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
+    }
+  };
 
   const value: AuthContextType = {
     currentUser,
     loading,
     error,
     setError,
-    signUpWithEmail,
-    signInWithEmail,
     signInWithGoogle,
-    sendPasswordReset,
     signOut,
     updateUserProfile,
+    isUserAdmin,
+    refreshUserData,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,41 +1,18 @@
-'use server';
+"use server";
 
-import { z } from 'zod';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { z } from "zod";
 
-const SETTINGS_COLLECTION = 'siteSettings';
-const FINANCIAL_SETTINGS_DOC_ID = 'financialSettings';
-
+// Define the interfaces that match our API responses
 export interface FinancialSettings {
   currencySymbol: string;
   vatRate: number;
 }
 
-const financialSettingsSchema = z.object({
-  currencySymbol: z.string().min(1, "Currency symbol is required").max(5),
-  vatRate: z.number().min(0, "VAT rate cannot be negative").max(100, "VAT rate seems too high"),
-});
-
-export async function fetchFinancialSettingsAction(): Promise<FinancialSettings> {
-  try {
-    const docRef = doc(db, SETTINGS_COLLECTION, FINANCIAL_SETTINGS_DOC_ID);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      const parsed = financialSettingsSchema.safeParse(data);
-      if (parsed.success) {
-        return parsed.data;
-      } else {
-        console.warn("Fetched financial settings from Firestore are invalid:", parsed.error.flatten().fieldErrors);
-      }
-    }
-    return { currencySymbol: "£", vatRate: 20 }; // Default
-  } catch (error) {
-    console.error("Error fetching financial settings:", error);
-    return { currencySymbol: "£", vatRate: 20 }; // Default on error
-  }
+export interface ApiResponse<T> {
+  data?: T;
+  success: boolean;
+  message: string;
+  errors?: z.ZodIssue[];
 }
 
 export interface UpdateFinancialSettingsState {
@@ -44,25 +21,59 @@ export interface UpdateFinancialSettingsState {
   errors?: z.ZodIssue[];
 }
 
-export async function updateFinancialSettingsAction(
-  settings: FinancialSettings
-): Promise<UpdateFinancialSettingsState> {
-  const validatedFields = financialSettingsSchema.safeParse(settings);
-
-  if (!validatedFields.success) {
-    return {
-      message: 'Validation failed.',
-      success: false,
-      errors: validatedFields.error.errors,
-    };
-  }
-
+// Fetch financial settings from our API
+export async function fetchFinancialSettingsAction(): Promise<FinancialSettings> {
   try {
-    const docRef = doc(db, SETTINGS_COLLECTION, FINANCIAL_SETTINGS_DOC_ID);
-    await setDoc(docRef, validatedFields.data, { merge: true });
-    return { message: 'Financial settings updated successfully.', success: true };
+    // Use the new API endpoint instead of direct Firestore access
+    const response = await fetch('/api/settings/financial', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const result = await response.json() as ApiResponse<FinancialSettings>;
+
+    if (result.success && result.data) {
+      return result.data;
+    } else {
+      console.warn("Failed to fetch financial settings:", result.message);
+      // Return default settings if API fails
+      return { currencySymbol: "£", vatRate: 20 };
+    }
+  } catch (error) {
+    console.error("Error fetching financial settings:", error);
+    // Default on error
+    return { currencySymbol: "£", vatRate: 20 };
+  }
+}
+
+// Update financial settings through our API
+export async function updateFinancialSettingsAction(
+  settings: FinancialSettings,
+): Promise<UpdateFinancialSettingsState> {
+  try {
+    // Use the new API endpoint instead of direct Firestore access
+    const response = await fetch('/api/settings/financial', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(settings),
+    });
+
+    const result = await response.json() as ApiResponse<FinancialSettings>;
+
+    return {
+      message: result.message || "Request completed",
+      success: result.success,
+      errors: result.errors,
+    };
   } catch (error) {
     console.error("Error updating financial settings:", error);
-    return { message: 'Failed to update financial settings.', success: false };
+    return { 
+      message: "Failed to update financial settings.", 
+      success: false 
+    };
   }
 }

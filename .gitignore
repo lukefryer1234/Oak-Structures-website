@@ -51,3 +51,5 @@ pnpm-debug.log*
 # Patch-package
 /patches
 .firebase/
+# Firebase emulator data
+emulator-data/

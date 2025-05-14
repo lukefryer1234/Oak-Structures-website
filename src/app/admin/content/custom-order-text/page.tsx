@@ -1,16 +1,25 @@
-"use client"; 
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from 'lucide-react';
-import { fetchCustomOrderIntroTextAction, updateCustomOrderIntroTextAction } from './actions';
+import { Loader2 } from "lucide-react";
+import {
+  fetchCustomOrderIntroTextAction,
+  updateCustomOrderIntroTextAction,
+} from "./actions";
 
 export default function CustomOrderTextPage() {
-  const [introText, setIntroText] = useState('');
+  const [introText, setIntroText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -39,7 +48,11 @@ export default function CustomOrderTextPage() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: result.message + (result.errors ? ` Details: ${result.errors.map(e => e.message).join(', ')}` : ''),
+        description:
+          result.message +
+          (result.errors
+            ? ` Details: ${result.errors.map((e) => e.message).join(", ")}`
+            : ""),
       });
     }
   };
@@ -49,7 +62,8 @@ export default function CustomOrderTextPage() {
       <CardHeader>
         <CardTitle>Custom Order Page Text</CardTitle>
         <CardDescription>
-          Edit the introductory text and instructions displayed at the top of the Custom Order Inquiry page.
+          Edit the introductory text and instructions displayed at the top of
+          the Custom Order Inquiry page.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -69,12 +83,17 @@ export default function CustomOrderTextPage() {
                 placeholder="Enter the text to display on the custom order form..."
                 disabled={isSaving}
               />
-               <p className="text-xs text-muted-foreground">This text appears above the custom order form. You can use basic formatting like paragraphs.</p>
+              <p className="text-xs text-muted-foreground">
+                This text appears above the custom order form. You can use basic
+                formatting like paragraphs.
+              </p>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleSave} disabled={isSaving || isLoading}>
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {isSaving ? 'Saving...' : 'Save Changes'}
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>

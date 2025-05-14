@@ -1,14 +1,17 @@
-'use server';
+"use server";
 
-import { z } from 'zod';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { z } from "zod";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-const SETTINGS_COLLECTION = 'siteSettings';
-const CUSTOM_ORDER_TEXT_DOC_ID = 'customOrderIntroText';
+const SETTINGS_COLLECTION = "siteSettings";
+const CUSTOM_ORDER_TEXT_DOC_ID = "customOrderIntroText";
 
 const customOrderTextSchema = z.object({
-  introText: z.string().max(2000, "Introductory text is too long (max 2000 characters).").optional(),
+  introText: z
+    .string()
+    .max(2000, "Introductory text is too long (max 2000 characters).")
+    .optional(),
 });
 
 export async function fetchCustomOrderIntroTextAction(): Promise<string> {
@@ -35,13 +38,13 @@ export interface UpdateCustomOrderTextState {
 }
 
 export async function updateCustomOrderIntroTextAction(
-  text: string
+  text: string,
 ): Promise<UpdateCustomOrderTextState> {
   const validatedFields = customOrderTextSchema.safeParse({ introText: text });
 
   if (!validatedFields.success) {
     return {
-      message: 'Validation failed.',
+      message: "Validation failed.",
       success: false,
       errors: validatedFields.error.errors,
     };
@@ -49,10 +52,17 @@ export async function updateCustomOrderIntroTextAction(
 
   try {
     const docRef = doc(db, SETTINGS_COLLECTION, CUSTOM_ORDER_TEXT_DOC_ID);
-    await setDoc(docRef, { introText: validatedFields.data.introText || "" }, { merge: true });
-    return { message: 'Custom order introductory text updated successfully.', success: true };
+    await setDoc(
+      docRef,
+      { introText: validatedFields.data.introText || "" },
+      { merge: true },
+    );
+    return {
+      message: "Custom order introductory text updated successfully.",
+      success: true,
+    };
   } catch (error) {
     console.error("Error updating custom order intro text:", error);
-    return { message: 'Failed to update introductory text.', success: false };
+    return { message: "Failed to update introductory text.", success: false };
   }
 }

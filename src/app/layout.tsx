@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { Inter } from "next/font/google"; // Changed from Geist_Sans, Geist_Mono
 import "./globals.css";
@@ -8,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteProvider } from "@/components/layout/site-provider";
 import { BackgroundImage } from "@/components/layout/background-image";
 import { AuthProvider } from "@/context/auth-context"; // Import AuthProvider
+import { ReactQueryProvider } from "@/lib/react-query"; // Import ReactQueryProvider
 
 const interSans = Inter({
   subsets: ["latin"],
@@ -34,18 +34,21 @@ export default function RootLayout({
       <body
         className={`${interSans.variable} ${interMono.variable} font-sans antialiased`}
       >
-        <SiteProvider>
-          <AuthProvider> {/* Wrap with AuthProvider */}
-            <BackgroundImage>
-              <div className="relative flex min-h-screen flex-col">
-                <SiteHeader />
-                <main className="flex-1">{children}</main>
-                <SiteFooter />
-              </div>
-            </BackgroundImage>
-          </AuthProvider>
-          <Toaster />
-        </SiteProvider>
+        <ReactQueryProvider>
+          <SiteProvider>
+            <AuthProvider>
+              {/* Wrap with AuthProvider */}
+              <BackgroundImage>
+                <div className="relative flex min-h-screen flex-col">
+                  <SiteHeader />
+                  <main className="flex-1">{children}</main>
+                  <SiteFooter />
+                </div>
+              </BackgroundImage>
+            </AuthProvider>
+            <Toaster />
+          </SiteProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

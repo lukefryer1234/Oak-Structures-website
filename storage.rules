@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+        (request.auth.token.email == "luke@mcconversions.uk" || 
+         request.auth.token.email == "admin@timberline.com");
+    }
+    
+    // Default rule: deny all access unless a specific rule allows it
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // Public images that everyone can read
+    match /images/{imageId} {
+      allow read: if true;  // Public read access
+      allow write: if isAdmin();  // Only admins can upload/modify public images
+    }
+    
+    // Product images
+    match /products/{category}/{productId}/{imageId} {
+      allow read: if true;  // Public read access
+      allow write: if isAdmin();  // Only admins can upload/modify product images
+    }
+    
+    // User profile images - users can upload their own, admins can upload any
+    match /users/{userId}/profile.jpg {
+      allow read: if true;  // Public read
+      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Private files for orders
+    match /orders/{orderId}/{fileId} {
+      // Let signed-in users access their own order files
+      // Allow file sizes up to 15MB
+      allow read: if isSignedIn() && (
+                resource.metadata.userId == request.auth.uid || isAdmin()
+              );
+      allow write: if isAdmin() && request.resource.size < 15 * 1024 * 1024;
+    }
+    
+    // Admin-only uploads for documents
+    match /admin/{fileId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
+

@@ -1,4 +1,3 @@
-
 "use client"; // Needed for state management and Dropdown
 
 import Link from "next/link";
@@ -41,10 +40,18 @@ import { useToast } from "@/hooks/use-toast"; // For potential logout messages
 
 const mainNavLinks = [
   { href: "/products/garages/configure", label: "Garages", icon: Wrench },
-  { href: "/products/gazebos/configure", label: "Gazebos", icon: TreeDeciduous },
+  {
+    href: "/products/gazebos/configure",
+    label: "Gazebos",
+    icon: TreeDeciduous,
+  },
   { href: "/products/porches/configure", label: "Porches", icon: DoorOpen },
   { href: "/products/oak-beams/configure", label: "Oak Beams", icon: Layers },
-  { href: "/products/oak-flooring/configure", label: "Oak Flooring", icon: Grid },
+  {
+    href: "/products/oak-flooring/configure",
+    label: "Oak Flooring",
+    icon: Grid,
+  },
   { href: "/special-deals", label: "Special Deals", icon: Sparkles },
 ];
 
@@ -58,12 +65,12 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser, signOut, loading } = useAuth(); // Use auth context
+  const { currentUser, signOut, loading, isUserAdmin } = useAuth(); // Use auth context
   const { toast } = useToast();
 
   // Placeholder for basket item count and total price
   const basketItemCount = 3;
-  const basketTotalPrice = 17575.00;
+  const basketTotalPrice = 17575.0;
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -72,13 +79,20 @@ export function SiteHeader() {
       await signOut();
       // Success toast is handled in AuthContext
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Logout Error", description: error.message });
+      toast({
+        variant: "destructive",
+        title: "Logout Error",
+        description: error.message,
+      });
     }
   };
 
   const formatPrice = (price: number) => {
-      return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
-  }
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+    }).format(price);
+  };
 
   // Show loading state or default icons if auth is still loading
   // The check `typeof window !== 'undefined'` was removed as it can cause hydration mismatches.
@@ -95,148 +109,172 @@ export function SiteHeader() {
     );
   }
 
-  // TODO: Check if user has admin role for displaying admin link
-  const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
-
+  // Use the isUserAdmin method from auth context
+  const isAdmin = currentUser ? isUserAdmin() : false;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         {/* Left Section: Hamburger, Home Icon, Basket Total */}
         <div className="flex items-center gap-2">
-           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 md:hidden h-9 w-9"
-                  aria-label="Toggle navigation menu"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
-                 <nav className="flex flex-col h-full">
-                     <div className="p-4 border-b">
-                         <h2 className="text-lg font-semibold">Menu</h2>
-                     </div>
-                     <div className="flex-1 overflow-y-auto py-4 px-4">
-                          <Link
-                             href="/"
-                             className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
-                             onClick={closeMobileMenu}
-                          >
-                             <Home className="h-5 w-5" />
-                             Home
-                          </Link>
-                          <Separator className="my-2"/>
-                           <p className="px-2.5 text-sm font-medium text-muted-foreground mb-1">Products</p>
-                           {mainNavLinks.map((link) => (
-                             <Link
-                               key={link.href}
-                               href={link.href}
-                               className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
-                               onClick={closeMobileMenu}
-                             >
-                                <link.icon className="h-5 w-5" />
-                               {link.label}
-                             </Link>
-                           ))}
-                           <Separator className="my-2"/>
-                           {otherNavLinks.map((link) => (
-                              <Link
-                                key={link.href}
-                                href={link.href}
-                                className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
-                                onClick={closeMobileMenu}
-                              >
-                                <link.icon className="h-5 w-5" />
-                                {link.label}
-                              </Link>
-                           ))}
-                     </div>
-                  </nav>
-              </SheetContent>
-           </Sheet>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 md:hidden h-9 w-9"
+                aria-label="Toggle navigation menu"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
+              <nav className="flex flex-col h-full">
+                <div className="p-4 border-b">
+                  <h2 className="text-lg font-semibold">Menu</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto py-4 px-4">
+                  <Link
+                    href="/"
+                    className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
+                    onClick={closeMobileMenu}
+                  >
+                    <Home className="h-5 w-5" />
+                    Home
+                  </Link>
+                  <Separator className="my-2" />
+                  <p className="px-2.5 text-sm font-medium text-muted-foreground mb-1">
+                    Products
+                  </p>
+                  {mainNavLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
+                      onClick={closeMobileMenu}
+                    >
+                      <link.icon className="h-5 w-5" />
+                      {link.label}
+                    </Link>
+                  ))}
+                  <Separator className="my-2" />
+                  {otherNavLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
+                      onClick={closeMobileMenu}
+                    >
+                      <link.icon className="h-5 w-5" />
+                      {link.label}
+                    </Link>
+                  ))}
 
-           <DropdownMenu>
+                  {/* Admin Link for all users in mobile menu */}
+                  <Separator className="my-2" />
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-4 px-2.5 py-2 text-primary hover:text-foreground rounded-md"
+                    onClick={closeMobileMenu}
+                  >
+                    <LayoutDashboard className="h-5 w-5" />
+                    Admin Dashboard
+                  </Link>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-               <Button
-                 variant="ghost"
-                 size="icon"
-                 className="h-9 w-9 hidden md:inline-flex"
-                 aria-label="Navigation Menu"
-               >
-                 <Menu className="h-5 w-5 text-muted-foreground" />
-                 <span className="sr-only">Navigation Menu</span>
-               </Button>
-             </DropdownMenuTrigger>
-             <DropdownMenuContent align="start" className="w-56">
-               <DropdownMenuItem asChild>
-                   <Link href="/" className="flex items-center gap-2">
-                     <Home className="h-4 w-4" />
-                     Home
-                   </Link>
-                 </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                 <DropdownMenuLabel>Products</DropdownMenuLabel>
-                 {mainNavLinks.map((link) => (
-                 <DropdownMenuItem key={link.href} asChild>
-                   <Link href={link.href} className="flex items-center gap-2">
-                     <link.icon className="h-4 w-4" />
-                     {link.label}
-                   </Link>
-                 </DropdownMenuItem>
-               ))}
-               <DropdownMenuSeparator />
-                 {otherNavLinks.map((link) => (
-                   <DropdownMenuItem key={link.href} asChild>
-                     <Link href={link.href} className="flex items-center gap-2">
-                       <link.icon className="h-4 w-4" />
-                       {link.label}
-                     </Link>
-                   </DropdownMenuItem>
-                 ))}
-             </DropdownMenuContent>
-           </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 hidden md:inline-flex"
+                aria-label="Navigation Menu"
+              >
+                <Menu className="h-5 w-5 text-muted-foreground" />
+                <span className="sr-only">Navigation Menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem asChild>
+                <Link href="/" className="flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  Home
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Products</DropdownMenuLabel>
+              {mainNavLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild>
+                  <Link href={link.href} className="flex items-center gap-2">
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              {otherNavLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild>
+                  <Link href={link.href} className="flex items-center gap-2">
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+          <Button variant="ghost" size="icon" asChild className="h-9 w-9">
             <Link href="/" aria-label="Homepage">
               <Home className="h-5 w-5" />
             </Link>
           </Button>
 
-            {basketItemCount > 0 && (
-                <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
-                    {formatPrice(basketTotalPrice)}
-                </div>
-             )}
+          {basketItemCount > 0 && (
+            <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
+              {formatPrice(basketTotalPrice)}
+            </div>
+          )}
         </div>
 
         {/* Right Section: Icons */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="relative h-9 w-9"
+          >
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
               {basketItemCount > 0 && (
-                <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 min-w-4 justify-center rounded-full p-0.5 text-[10px] leading-none">
-                    {basketItemCount}
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-4 w-4 min-w-4 justify-center rounded-full p-0.5 text-[10px] leading-none"
+                >
+                  {basketItemCount}
                 </Badge>
               )}
             </Link>
           </Button>
 
-           {currentUser && isAdmin && (
-              <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-                <Link href="/admin" aria-label="Admin Dashboard">
-                  <LayoutDashboard className="h-5 w-5 text-primary" />
-                </Link>
-              </Button>
-            )}
+          {/* Admin dashboard icon for all users */}
+          <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+            <Link href="/admin" aria-label="Admin Dashboard">
+              <LayoutDashboard className="h-5 w-5 text-primary" />
+            </Link>
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="User Account" className="h-9 w-9">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="User Account"
+                className="h-9 w-9"
+              >
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -255,7 +293,9 @@ export function SiteHeader() {
                     <Link href="/account/addresses">Addresses</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
                 </>
               ) : (
                 <>
@@ -267,6 +307,17 @@ export function SiteHeader() {
                   </DropdownMenuItem>
                 </>
               )}
+              {/* Admin Dashboard link available to all users */}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 text-primary"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Admin Dashboard
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -1,0 +1,87 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Firebase Emulators",
+      "type": "shell",
+      "command": "npx firebase emulators:start",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting emulators",
+          "endsPattern": "All emulators ready"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start Firebase Emulators with Data",
+      "type": "shell",
+      "command": "npx firebase emulators:start --import=emulator-data",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting emulators",
+          "endsPattern": "All emulators ready"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Stop Firebase Emulators",
+      "type": "shell",
+      "command": "pkill -f \"firebase emulators\" || true",
+      "presentation": {
+        "reveal": "silent"
+      },
+      "windows": {
+        "command": "taskkill /f /im node.exe /fi \"WINDOWTITLE eq *firebase emulators*\" || exit 0"
+      }
+    },
+    {
+      "label": "Seed Emulators",
+      "type": "shell",
+      "command": "node scripts/seedEmulators.js",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Seed and Export Emulators",
+      "type": "shell",
+      "command": "node scripts/seedEmulators.js --export",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Open Emulator UI",
+      "type": "shell",
+      "command": "open http://localhost:4000",
+      "windows": {
+        "command": "start http://localhost:4000"
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
+    }
+  ]
+}
+

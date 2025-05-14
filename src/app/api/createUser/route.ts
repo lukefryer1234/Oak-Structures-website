@@ -1,5 +1,5 @@
-import { db } from '@/lib/firebase'; 
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { adminDb, adminAuth } from "@/lib/firebase-admin";
+import { UserRole, EMAIL_ROLE_OVERRIDES } from "@/lib/permissions";
 
 interface UserPayload {
   uid: string;
@@ -7,65 +7,92 @@ interface UserPayload {
   displayName?: string | null;
 }
 
-interface RequestExtended extends Request {
-    json: () => Promise<{ user: UserPayload }>;
-}
-
-export async function POST(req: RequestExtended) {
+export async function POST(req: Request) {
   try {
-    const { user } = await req.json();
+    const { user } = (await req.json()) as { user: UserPayload };
 
     if (!user || !user.uid) {
-      console.error('No user UID provided in request body for /api/createUser');
-      return new Response(JSON.stringify({ message: 'User UID is required.' }), { 
-        status: 400, 
-        headers: { 'Content-Type': 'application/json' } 
-      });
+      console.error("No user UID provided in request body for /api/createUser");
+      return Response.json(
+        { message: "User UID is required." },
+        { status: 400 },
+      );
     }
 
-    console.log('Received user for Firestore creation/update:', user);
+    console.log("Received user for Firestore creation/update:", user);
 
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
+    try {
+      // Verify the user exists in Firebase Auth
+      const authUser = await adminAuth.getUser(user.uid);
 
-    const userDataToSet: any = { // Use 'any' for flexibility or define a proper FirestoreUser type
-      email: user.email || "", 
-      displayName: user.displayName || "New User", 
-    };
+      const userRef = adminDb.collection("users").doc(user.uid);
+      const userSnap = await userRef.get();
 
-    if (userSnap.exists()) {
-      // User already exists, update displayName if provided and different
-      const existingData = userSnap.data();
-      if (user.displayName && user.displayName !== existingData.displayName) {
-        userDataToSet.displayName = user.displayName;
+      // Check if the user has a special role override based on email
+      const userEmail = authUser.email || user.email || "";
+      let userRole = "Customer";
+
+      // Apply email overrides if email matches
+      if (userEmail && EMAIL_ROLE_OVERRIDES[userEmail]) {
+        userRole = EMAIL_ROLE_OVERRIDES[userEmail];
+        console.log(`Applied role override for ${userEmail}: ${userRole}`);
       }
-      // Only update if there are actual changes or to ensure critical fields like email are set
-      // For simplicity, we'll use setDoc with merge: true which handles both create and update.
-      await setDoc(userRef, userDataToSet, { merge: true });
-      console.log(`User document for ${user.uid} updated (or ensured to exist) in Firestore.`);
-    } else {
-      // User does not exist, create new document with default role and timestamp
-      userDataToSet.role = 'Customer'; // Default role
-      userDataToSet.createdAt = serverTimestamp(); // Firestore server timestamp
-      await setDoc(userRef, userDataToSet);
-      console.log(`Created new user document for ${user.uid} in Firestore.`);
-    }
 
-    return new Response(JSON.stringify({ message: 'User document processed successfully in Firestore.' }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (e:any) {
-    console.error('Failed to process user document in Firestore (/api/createUser):', e);
-    let errorMessage = 'Failed to process user document in Firestore.';
-    if (e.message) {
-        errorMessage += ` Details: ${e.message}`;
+      const userDataToSet = {
+        email: authUser.email || user.email || "",
+        displayName: authUser.displayName || user.displayName || "New User",
+        lastLogin: new Date().toISOString(),
+        role: userSnap.exists ? userSnap.data()?.role || userRole : userRole, // Apply role or use existing
+        createdAt: userSnap.exists ? undefined : new Date().toISOString(), // Only set for new users
+      };
+
+      if (userSnap.exists) {
+        // User already exists, update as needed but preserve role if one exists and there's no override
+        const updates = { ...userDataToSet };
+
+        // If this user has a role override by email, always apply it
+        if (userEmail && EMAIL_ROLE_OVERRIDES[userEmail]) {
+          updates.role = EMAIL_ROLE_OVERRIDES[userEmail];
+        }
+
+        await userRef.update(updates);
+        console.log(
+          `User document for ${user.uid} updated in Firestore. Role: ${updates.role}`,
+        );
+      } else {
+        // User does not exist, create new document
+        await userRef.set(userDataToSet);
+        console.log(
+          `Created new user document for ${user.uid} in Firestore. Role: ${userDataToSet.role}`,
+        );
+      }
+
+      return Response.json(
+        {
+          message: "User document processed successfully in Firestore.",
+          role: userDataToSet.role,
+        },
+        { status: 200 },
+      );
+    } catch (authError) {
+      console.error("Error verifying user in Firebase Auth:", authError);
+      return Response.json(
+        {
+          message: "Unable to verify user in Firebase Auth.",
+        },
+        { status: 404 },
+      );
     }
-    return new Response(JSON.stringify({ message: errorMessage }), { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json'}
-    });
+  } catch (e) {
+    console.error(
+      "Failed to process user document in Firestore (/api/createUser):",
+      e,
+    );
+    return Response.json(
+      {
+        message: `Failed to process user document in Firestore. Details: ${e instanceof Error ? e.message : "Unknown error"}`,
+      },
+      { status: 500 },
+    );
   }
 }

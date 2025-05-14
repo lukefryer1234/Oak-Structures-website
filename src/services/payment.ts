@@ -22,7 +22,9 @@ export interface PaymentInfo {
  * @param paymentInfo The payment information.
  * @returns A promise that resolves to a boolean indicating whether the payment was successful.
  */
-export async function processPayment(paymentInfo: PaymentInfo): Promise<boolean> {
+export async function processPayment(
+  paymentInfo: PaymentInfo,
+): Promise<boolean> {
   // TODO: Implement this by calling an API.
 
   return true;

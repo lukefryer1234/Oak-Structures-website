@@ -10,11 +10,11 @@ export interface UKAddress {
    * The address line 1.
    */
   addressLine1: string;
-   /**
+  /**
    * The address line 2.
    */
   addressLine2?: string;
-   /**
+  /**
    * The address line 3.
    */
   addressLine3?: string;

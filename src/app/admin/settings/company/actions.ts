@@ -1,11 +1,11 @@
-'use server';
+"use server";
 
-import { z } from 'zod';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { z } from "zod";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Removed unused updateDoc
+import { db } from "@/lib/firebase";
 
-const SETTINGS_COLLECTION = 'siteSettings';
-const COMPANY_INFO_DOC_ID = 'companyInformation';
+const SETTINGS_COLLECTION = "siteSettings";
+const COMPANY_INFO_DOC_ID = "companyInformation";
 
 export interface CompanyInfo {
   name: string;
@@ -35,7 +35,10 @@ export async function fetchCompanyInfoAction(): Promise<CompanyInfo> {
       if (parsed.success) {
         return parsed.data;
       } else {
-        console.warn("Fetched company info from Firestore is invalid:", parsed.error.flatten().fieldErrors);
+        console.warn(
+          "Fetched company info from Firestore is invalid:",
+          parsed.error.flatten().fieldErrors,
+        );
         // Return default or throw error if critical
       }
     }
@@ -50,7 +53,7 @@ export async function fetchCompanyInfoAction(): Promise<CompanyInfo> {
   } catch (error) {
     console.error("Error fetching company info:", error);
     // Fallback to default in case of error
-     return {
+    return {
       name: "Timberline Commerce",
       address: "12 Timber Yard\nForest Industrial Estate\nBristol\nBS1 1AD",
       contactEmail: "info@timberline.com",
@@ -67,13 +70,13 @@ export interface UpdateCompanyInfoState {
 }
 
 export async function updateCompanyInfoAction(
-  info: CompanyInfo
+  info: CompanyInfo,
 ): Promise<UpdateCompanyInfoState> {
   const validatedFields = companyInfoSchema.safeParse(info);
 
   if (!validatedFields.success) {
     return {
-      message: 'Validation failed.',
+      message: "Validation failed.",
       success: false,
       errors: validatedFields.error.errors,
     };
@@ -82,10 +85,13 @@ export async function updateCompanyInfoAction(
   try {
     const docRef = doc(db, SETTINGS_COLLECTION, COMPANY_INFO_DOC_ID);
     // Use setDoc with merge:true to create if not exists, or update if exists
-    await setDoc(docRef, validatedFields.data, { merge: true }); 
-    return { message: 'Company information updated successfully.', success: true };
+    await setDoc(docRef, validatedFields.data, { merge: true });
+    return {
+      message: "Company information updated successfully.",
+      success: true,
+    };
   } catch (error) {
     console.error("Error updating company info:", error);
-    return { message: 'Failed to update company information.', success: false };
+    return { message: "Failed to update company information.", success: false };
   }
 }

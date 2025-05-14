@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ========== HELPER FUNCTIONS ==========
+    
+    // Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Check if user is the owner of the document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Get user data from Firestore - used for role checking
+    function getUserData() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data : 
+        null;
+    }
+    
+    // Check if user's email is in the hardcoded super admin list
+    function isSuperAdminByEmail() {
+      return isSignedIn() && 
+        (request.auth.token.email == "luke@mcconversions.uk" || 
+         request.auth.token.email == "admin@timberline.com");
+    }
+    
+    // ========== ROLE-BASED ACCESS FUNCTIONS ==========
+    
+    // Check if user has Super Admin role (highest privileges)
+    function isSuperAdmin() {
+      let userData = getUserData();
+      return isSignedIn() && (
+        isSuperAdminByEmail() || 
+        (userData != null && (userData.role == "super_admin" || userData.effectiveRole == "super_admin"))
+      );
+    }
+    
+    // Check if user has Admin role (or higher)
+    function isAdmin() {
+      let userData = getUserData();
+      return isSignedIn() && (
+        isSuperAdmin() || 
+        (userData != null && (userData.role == "admin" || userData.effectiveRole == "admin"))
+      );
+    }
+    
+    // Check if user has Manager role (or higher)
+    function isManager() {
+      let userData = getUserData();
+      return isSignedIn() && (
+        isAdmin() || 
+        (userData != null && (userData.role == "manager" || userData.effectiveRole == "manager"))
+      );
+    }
+    
+    // Check if user has Customer role (or higher)
+    function isCustomer() {
+      return isSignedIn(); // All signed-in users have at least Customer role
+    }
+
+    // ========== COLLECTION RULES ==========
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read basic user profile data
+      allow read: if isSignedIn();
+      
+      // Users can read and update their own data, but certain fields are protected
+      allow read, update: if isOwner(userId) && (
+        // If updating, can only update specific fields
+        !("role" in request.resource.data) && 
+        !("effectiveRole" in request.resource.data) && 
+        !("isAdmin" in request.resource.data)
+      );
+      
+      // Admin can read and write all user data
+      allow read, write: if isAdmin();
+      
+      // Only Super Admin can change user roles
+      allow update: if isSuperAdmin() && (
+        "role" in request.resource.data || 
+        "effectiveRole" in request.resource.data || 
+        "isAdmin" in request.resource.data
+      );
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      // Users can read their own orders
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Managers and above can read all orders
+      allow read: if isManager();
+      
+      // Customers can create orders
+      allow create: if isCustomer() && request.resource.data.userId == request.auth.uid;
+      
+      // Only admins can update or delete orders
+      allow update, delete: if isAdmin();
+    }
+    
+    // Contact submissions
+    match /contactSubmissions/{docId} {
+      // Allow creating a contact submission without authentication
+      allow create: if true;
+      
+      // Only admins can read or update contact submissions
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Custom order inquiries
+    match /customOrderInquiries/{docId} {
+      // Allow creating a custom order without authentication
+      allow create: if true;
+      
+      // Only admins can read or update custom orders
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Products
+    match /products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+      
+      // Managers can create and update product information
+      allow create, update: if isManager();
+      
+      // Only admins can delete products
+      allow delete: if isAdmin();
+    }
+    
+    // Site settings
+    match /siteSettings/{settingId} {
+      // Public settings can be read by anyone
+      allow read: if settingId in ['publicSettings', 'companyInformation'];
+      
+      // Managers can read all settings
+      allow read: if isManager();
+      
+      // Only admins can write settings
+      allow write: if isAdmin();
+    }
+    
+    // Admin activity logs
+    match /admin_activity_logs/{logId} {
+      // Only admins can create activity logs
+      allow create: if isAdmin();
+      
+      // Only admins can read activity logs
+      allow read: if isAdmin();
+      
+      // No one can update or delete activity logs (immutable audit trail)
+      allow update, delete: if false;
+    }
+    
+    // Special deals
+    match /specialDeals/{dealId} {
+      // Anyone can read special deals
+      allow read: if true;
+      
+      // Managers can create and update special deals
+      allow create, update: if isManager();
+      
+      // Only admins can delete special deals
+      allow delete: if isAdmin();
+    }
+    
+    // Gallery images
+    match /gallery/{imageId} {
+      // Anyone can read gallery images
+      allow read: if true;
+      
+      // Managers can upload and update gallery images
+      allow create, update: if isManager();
+      
+      // Only admins can delete gallery images
+      allow delete: if isAdmin();
+    }
+    
+    // CRM leads
+    match /leads/{leadId} {
+      // Only managers and above can access CRM data
+      allow read, write: if isManager();
+    }
+    
+    // User addresses
+    match /userAddresses/{addressId} {
+      // Users can read, create, update, and delete their own addresses
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId || 
+                         (request.method == "create" && request.auth.uid == request.resource.data.userId);
+      
+      // Admins can manage all addresses
+      allow read, write: if isAdmin();
+    }
+    
+    // Wildcard rule to restrict access to any other collections
+    match /{document=**} {
+      // Only super admins can access undefined collections
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}
+

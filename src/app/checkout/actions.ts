@@ -1,9 +1,9 @@
-'use server';
+"use server";
 
-import { z } from 'zod';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { User } from 'firebase/auth';
+import { z } from "zod";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { User } from "firebase/auth";
 
 // Basic schema for an address
 const addressSchema = z.object({
@@ -35,7 +35,9 @@ const orderSchema = z.object({
   shippingAddress: addressSchema.optional(),
   useBillingAsShipping: z.boolean(),
   paymentMethod: z.literal("paypal"), // Only PayPal allowed
-  items: z.array(orderItemSchema).min(1, "Order must contain at least one item."),
+  items: z
+    .array(orderItemSchema)
+    .min(1, "Order must contain at least one item."),
   subtotal: z.number(),
   shippingCost: z.number(),
   vat: z.number(),
@@ -54,9 +56,8 @@ export interface PlaceOrderState {
 
 export async function placeOrderAction(
   currentUser: User | null, // Pass current user for userId
-  orderData: OrderData // Expect the full order data object
+  orderData: OrderData, // Expect the full order data object
 ): Promise<PlaceOrderState> {
-  
   const dataToValidate = {
     ...orderData,
     userId: currentUser?.uid, // Add userId if user is logged in
@@ -65,9 +66,12 @@ export async function placeOrderAction(
   const validatedFields = orderSchema.safeParse(dataToValidate);
 
   if (!validatedFields.success) {
-    console.error("Order validation failed:", validatedFields.error.flatten().fieldErrors);
+    console.error(
+      "Order validation failed:",
+      validatedFields.error.flatten().fieldErrors,
+    );
     return {
-      message: 'Validation failed. Please check your input.',
+      message: "Validation failed. Please check your input.",
       success: false,
       errors: validatedFields.error.flatten().fieldErrors,
     };
@@ -78,33 +82,37 @@ export async function placeOrderAction(
   const paymentSuccessful = true; // Placeholder
 
   if (!paymentSuccessful) {
-    return { message: 'Payment processing failed. Please try again.', success: false, errors: { form: ['Payment failed.'] } };
+    return {
+      message: "Payment processing failed. Please try again.",
+      success: false,
+      errors: { form: ["Payment failed."] },
+    };
   }
 
   try {
     const orderPayload = {
       ...validatedFields.data,
       createdAt: serverTimestamp(),
-      status: 'Pending', // Initial order status
+      status: "Pending", // Initial order status
     };
 
-    const docRef = await addDoc(collection(db, 'orders'), orderPayload);
-    
+    const docRef = await addDoc(collection(db, "orders"), orderPayload);
+
     // TODO: Send order confirmation email to customer
     // TODO: Send order notification email to admin
     // TODO: Clear the user's basket (if applicable)
 
-    return { 
-      message: 'Order placed successfully!', 
-      success: true, 
-      orderId: docRef.id 
+    return {
+      message: "Order placed successfully!",
+      success: true,
+      orderId: docRef.id,
     };
   } catch (error) {
-    console.error('Error placing order:', error);
-    return { 
-      message: 'An error occurred while placing your order. Please try again.', 
+    console.error("Error placing order:", error);
+    return {
+      message: "An error occurred while placing your order. Please try again.",
       success: false,
-      errors: { form: ['Server error.'] }
+      errors: { form: ["Server error."] },
     };
   }
 }

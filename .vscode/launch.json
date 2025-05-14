@@ -1,0 +1,60 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Next.js: Debug with Firebase Emulators",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "serverReadyAction": {
+        "pattern": "started server on .+, url: (https?://.+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      },
+      "env": {
+        "NODE_ENV": "development",
+        "FIRESTORE_EMULATOR_HOST": "localhost:8080",
+        "FIREBASE_AUTH_EMULATOR_HOST": "localhost:9099",
+        "FIREBASE_STORAGE_EMULATOR_HOST": "localhost:9199"
+      },
+      "preLaunchTask": "Start Firebase Emulators",
+      "postDebugTask": "Stop Firebase Emulators"
+    },
+    {
+      "name": "Debug Emulator Seeding Script",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/seedEmulators.js",
+      "args": [],
+      "env": {
+        "NODE_ENV": "development",
+        "FIRESTORE_EMULATOR_HOST": "localhost:8080",
+        "FIREBASE_AUTH_EMULATOR_HOST": "localhost:9099",
+        "FIREBASE_STORAGE_EMULATOR_HOST": "localhost:9199"
+      },
+      "preLaunchTask": "Start Firebase Emulators"
+    },
+    {
+      "name": "Debug Seed & Export",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/seedEmulators.js",
+      "args": ["--export"],
+      "env": {
+        "NODE_ENV": "development",
+        "FIRESTORE_EMULATOR_HOST": "localhost:8080",
+        "FIREBASE_AUTH_EMULATOR_HOST": "localhost:9099",
+        "FIREBASE_STORAGE_EMULATOR_HOST": "localhost:9199"
+      },
+      "preLaunchTask": "Start Firebase Emulators"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug Full Stack (Next.js + Emulators)",
+      "configurations": ["Next.js: Debug with Firebase Emulators"],
+      "stopAll": true
+    }
+  ]
+}
+
