@@ -21,7 +21,7 @@ import {
   Info,
   HelpCircle,
   Phone,
-  LayoutDashboard, 
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +58,7 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser, signOut, loading } = useAuth(); 
+  const { currentUser, signOut, loading } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -80,24 +80,28 @@ export function SiteHeader() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  
-  const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
-  
-  const basketItemCount = 3; 
+  // For testing: const isAdmin = true;
+  // In production: const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
+  // For now, making admin links always visible as requested
+  const isAdmin = true; 
+
+  const basketItemCount = 3;
   const basketTotalPrice = 17575.00;
 
   if (!isClient || loading) {
+    // Consistent skeleton for SSR and initial client render to avoid hydration issues
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          {/* Consistent Skeleton for SSR and initial client render */}
+          {/* Left side skeleton */}
           <div className="flex items-center gap-2">
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse md:hidden"></div> {/* Mobile menu skeleton */}
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Home/Desktop menu skeleton */}
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse md:hidden"></div> {/* Mobile menu icon placeholder */}
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Desktop menu/home icon placeholder */}
           </div>
+          {/* Right side skeleton */}
           <div className="flex items-center gap-4">
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* Basket skeleton */}
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* User skeleton */}
+            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* Basket icon placeholder */}
+            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* User icon placeholder */}
           </div>
         </div>
       </header>
@@ -115,7 +119,6 @@ export function SiteHeader() {
                 size="icon"
                 className="shrink-0 md:hidden h-9 w-9"
                 aria-label="Toggle navigation menu"
-                onClick={() => setMobileMenuOpen(true)}
               >
                 <Menu className="h-5 w-5" />
               </Button>
@@ -134,16 +137,15 @@ export function SiteHeader() {
                              <Home className="h-5 w-5" />
                              Home
                           </Link>
-                          {currentUser && isAdmin && (
-                            <Link
-                                href="/admin"
-                                className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
-                                onClick={closeMobileMenu}
-                            >
-                                <LayoutDashboard className="h-5 w-5 text-primary" />
-                                Admin Dashboard
-                            </Link>
-                          )}
+                          {/* Always show Admin Dashboard link in mobile menu */}
+                          <Link
+                              href="/admin"
+                              className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
+                              onClick={closeMobileMenu}
+                          >
+                              <LayoutDashboard className="h-5 w-5 text-primary" />
+                              Admin Dashboard
+                          </Link>
                           <Separator className="my-2"/>
                            <p className="px-2.5 text-sm font-medium text-muted-foreground mb-1">Products</p>
                            {mainNavLinks.map((link) => (
@@ -185,7 +187,7 @@ export function SiteHeader() {
                <Button
                  variant="ghost"
                  size="icon"
-                 className="h-9 w-9 hidden md:inline-flex" 
+                 className="h-9 w-9 hidden md:inline-flex"
                  aria-label="Navigation Menu"
                >
                  <Menu className="h-5 w-5 text-muted-foreground" />
@@ -205,14 +207,13 @@ export function SiteHeader() {
                ))}
                <DropdownMenuSeparator />
                <DropdownMenuLabel>More</DropdownMenuLabel>
-                 {currentUser && isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="flex items-center gap-2">
-                        <LayoutDashboard className="h-4 w-4 text-primary" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                 {/* Always show Admin Dashboard link in desktop dropdown */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4 text-primary" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
                  {otherNavLinks.map((link) => (
                    <DropdownMenuItem key={link.href} asChild>
                      <Link href={link.href} className="flex items-center gap-2">
@@ -243,13 +244,12 @@ export function SiteHeader() {
             </Link>
           </Button>
 
-           {currentUser && isAdmin && (
-              <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-                <Link href="/admin" aria-label="Admin Dashboard">
-                  <LayoutDashboard className="h-5 w-5 text-primary" />
-                </Link>
-              </Button>
-            )}
+           {/* Always show Admin Dashboard icon link if isAdmin logic is true (which it is for now) */}
+          <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+            <Link href="/admin" aria-label="Admin Dashboard">
+              <LayoutDashboard className="h-5 w-5 text-primary" />
+            </Link>
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
