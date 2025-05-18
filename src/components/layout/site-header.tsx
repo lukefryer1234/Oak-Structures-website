@@ -1,5 +1,5 @@
 
-"use client"; // Needed for state management and Dropdown
+"use client";
 
 import Link from "next/link";
 import {
@@ -58,12 +58,13 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser, signOut, loading } = useAuth();
+  const { currentUser, signOut, loading } = useAuth(); // `loading` is from AuthContext
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
 
-  // Placeholder for basket item count and total price
-  const basketItemCount = 3; // Replace with actual basket logic
-  const basketTotalPrice = 17575.00; // Replace with actual basket logic
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -79,21 +80,16 @@ export function SiteHeader() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  useEffect(() => {
-    // This useEffect is for client-side logic if needed,
-    // for example, re-fetching basket count when currentUser changes.
-    // Currently, basketItemCount and basketTotalPrice are placeholders.
-    // In a real app, you might fetch these or get them from a context.
-  }, [currentUser]);
-
-  if (loading) {
+  // This skeleton will be rendered on the server and on the initial client render,
+  // preventing hydration mismatch for the main header structure.
+  if (!isClient || loading) {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          {/* Placeholder for loading state */}
+          {/* Consistent Skeleton for SSR and initial client render */}
           <div className="flex items-center gap-2">
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse md:hidden"></div>
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div>
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Simplified skeleton item */}
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Simplified skeleton item */}
           </div>
           <div className="flex items-center gap-4">
             <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div>
@@ -104,26 +100,32 @@ export function SiteHeader() {
     );
   }
 
+  // Actual header content, rendered only after client mount and auth is not loading
   const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
+  
+  // Placeholder for basket item count and total price - these should come from a shared state/context eventually
+  const basketItemCount = 3; 
+  const basketTotalPrice = 17575.00;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         {/* Left Section: Hamburger, Home Icon, Basket Total */}
         <div className="flex items-center gap-2">
+           {/* Hamburger Menu for Mobile */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 md:hidden h-9 w-9"
-                  aria-label="Toggle navigation menu"
-                  onClick={() => setMobileMenuOpen(true)}
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 md:hidden h-9 w-9"
+                aria-label="Toggle navigation menu"
+                onClick={() => setMobileMenuOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
                  <nav className="flex flex-col h-full">
                      <div className="p-4 border-b">
                          <h2 className="text-lg font-semibold">Menu</h2>
@@ -167,6 +169,7 @@ export function SiteHeader() {
               </SheetContent>
            </Sheet>
 
+           {/* Home Icon (visible on all screens) & Desktop Nav Trigger */}
            <Button variant="ghost" size="icon" asChild className="h-9 w-9">
             <Link href="/" aria-label="Homepage">
               <Home className="h-5 w-5" />
@@ -178,7 +181,7 @@ export function SiteHeader() {
                <Button
                  variant="ghost"
                  size="icon"
-                 className="h-9 w-9 hidden md:inline-flex"
+                 className="h-9 w-9 hidden md:inline-flex" // Visible on desktop
                  aria-label="Navigation Menu"
                >
                  <Menu className="h-5 w-5 text-muted-foreground" />
@@ -208,7 +211,7 @@ export function SiteHeader() {
              </DropdownMenuContent>
            </DropdownMenu>
 
-
+            {/* Basket Total - visible on desktop */}
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
                     {formatPrice(basketTotalPrice)}
@@ -217,7 +220,7 @@ export function SiteHeader() {
         </div>
 
         {/* Right Section: Icons */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 sm:gap-2"> {/* Reduced gap for smaller screens */}
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
@@ -229,6 +232,7 @@ export function SiteHeader() {
             </Link>
           </Button>
 
+           {/* Admin Dashboard Icon - only if logged in and admin */}
            {currentUser && isAdmin && (
               <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                 <Link href="/admin" aria-label="Admin Dashboard">
@@ -237,6 +241,7 @@ export function SiteHeader() {
               </Button>
             )}
 
+          {/* User Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User Account" className="h-9 w-9">
