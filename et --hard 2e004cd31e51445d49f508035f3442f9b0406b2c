@@ -1,0 +1,180 @@
+[33mcommit 2e004cd31e51445d49f508035f3442f9b0406b2c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;32mmy-ui-branch[m[33m)[m
+Merge: 8160685 6e44e04
+Author: Luke Fryer <luke@mcconversions.uk>
+Date:   Mon May 12 07:21:32 2025 +0000
+
+    Merge remote-tracking branch 'origin/main' into my-ui-branch
+
+[33mcommit 8160685d9134348b8a6d233fed31cfbcef3053cf[m
+Author: Luke Fryer <luke@mcconversions.uk>
+Date:   Mon May 12 06:59:17 2025 +0000
+
+    Save local frontend changes and backend files from origin
+
+[33mcommit 9502a93fcdda0b87b76461244a1a1d6fc42a8a10[m
+Author: Luke Fryer <luke@mcconversions.uk>
+Date:   Mon May 12 06:22:25 2025 +0000
+
+    Login
+    Register
+    Login
+    Access your Timberline Commerce account
+    GoogleContinue with Google
+    PayPalContinue with PayPal
+    Or continue with
+    Email
+    you@example.com
+    Password
+    Forgot password?
+    Login
+    Timberline Commerce
+    © 2025 Timberline Commerce. All rights reserved.
+    
+    Console Error
+    
+    FirebaseError: Firebase: Error (auth/api-key-not-valid.-please-pass-a-valid-api-key.)
+
+[33mcommit a4425f2dae5421fa3436e9b4c5de2e8fec7f7d53[m
+Author: Luke Fryer <luke@mcconversions.uk>
+Date:   Mon May 12 06:01:03 2025 +0000
+
+    fix the auth issure
+
+[33mcommit 6e44e04ae0e1aafae4a8e08e6d1d79434fc58659[m[33m ([m[1;32mbackend-update-with-ui[m[33m)[m
+Author: luke1234 <luke@mcconversions.uk>
+Date:   Wed May 7 18:04:51 2025 +0100
+
+    Update firebase.json for Next.js server-side functionality
+
+[33mcommit 90f6368e993d843eba02573ffebd586e9a79be87[m
+Author: luke1234 <luke@mcconversions.uk>
+Date:   Wed May 7 17:53:46 2025 +0100
+
+    Update Firebase configuration and add temporary landing page
+
+[33mcommit 4e735a6ffb27286ed772e5d86db928a1a10e004f[m
+Author: luke1234 <luke@mcconversions.uk>
+Date:   Wed May 7 11:59:15 2025 +0100
+
+    Update Firebase configuration with actual project ID
+
+[33mcommit 6fe013edd430f2e155b78593d722cd6be0c0e06b[m
+Author: luke1234 <luke@mcconversions.uk>
+Date:   Wed May 7 11:50:54 2025 +0100
+
+    Fix build errors and configure for Firebase deployment. Update JSX syntax in multiple components, add missing Suspense boundaries, and configure Next.js for server-side rendering with Firebase Frameworks Backend.
+
+[33mcommit 430d179f2dc9dfa633afb14bb5e11b45b1b20e52[m
+Author: Luke Fryer <luke@mcconversions.uk>
+Date:   Wed May 7 07:00:46 2025 +0000
+
+    I see this error with the app, reported by NextJS, please fix it. The error is reported as HTML but presented visually to the user).
+    
+    A > before the line number in the error source usually indicates the line of interest:
+    
+    > Unhandled Runtime Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:. Error source: - A server/client branch `if (typeof window !== 'undefined')`.
+    > - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+    > - Date formatting in a user's locale which doesn't match the server.
+    > - External changing data without sending a snapshot of it along with the HTML.
+    > - Invalid HTML tag nesting.
+    >
+    > It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+    >
+    > See more info here: https://nextjs.org/docs/messages/react-hydration-error
+    >
+    >   ...
+    >     <RedirectErrorBoundary router={{...}}>
+    >       <Head>
+    >       <link>
+    >       <script>
+    >       <script>
+    >       <script>
+    >       <script>
+    >       <script>
+    >       <script>
+    >       <script>
+    >       <RootLayout>
+    >         <html lang="en" suppressHydrationWarning={true}>
+    >           <body className="inter_34b2...">
+    >             <SiteProvider>
+    >               <AuthProvider>
+    >                 <BackgroundImage>
+    >                   <div className="relative i...">
+    >                     <div className="relative z-10">
+    >                       <div className="relative f...">
+    >                         <SiteHeader>
+    >                           <header className="sticky top...">
+    >                             <div className="container ...">
+    >                               <div
+    > -                               className="flex items-center gap-2"
+    >                               >
+    > -                               <button
+    > -                                 className={"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded..."}
+    > -                                 aria-label="Toggle navigation menu"
+    > -                                 type="button"
+    > -                                 aria-haspopup="dialog"
+    > -                                 aria-expanded="false"
+    > -                                 aria-controls="radix-«R1b9l7»"
+    > -                                 data-state="closed"
+    > -                               >
+    > -                               <button
+    > -                                 className={"items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm ..."}
+    > -                                 aria-label="Navigation Menu"
+    > -                                 type="button"
+    > -                                 id="radix-«R2b9l7»"
+    > -                                 aria-haspopup="menu"
+    > -                                 aria-expanded="false"
+    > -                                 data-state="closed"
+    > -                               >
+    > -                               <a
+    > -                                 aria-label="Homepage"
+    > -                                 className={"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded..."}
+    > -                                 href="/"
+    > -                               >
+    > -                               <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
+    >                               ...
+    >                         ...
+    >               ...
+    >       ...
+    >
+    >
+    > src/components/layout/site-header.tsx (88:11) @ SiteHeader
+    >
+    >   86 |       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    >   87 |         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+    > > 88 |           <div>{/* Placeholder for left side during load */}</div>
+    >      |           ^
+    >   89 |           <div>{/* Placeholder for right side during load */}</div>
+    >   90 |         </div>
+    >   91 |       </header>
+    >
+    > Call Stack
+    > 14
+    >
+    > Show 11 ignore-listed frame(s)
+    > div
+    > <anonymous> (0:0)
+    > SiteHeader
+    > src/components/layout/site-header.tsx (88:11)
+    > RootLayout
+    > src/app/layout.tsx (41:17)
+
+[33mcommit a4df2940ca1ed42fc35672aec38addb3dc8bcf4b[m
+Author: Luke Fryer <luke@mcconversions.uk>
+Date:   Wed May 7 06:59:24 2025 +0000
+
+    check and modify the code to acheive all of this OK. Let's re-evaluate your Timberline Commerce site's publishing readiness, taking into account the current state of your README.md and the steps you've taken so far.
+    
+    Updated Assessment Based on README & Recent Activity:
+    
+    1. Core Functionality (Still Requires Work):
+    
+    User Authentication: The login/registration UI is there, but it doesn't actually connect to a real authentication system (Firebase Auth, etc.).
+    Payment Processing: The checkout uses a placeholder, lacking actual Stripe/PayPal integration.
+    Order Management: Order details aren't being saved to a database, and email notifications aren't being sent.
+    Admin Panel: While you have the UI, the data persistence (database) and update logic (API endpoints) are mostly placeholders.
+    2. Data Persistence (Needs Immediate Attention):
+    
+    The project still relies heavily on localStorage. This is completely unsuitable for a production environment.
+    3. Email (Not Yet Implemented):
+    

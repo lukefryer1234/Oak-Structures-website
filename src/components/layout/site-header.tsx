@@ -33,11 +33,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useEffect } from "react"; // Keep useEffect if needed for other client-side logic
+import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/context/auth-context"; // Import useAuth
-import { useToast } from "@/hooks/use-toast"; // For potential logout messages
+import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/hooks/use-toast";
 
 const mainNavLinks = [
   { href: "/products/garages/configure", label: "Garages", icon: Wrench },
@@ -58,19 +58,18 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser, signOut, loading } = useAuth(); // Use auth context
+  const { currentUser, signOut, loading } = useAuth();
   const { toast } = useToast();
 
   // Placeholder for basket item count and total price
-  const basketItemCount = 3;
-  const basketTotalPrice = 17575.00;
+  const basketItemCount = 3; // Replace with actual basket logic
+  const basketTotalPrice = 17575.00; // Replace with actual basket logic
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const handleLogout = async () => {
     try {
       await signOut();
-      // Success toast is handled in AuthContext
     } catch (error: any) {
       toast({ variant: "destructive", title: "Logout Error", description: error.message });
     }
@@ -80,24 +79,32 @@ export function SiteHeader() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  // Show loading state or default icons if auth is still loading
-  // The check `typeof window !== 'undefined'` was removed as it can cause hydration mismatches.
-  // The `loading` state from `useAuth` (which uses onAuthStateChanged) should correctly
-  // reflect whether auth state is determined on the client.
+  useEffect(() => {
+    // This useEffect is for client-side logic if needed,
+    // for example, re-fetching basket count when currentUser changes.
+    // Currently, basketItemCount and basketTotalPrice are placeholders.
+    // In a real app, you might fetch these or get them from a context.
+  }, [currentUser]);
+
   if (loading) {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <div>{/* Placeholder for left side during load */}</div>
-          <div>{/* Placeholder for right side during load */}</div>
+          {/* Placeholder for loading state */}
+          <div className="flex items-center gap-2">
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse md:hidden"></div>
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div>
+            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div>
+          </div>
         </div>
       </header>
     );
   }
 
-  // TODO: Check if user has admin role for displaying admin link
   const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
-
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -111,6 +118,7 @@ export function SiteHeader() {
                   size="icon"
                   className="shrink-0 md:hidden h-9 w-9"
                   aria-label="Toggle navigation menu"
+                  onClick={() => setMobileMenuOpen(true)}
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -159,6 +167,12 @@ export function SiteHeader() {
               </SheetContent>
            </Sheet>
 
+           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+            <Link href="/" aria-label="Homepage">
+              <Home className="h-5 w-5" />
+            </Link>
+          </Button>
+
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
                <Button
@@ -172,14 +186,8 @@ export function SiteHeader() {
                </Button>
              </DropdownMenuTrigger>
              <DropdownMenuContent align="start" className="w-56">
-               <DropdownMenuItem asChild>
-                   <Link href="/" className="flex items-center gap-2">
-                     <Home className="h-4 w-4" />
-                     Home
-                   </Link>
-                 </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                 <DropdownMenuLabel>Products</DropdownMenuLabel>
+                 <DropdownMenuLabel>Main Navigation</DropdownMenuLabel>
+                 <DropdownMenuSeparator />
                  {mainNavLinks.map((link) => (
                  <DropdownMenuItem key={link.href} asChild>
                    <Link href={link.href} className="flex items-center gap-2">
@@ -200,11 +208,6 @@ export function SiteHeader() {
              </DropdownMenuContent>
            </DropdownMenu>
 
-           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-            <Link href="/" aria-label="Homepage">
-              <Home className="h-5 w-5" />
-            </Link>
-          </Button>
 
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
