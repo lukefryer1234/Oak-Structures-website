@@ -21,7 +21,7 @@ import {
   Info,
   HelpCircle,
   Phone,
-  LayoutDashboard, // Added LayoutDashboard
+  LayoutDashboard, 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +58,7 @@ const otherNavLinks = [
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser, signOut, loading } = useAuth(); // `loading` is from AuthContext
+  const { currentUser, signOut, loading } = useAuth(); 
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -80,8 +80,12 @@ export function SiteHeader() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  // This skeleton will be rendered on the server and on the initial client render,
-  // preventing hydration mismatch for the main header structure.
+  
+  const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
+  
+  const basketItemCount = 3; 
+  const basketTotalPrice = 17575.00;
+
   if (!isClient || loading) {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -100,19 +104,10 @@ export function SiteHeader() {
     );
   }
 
-  // Actual header content, rendered only after client mount and auth is not loading
-  const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
-  
-  // Placeholder for basket item count and total price - these should come from a shared state/context eventually
-  const basketItemCount = 3; 
-  const basketTotalPrice = 17575.00;
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Left Section: Hamburger, Home Icon, Basket Total */}
         <div className="flex items-center gap-2">
-           {/* Hamburger Menu for Mobile */}
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
@@ -139,6 +134,16 @@ export function SiteHeader() {
                              <Home className="h-5 w-5" />
                              Home
                           </Link>
+                          {currentUser && isAdmin && (
+                            <Link
+                                href="/admin"
+                                className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
+                                onClick={closeMobileMenu}
+                            >
+                                <LayoutDashboard className="h-5 w-5 text-primary" />
+                                Admin Dashboard
+                            </Link>
+                          )}
                           <Separator className="my-2"/>
                            <p className="px-2.5 text-sm font-medium text-muted-foreground mb-1">Products</p>
                            {mainNavLinks.map((link) => (
@@ -169,7 +174,6 @@ export function SiteHeader() {
               </SheetContent>
            </Sheet>
 
-           {/* Home Icon (visible on all screens) & Desktop Nav Trigger */}
            <Button variant="ghost" size="icon" asChild className="h-9 w-9">
             <Link href="/" aria-label="Homepage">
               <Home className="h-5 w-5" />
@@ -181,7 +185,7 @@ export function SiteHeader() {
                <Button
                  variant="ghost"
                  size="icon"
-                 className="h-9 w-9 hidden md:inline-flex" // Visible on desktop
+                 className="h-9 w-9 hidden md:inline-flex" 
                  aria-label="Navigation Menu"
                >
                  <Menu className="h-5 w-5 text-muted-foreground" />
@@ -200,6 +204,15 @@ export function SiteHeader() {
                  </DropdownMenuItem>
                ))}
                <DropdownMenuSeparator />
+               <DropdownMenuLabel>More</DropdownMenuLabel>
+                 {currentUser && isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="flex items-center gap-2">
+                        <LayoutDashboard className="h-4 w-4 text-primary" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                  {otherNavLinks.map((link) => (
                    <DropdownMenuItem key={link.href} asChild>
                      <Link href={link.href} className="flex items-center gap-2">
@@ -211,7 +224,6 @@ export function SiteHeader() {
              </DropdownMenuContent>
            </DropdownMenu>
 
-            {/* Basket Total - visible on desktop */}
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
                     {formatPrice(basketTotalPrice)}
@@ -219,7 +231,6 @@ export function SiteHeader() {
              )}
         </div>
 
-        {/* Right Section: Icons */}
         <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
@@ -232,7 +243,6 @@ export function SiteHeader() {
             </Link>
           </Button>
 
-           {/* Admin Dashboard Icon - only if logged in and admin */}
            {currentUser && isAdmin && (
               <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                 <Link href="/admin" aria-label="Admin Dashboard">
@@ -241,7 +251,6 @@ export function SiteHeader() {
               </Button>
             )}
 
-          {/* User Account Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User Account" className="h-9 w-9">
