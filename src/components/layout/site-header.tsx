@@ -21,7 +21,7 @@ import {
   Info,
   HelpCircle,
   Phone,
-  LayoutDashboard,
+  LayoutDashboard, // Added LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,12 +88,12 @@ export function SiteHeader() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           {/* Consistent Skeleton for SSR and initial client render */}
           <div className="flex items-center gap-2">
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Simplified skeleton item */}
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Simplified skeleton item */}
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse md:hidden"></div> {/* Mobile menu skeleton */}
+             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Home/Desktop menu skeleton */}
           </div>
           <div className="flex items-center gap-4">
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div>
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div>
+            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* Basket skeleton */}
+            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* User skeleton */}
           </div>
         </div>
       </header>
@@ -220,7 +220,7 @@ export function SiteHeader() {
         </div>
 
         {/* Right Section: Icons */}
-        <div className="flex items-center gap-1 sm:gap-2"> {/* Reduced gap for smaller screens */}
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
