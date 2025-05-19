@@ -78,7 +78,7 @@ export function BackgroundImage({ children }: { children: React.ReactNode }) {
         if (targetPage === 'products' && pathname.includes('/configure')) {
             const categorySlug = pathname.split('/')[2];
             // Ensure categorySlug is one of the expected ones before appending -config
-            const validCategoriesForConfigBg = ['garages', 'gazebos', 'porches', 'oak-beams', 'oak-flooring_COMPLETELY_DISABLED'];
+            const validCategoriesForConfigBg = ['garages', 'gazebos', 'porches', 'oak-beams', 'oak-flooring_COMPLETELY_DISABLED']; // Match the disabled name
             if (categorySlug && validCategoriesForConfigBg.includes(categorySlug)) {
                  targetPage = `${categorySlug}-config`;
             } else {
@@ -107,12 +107,13 @@ export function BackgroundImage({ children }: { children: React.ReactNode }) {
              alt={backgroundImage.altText || 'Background image'}
              fill // Changed from layout="fill" to fill for Next.js 13+ Image component
              sizes="100vw" // Recommended when using fill
-             style={{ objectFit: 'cover' }} // Replaces objectFit prop
              className={cn(
-                "absolute inset-0 -z-10 transition-opacity duration-500",
-                // Dynamically set opacity using inline style as opacity utility classes might not be exhaustive
+                "absolute inset-0 -z-10 transition-opacity duration-500"
              )}
-             style={{ opacity: (backgroundImage.opacity ?? 5) / 100 }}
+             style={{ // Consolidated style prop
+               objectFit: 'cover',
+               opacity: (backgroundImage.opacity ?? 5) / 100,
+             }}
              aria-hidden="true"
              priority
            />
