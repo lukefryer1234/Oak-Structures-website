@@ -1,6 +1,7 @@
+
 "use client"; 
 
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState } /*useEffect removed*/ from 'react';
 import Link from 'next/link';
 import {
     LayoutDashboard,
@@ -18,9 +19,9 @@ import {
     BarChart3,
     Mail,
     FileText,
-    Image as ImageIconLucide, 
+    ImageIcon as ImageIconLucide, 
     ScanSearch,
-    Box,
+    // Box, // No longer used
     Sparkles,
     Ruler,
     Loader2,
@@ -44,8 +45,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/context/auth-context'; // Import useAuth
+import { usePathname /*useRouter removed*/ } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
 interface NavItem {
@@ -96,33 +97,34 @@ const adminNavLinks: NavItem[] = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { currentUser, loading: authLoading, signOut } = useAuth();
-    const router = useRouter();
+    // const router = useRouter(); // Temporarily unused
     const pathname = usePathname();
     const { toast } = useToast();
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
-    // TODO: Implement actual admin role check from Firestore user document
+    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
     const isUserAdmin = () => {
-        // Placeholder: Check if user email is one of the hardcoded admin emails.
-        // In production, this should check a 'role' field in the user's Firestore document.
-        if (!currentUser) return false;
-        const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"]; // Example admin emails
-        return adminEmails.includes(currentUser.email || "");
+        return true; 
+        // Original logic:
+        // if (!currentUser) return false;
+        // const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"];
+        // return adminEmails.includes(currentUser.email || "");
     };
     
-    const isAdmin = isUserAdmin();
+    const isAdmin = isUserAdmin(); // This will now always be true
 
-    useEffect(() => {
-        if (!authLoading) {
-            if (!currentUser) {
-                toast({ variant: "destructive", title: "Access Denied", description: "Please log in to access the admin panel." });
-                router.push('/login?redirect=/admin');
-            } else if (!isAdmin) {
-                toast({ variant: "destructive", title: "Unauthorized", description: "You do not have permission to access the admin panel." });
-                router.push('/'); // Redirect to homepage if not an admin
-            }
-        }
-    }, [currentUser, authLoading, router, isAdmin, toast]);
+    // TEMPORARILY COMMENTED OUT FOR DEVELOPMENT to allow access without login
+    // useEffect(() => {
+    //     if (!authLoading) {
+    //         if (!currentUser) {
+    //             toast({ variant: "destructive", title: "Access Denied", description: "Please log in to access the admin panel." });
+    //             router.push('/login?redirect=/admin');
+    //         } else if (!isAdmin) { // isAdmin will always be true now
+    //             toast({ variant: "destructive", title: "Unauthorized", description: "You do not have permission to access the admin panel." });
+    //             router.push('/'); 
+    //         }
+    //     }
+    // }, [currentUser, authLoading, router, isAdmin, toast]);
 
 
     const toggleSubMenu = (label: string) => {
@@ -142,23 +144,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const handleLogout = async () => {
         try {
           await signOut();
-        } catch (error: any) {
-          toast({ variant: "destructive", title: "Logout Error", description: error.message });
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            toast({ variant: "destructive", title: "Logout Error", description: error.message });
+          } else {
+            toast({ variant: "destructive", title: "Logout Error", description: "An unknown error occurred during logout." });
+          }
         }
     };
 
-
-    if (authLoading || !currentUser || !isAdmin) {
+    // TEMPORARILY MODIFIED: Only show loader based on authLoading, not currentUser or isAdmin
+    if (authLoading) {
         return (
             <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-muted-foreground">
-                    {authLoading ? "Loading user..." : "Verifying admin access..."}
+                    Loading authentication state...
                 </p>
             </div>
         );
     }
 
+    // The rest of the layout will now render even if currentUser is null
     const renderNavItems = (items: NavItem[], isSubmenu = false) => {
         return items.map((link) => {
             const active = isActive(link.href, isSubmenu);
@@ -230,8 +237,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                              <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'A'}</AvatarFallback>
                          </Avatar>
                          <div className="flex flex-col text-xs truncate">
-                             <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email}</span>
-                             {currentUser?.displayName && <span className="text-muted-foreground">{currentUser.email}</span> }
+                             <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email || "Guest Admin"}</span>
+                             {currentUser?.displayName && currentUser.email && <span className="text-muted-foreground">{currentUser.email}</span> }
                          </div>
                          <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
                      </div>

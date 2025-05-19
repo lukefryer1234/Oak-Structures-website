@@ -7,9 +7,9 @@ import {
   User,
   Menu,
   Home,
-  Building,
-  ImageIcon,
-  Mail,
+  // Building, // No longer used directly here
+  // ImageIcon, // No longer used directly here
+  // Mail, // No longer used directly here
   Wrench,
   TreeDeciduous,
   DoorOpen,
@@ -21,7 +21,7 @@ import {
   Info,
   HelpCircle,
   Phone,
-  LayoutDashboard,
+  LayoutDashboard, // For Admin Dashboard Icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,17 +38,26 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
+// import { cn } from "@/lib/utils"; // No longer used
 
-const mainNavLinks = [
+interface NavLink {
+  href: string;
+  label: string;
+  icon?: React.ElementType; // Icon is optional
+}
+
+
+const mainNavLinks: NavLink[] = [
   { href: "/products/garages/configure", label: "Garages", icon: Wrench },
   { href: "/products/gazebos/configure", label: "Gazebos", icon: TreeDeciduous },
   { href: "/products/porches/configure", label: "Porches", icon: DoorOpen },
   { href: "/products/oak-beams/configure", label: "Oak Beams", icon: Layers },
-  { href: "/products/oak-flooring/configure", label: "Oak Flooring", icon: Grid },
+  // Assuming oak-flooring is re-enabled later, it would need an icon. Using Grid as placeholder.
+  // { href: "/products/oak-flooring_COMPLETELY_DISABLED/configure", label: "Oak Flooring", icon: Grid },
   { href: "/special-deals", label: "Special Deals", icon: Sparkles },
 ];
 
-const otherNavLinks = [
+const otherNavLinks: NavLink[] = [
   { href: "/gallery", label: "Gallery", icon: LayoutGrid },
   { href: "/custom-order", label: "Custom Order", icon: FileText },
   { href: "/about", label: "About Us", icon: Info },
@@ -56,23 +65,43 @@ const otherNavLinks = [
   { href: "/contact", label: "Contact", icon: Phone },
 ];
 
-export function SiteHeader() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser, signOut, loading } = useAuth();
-  const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
+// Consistent skeleton for header loading state
+function HeaderContentSkeleton() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-full items-center justify-between px-4 md:px-6">
+        {/* Left side skeleton */}
+        <div className="flex items-center gap-2">
+           <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Represents mobile menu or home icon */}
+        </div>
+        {/* Right side skeleton */}
+        <div className="flex items-center gap-4">
+          <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* Basket icon placeholder */}
+          <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* User icon placeholder */}
+        </div>
+      </div>
+    </header>
+  );
+}
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+
+// Main header content, rendered after client mount and auth loading
+function ActualHeaderContent() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { currentUser, signOut, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const handleLogout = async () => {
     try {
       await signOut();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Logout Error", description: error.message });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast({ variant: "destructive", title: "Logout Error", description: error.message });
+      } else {
+         toast({ variant: "destructive", title: "Logout Error", description: "An unknown error occurred." });
+      }
     }
   };
 
@@ -80,37 +109,20 @@ export function SiteHeader() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  // For testing: const isAdmin = true;
-  // In production: const isAdmin = currentUser ? currentUser.email === "luke@mcconversions.uk" || currentUser.email === "admin@timberline.com" : false;
-  // For now, making admin links always visible as requested
+  // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always true for admin links visibility
   const isAdmin = true; 
 
-  const basketItemCount = 3;
-  const basketTotalPrice = 17575.00;
+  // Placeholder basket data
+  const basketItemCount = 3; 
+  const basketTotalPrice = 17575.00; 
 
-  if (!isClient || loading) {
-    // Consistent skeleton for SSR and initial client render to avoid hydration issues
-    return (
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          {/* Left side skeleton */}
-          <div className="flex items-center gap-2">
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse md:hidden"></div> {/* Mobile menu icon placeholder */}
-             <div className="h-9 w-9 bg-muted rounded-md animate-pulse"></div> {/* Desktop menu/home icon placeholder */}
-          </div>
-          {/* Right side skeleton */}
-          <div className="flex items-center gap-4">
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* Basket icon placeholder */}
-            <div className="h-9 w-9 bg-muted rounded-full animate-pulse"></div> {/* User icon placeholder */}
-          </div>
-        </div>
-      </header>
-    );
+  if (authLoading) {
+    return <HeaderContentSkeleton />;
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+    <header className="sticky top-0 z-50 w-full border-b h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto flex h-full items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -138,14 +150,16 @@ export function SiteHeader() {
                              Home
                           </Link>
                           {/* Always show Admin Dashboard link in mobile menu */}
-                          <Link
-                              href="/admin"
-                              className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
-                              onClick={closeMobileMenu}
-                          >
-                              <LayoutDashboard className="h-5 w-5 text-primary" />
-                              Admin Dashboard
-                          </Link>
+                          {isAdmin && (
+                            <Link
+                                href="/admin"
+                                className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
+                                onClick={closeMobileMenu}
+                            >
+                                <LayoutDashboard className="h-5 w-5 text-primary" />
+                                Admin Dashboard
+                            </Link>
+                          )}
                           <Separator className="my-2"/>
                            <p className="px-2.5 text-sm font-medium text-muted-foreground mb-1">Products</p>
                            {mainNavLinks.map((link) => (
@@ -155,8 +169,9 @@ export function SiteHeader() {
                                className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
                                onClick={closeMobileMenu}
                              >
-                                <link.icon className="h-5 w-5" />
-                               {link.label}
+                               {/* Conditionally render icon if it exists */}
+                               {link.icon && <link.icon className="h-5 w-5" />}
+                              {link.label}
                              </Link>
                            ))}
                            <Separator className="my-2"/>
@@ -167,7 +182,7 @@ export function SiteHeader() {
                                 className="flex items-center gap-4 px-2.5 py-2 text-muted-foreground hover:text-foreground rounded-md"
                                 onClick={closeMobileMenu}
                               >
-                                <link.icon className="h-5 w-5" />
+                                {link.icon && <link.icon className="h-5 w-5" />}
                                 {link.label}
                               </Link>
                            ))}
@@ -175,12 +190,6 @@ export function SiteHeader() {
                   </nav>
               </SheetContent>
            </Sheet>
-
-           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-            <Link href="/" aria-label="Homepage">
-              <Home className="h-5 w-5" />
-            </Link>
-          </Button>
 
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -200,7 +209,7 @@ export function SiteHeader() {
                  {mainNavLinks.map((link) => (
                  <DropdownMenuItem key={link.href} asChild>
                    <Link href={link.href} className="flex items-center gap-2">
-                     <link.icon className="h-4 w-4" />
+                     {link.icon && <link.icon className="h-4 w-4" />}
                      {link.label}
                    </Link>
                  </DropdownMenuItem>
@@ -208,22 +217,31 @@ export function SiteHeader() {
                <DropdownMenuSeparator />
                <DropdownMenuLabel>More</DropdownMenuLabel>
                  {/* Always show Admin Dashboard link in desktop dropdown */}
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin" className="flex items-center gap-2">
-                      <LayoutDashboard className="h-4 w-4 text-primary" />
-                      Admin Dashboard
-                    </Link>
-                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="flex items-center gap-2">
+                        <LayoutDashboard className="h-4 w-4 text-primary" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                  {otherNavLinks.map((link) => (
                    <DropdownMenuItem key={link.href} asChild>
                      <Link href={link.href} className="flex items-center gap-2">
-                       <link.icon className="h-4 w-4" />
+                       {link.icon && <link.icon className="h-4 w-4" />}
                        {link.label}
                      </Link>
                    </DropdownMenuItem>
                  ))}
              </DropdownMenuContent>
            </DropdownMenu>
+           
+           <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+            <Link href="/" aria-label="Homepage">
+              <Home className="h-5 w-5" />
+            </Link>
+          </Button>
+
 
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
@@ -244,12 +262,14 @@ export function SiteHeader() {
             </Link>
           </Button>
 
-           {/* Always show Admin Dashboard icon link if isAdmin logic is true (which it is for now) */}
-          <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-            <Link href="/admin" aria-label="Admin Dashboard">
-              <LayoutDashboard className="h-5 w-5 text-primary" />
-            </Link>
-          </Button>
+           {/* Always show Admin Dashboard icon link if isAdmin is true */}
+          {isAdmin && (
+            <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+              <Link href="/admin" aria-label="Admin Dashboard">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+              </Link>
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -290,4 +310,20 @@ export function SiteHeader() {
       </div>
     </header>
   );
+}
+
+
+export function SiteHeader() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    // Render a consistent skeleton on the server and for initial client render
+    return <HeaderContentSkeleton />;
+  }
+
+  return <ActualHeaderContent />;
 }

@@ -1,0 +1,8 @@
+{
+  "firebase_hosting": {
+    "deploymentHostingUrl": "https://timberline-commerce.web.app"
+  },
+  "cloud_run_deploy": {},
+  "google_maps_platform": {},
+  "secrets_manager": {}
+}
