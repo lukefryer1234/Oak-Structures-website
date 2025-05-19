@@ -79,16 +79,12 @@ export default function ProductPhotosPage() {
 
     // --- Placeholder File Upload Logic ---
     if (selectedFile) {
-        // In a real app, upload the file to cloud storage (e.g., S3, GCS)
-        // and get the public URL back.
         console.log("Uploading file:", selectedFile.name);
-        // Simulate upload delay and getting a URL
         await new Promise(resolve => setTimeout(resolve, 1000));
-        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`; // Placeholder URL after "upload"
+        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`; 
         console.log("Simulated upload complete. URL:", finalImageUrl);
         toast({ title: "Info", description: "Image upload simulated." });
     }
-     // --- End Placeholder ---
 
 
     const newImage: ProductImage = {
@@ -97,23 +93,19 @@ export default function ProductPhotosPage() {
         target: newImageTarget,
         url: finalImageUrl,
         altText: newImageAlt,
-        // Only include opacity if it's a background image
         opacity: newImageType === 'background' ? newImageOpacity : undefined,
     };
 
     setImages(prev => [...prev, newImage]);
-     // TODO: API call to save image metadata to backend
      console.log("Added Image:", newImage);
      toast({ title: "Success", description: "Image association added." });
 
-    // Reset form
     setNewImageType('');
     setNewImageTarget('');
     setNewImageUrl('');
     setNewImageAlt('');
-    setNewImageOpacity(10); // Reset opacity
+    setNewImageOpacity(10); 
     setSelectedFile(null);
-     // Reset file input visually
      const fileInput = document.getElementById('image-upload') as HTMLInputElement;
      if (fileInput) fileInput.value = '';
 
@@ -122,17 +114,15 @@ export default function ProductPhotosPage() {
   const handleDeleteImage = (id: string) => {
      if (window.confirm("Are you sure you want to delete this image association? This does not delete the actual image file from storage.")) {
         setImages(prev => prev.filter(img => img.id !== id));
-         // TODO: API call to delete image metadata from backend
         console.log("Deleted Image ID:", id);
         toast({ title: "Deleted", description: "Image association removed." });
      }
   };
 
-  // Dynamically render target options based on selected type
   const renderTargetOptions = () => {
     switch (newImageType) {
       case 'category':
-      case 'main_product': // Main product images target categories
+      case 'main_product': 
         return (
            <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
              <SelectTrigger id="target-select">
@@ -143,7 +133,7 @@ export default function ProductPhotosPage() {
              </SelectContent>
            </Select>
         );
-       case 'background': // Background images target pages
+       case 'background': 
            return (
              <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
                <SelectTrigger id="target-select">
@@ -155,24 +145,20 @@ export default function ProductPhotosPage() {
              </Select>
            );
        case 'special_deal':
-           // Replace with actual dynamic list of Deal IDs/Names
            return <Input id="target-input" placeholder="Enter Special Deal ID or Name" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
        case 'config_option':
-           // Replace with actual dynamic list of Config Option IDs
            return <Input id="target-input" placeholder="Enter Config Option ID (e.g., truss-curved)" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
       default:
         return <Input id="target-input" placeholder="Select Image Type first" disabled />;
     }
   };
 
-   // Helper function to format ImageType for display
    const formatImageType = (type: ImageType): string => {
        return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
    }
 
   return (
     <div className="space-y-8">
-      {/* Add New Image Form */}
       <Card>
         <CardHeader>
           <CardTitle>Add New Product Image</CardTitle>
@@ -181,7 +167,6 @@ export default function ProductPhotosPage() {
         <CardContent>
           <form onSubmit={handleAddImage} className="space-y-4">
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 {/* Image Type Select */}
                  <div className="space-y-2">
                     <Label htmlFor="image-type">Image Type <span className="text-destructive">*</span></Label>
                     <Select value={newImageType} onValueChange={(value) => setNewImageType(value as ImageType)} required>
@@ -194,13 +179,11 @@ export default function ProductPhotosPage() {
                     </Select>
                  </div>
 
-                 {/* Target Select/Input */}
                  <div className="space-y-2">
                     <Label htmlFor="target-select">Target <span className="text-destructive">*</span></Label>
                     {renderTargetOptions()}
                  </div>
 
-                {/* Alt Text */}
                  <div className="space-y-2">
                    <Label htmlFor="alt-text">Alt Text <span className="text-destructive">*</span></Label>
                    <Input id="alt-text" placeholder="Descriptive text for the image" value={newImageAlt} onChange={(e) => setNewImageAlt(e.target.value)} required />
@@ -208,12 +191,10 @@ export default function ProductPhotosPage() {
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                 {/* Image Upload */}
                 <div className="space-y-2">
                     <Label htmlFor="image-upload">Upload Image</Label>
                      <Input id="image-upload" type="file" accept="image/*" onChange={handleFileChange} className="pt-2"/>
                      <p className="text-xs text-muted-foreground">Overrides Image URL if selected.</p>
-                     {/* Optional Preview */}
                      {selectedFile && newImageUrl.startsWith('blob:') && (
                          <div className="mt-2">
                              <Image src={newImageUrl} alt="Preview" width={80} height={80} className="rounded-md object-cover aspect-square border" />
@@ -221,14 +202,12 @@ export default function ProductPhotosPage() {
                      )}
                  </div>
 
-                 {/* Image URL Input */}
                  <div className="space-y-2">
                     <Label htmlFor="image-url">Or Enter Image URL</Label>
                     <Input id="image-url" type="url" placeholder="https://..." value={newImageUrl} onChange={(e) => { setNewImageUrl(e.target.value); setSelectedFile(null); }} disabled={!!selectedFile} />
                  </div>
              </div>
 
-             {/* Opacity Slider (only shown for background images) */}
              {newImageType === 'background' && (
                  <div className="space-y-2 pt-4">
                    <Label htmlFor="opacity-slider">Background Opacity ({newImageOpacity}%)</Label>
@@ -252,7 +231,6 @@ export default function ProductPhotosPage() {
         </CardContent>
       </Card>
 
-      {/* Existing Images List */}
       <Card>
         <CardHeader>
           <CardTitle>Existing Images</CardTitle>
@@ -275,7 +253,6 @@ export default function ProductPhotosPage() {
                       )}
                       <p className="truncate"><strong className="text-muted-foreground">URL:</strong> <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{img.url}</a></p>
                   </div>
-                   {/* Delete Button */}
                    <Button
                       variant="destructive"
                       size="icon"

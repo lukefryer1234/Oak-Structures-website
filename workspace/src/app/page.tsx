@@ -2,17 +2,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'; // Removed CardHeader, CardFooter
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'; // CardHeader, CardFooter removed
 import { ArrowRight } from 'lucide-react';
 
 const productCategories = [
-  // Updated hrefs to point directly to /products/[category]/configure
   { name: 'Garages', href: '/', description: 'Robust oak frame garages.', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
   { name: 'Gazebos', href: '/', description: 'Elegant oak gazebos for your garden.', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
   { name: 'Porches', href: '/', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
   { name: 'Oak Beams', href: '/', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
-  { name: 'Oak Flooring', href: '/', description: 'Beautiful and durable oak flooring.', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
-   { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
+  { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 
 const featuredDeals = [
@@ -24,17 +22,12 @@ const featuredDeals = [
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* Product Categories Section */}
-       {/* Reduced py-16 to py-10 */}
        <section id="categories" className="py-10 bg-muted/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          {/* Reduced gap-8 to gap-6 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {productCategories.map((category) => (
               <Link href={category.href} key={category.name} className="group block">
-                 {/* Style 5: Image with overlay and title */}
                  <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col bg-card border border-border/50 relative aspect-[4/3]">
-                   {/* Image fills the card */}
                    <Image
                              src={category.image}
                              alt={category.name}
@@ -44,7 +37,6 @@ export default function Home() {
                              data-ai-hint={category.dataAiHint}
                              className="transition-transform duration-300 group-hover:scale-105"
                            />
-                   {/* Overlay for title */}
                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-end p-4">
                      <CardTitle className="text-xl font-semibold text-primary-foreground drop-shadow-md">
                        {category.name}
@@ -57,7 +49,6 @@ export default function Home() {
         </div>
       </section>
 
-       {/* Featured Deals Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-12">Featured Deals</h2>
@@ -82,7 +73,6 @@ export default function Home() {
                       <div className="flex items-center justify-between mt-4">
                        <span className="text-2xl font-semibold text-primary">{deal.price}</span>
                         <Button variant="secondary" asChild>
-                           {/* Link to the main special deals page as specific pages don't exist */}
                            <Link href="/special-deals">View Deal</Link>
                         </Button>
                      </div>

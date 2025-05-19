@@ -11,7 +11,7 @@ import {
   TreeDeciduous,
   DoorOpen,
   Layers,
-  // Grid, // Removed unused Grid icon
+  // Grid, // Unused
   Sparkles,
   LayoutGrid,
   FileText,
@@ -36,7 +36,6 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
-
 interface NavLink {
   href: string;
   label: string;
@@ -44,11 +43,10 @@ interface NavLink {
 }
 
 const mainNavLinks: NavLink[] = [
-  { href: "/", label: "Garages", icon: Wrench }, // Pointing to / temporarily
-  { href: "/", label: "Gazebos", icon: TreeDeciduous }, // Pointing to / temporarily
-  { href: "/", label: "Porches", icon: DoorOpen }, // Pointing to / temporarily
-  { href: "/", label: "Oak Beams", icon: Layers }, // Pointing to / temporarily
-  // { href: "/products/oak-flooring_COMPLETELY_DISABLED/configure", label: "Oak Flooring", icon: Grid }, // Kept disabled
+  { href: "/", label: "Garages", icon: Wrench },
+  { href: "/", label: "Gazebos", icon: TreeDeciduous },
+  { href: "/", label: "Porches", icon: DoorOpen },
+  { href: "/", label: "Oak Beams", icon: Layers },
   { href: "/special-deals", label: "Special Deals", icon: Sparkles },
 ];
 
@@ -60,7 +58,6 @@ const otherNavLinks: NavLink[] = [
   { href: "/contact", label: "Contact", icon: Phone },
 ];
 
-// Consistent skeleton for header loading state
 function HeaderContentSkeleton() {
   return (
     <header className="sticky top-0 z-50 w-full border-b h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -79,8 +76,6 @@ function HeaderContentSkeleton() {
   );
 }
 
-
-// Main header content, rendered after client mount and auth loading
 function ActualHeaderContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, signOut, loading: authLoading } = useAuth();
@@ -104,11 +99,10 @@ function ActualHeaderContent() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  const isAdmin = true; // Temporarily true for development
+  const isAdmin = true; 
 
-  // Placeholder basket data
-  const basketItemCount = 3;
-  const basketTotalPrice = 17575.00;
+  const basketItemCount = 3; 
+  const basketTotalPrice = 17575.00; 
 
   if (authLoading) {
     return <HeaderContentSkeleton />;
@@ -226,7 +220,7 @@ function ActualHeaderContent() {
                  ))}
              </DropdownMenuContent>
            </DropdownMenu>
-
+           
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
                     {formatPrice(basketTotalPrice)}
@@ -294,7 +288,6 @@ function ActualHeaderContent() {
     </header>
   );
 }
-
 
 export function SiteHeader() {
   const [isClient, setIsClient] = useState(false);
