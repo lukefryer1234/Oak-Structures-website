@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "timberline-commerce"
-  }
+    "default": "test-solid-oak",
+    "testproject": "test-solid-oak"
+  },
+  "targets": {},
+  "etags": {}
 }

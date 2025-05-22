@@ -2,7 +2,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  // Removed 'output: export' to support Server Actions and dynamic functionality
+  output: 'export',
+  trailingSlash: true,
   typescript: {
     ignoreBuildErrors: false,
   },
