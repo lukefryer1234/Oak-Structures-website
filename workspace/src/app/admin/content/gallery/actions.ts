@@ -37,7 +37,7 @@ export async function fetchGalleryItemsAction(): Promise<GalleryItem[]> {
     const q = query(collection(db, GALLERY_COLLECTION), orderBy("order", "asc"));
     const querySnapshot = await getDocs(q);
     const items: GalleryItem[] = [];
-    querySnapshot.forEach((docSnap) => {
+    querySnapshot.forEach((docSnap) => { // Renamed doc to docSnap to avoid conflict with doc function
       // Validate data against schema before returning
       const data = docSnap.data();
       const parsed = galleryItemSchema.safeParse(data); // Assuming 'order' is part of the doc data
@@ -80,15 +80,19 @@ export async function addGalleryItemAction(
       success: true,
       item: { id: docRef.id, ...validatedFields.data }
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error adding gallery item:", error);
-    return { message: "Failed to add gallery item.", success: false };
+    let message = "Failed to add gallery item.";
+    if (error instanceof Error) {
+        message = error.message;
+    }
+    return { message, success: false };
   }
 }
 
 // Action to update an existing gallery item
 export async function updateGalleryItemAction(
-  itemData: GalleryItem
+  itemData: GalleryItem 
 ): Promise<GalleryItemMutationState> {
   const validatedFields = updateGalleryItemSchema.safeParse(itemData);
   if (!validatedFields.success) {
@@ -106,9 +110,13 @@ export async function updateGalleryItemAction(
       success: true,
       item: { id, ...dataToUpdate }
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error updating gallery item:", error);
-    return { message: "Failed to update gallery item.", success: false };
+    let message = "Failed to update gallery item.";
+    if (error instanceof Error) {
+        message = error.message;
+    }
+    return { message, success: false };
   }
 }
 
@@ -122,9 +130,13 @@ export async function deleteGalleryItemAction(id: string): Promise<GalleryItemMu
   try {
     await deleteDoc(doc(db, GALLERY_COLLECTION, id));
     return { message: "Gallery item deleted successfully.", success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error deleting gallery item:", error);
-    return { message: "Failed to delete gallery item.", success: false };
+    let message = "Failed to delete gallery item.";
+    if (error instanceof Error) {
+        message = error.message;
+    }
+    return { message, success: false };
   }
 }
 
@@ -149,7 +161,7 @@ export async function updateGalleryOrderAction(
       });
       await batch.commit();
       // Optionally refetch and return the new list if needed, or just confirm success
-      const updatedItems = await fetchGalleryItemsAction();
+      const updatedItems = await fetchGalleryItemsAction(); 
       return { message: "Gallery order updated successfully.", success: true, item: updatedItems };
   } catch (error: unknown) {
       console.error("Error updating gallery order:", error);
@@ -160,3 +172,5 @@ export async function updateGalleryOrderAction(
       return { message: errorMessage, success: false };
   }
 }
+
+    

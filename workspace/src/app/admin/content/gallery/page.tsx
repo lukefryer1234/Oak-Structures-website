@@ -1,12 +1,12 @@
 
 "use client"; 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react'; // Added FormEvent, ChangeEvent
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Loader2 } from 'lucide-react'; // Removed Edit, Trash2
+import { PlusCircle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import {
   Dialog,
@@ -14,8 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  // DialogTrigger, // Not used
-  // DialogClose, // Not used
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -23,7 +21,7 @@ import {
     addGalleryItemAction, 
     updateGalleryItemAction, 
     deleteGalleryItemAction,
-    // updateGalleryOrderAction, // Not used due to onDragEnd being commented
+    // updateGalleryOrderAction, // This was unused
     type GalleryItem 
 } from './actions';
 
@@ -48,7 +46,7 @@ export default function GalleryContentPage() {
     setIsLoading(false);
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       setSelectedFile(file);
@@ -66,7 +64,7 @@ export default function GalleryContentPage() {
     setFormState(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveItem = async (event: React.FormEvent) => {
+  const handleSaveItem = async (event: FormEvent<HTMLFormElement>) => { // Typed event
     event.preventDefault();
     setIsSaving(true);
 
@@ -131,8 +129,9 @@ export default function GalleryContentPage() {
         loadGalleryItems(); 
       } else {
         toast({ variant: "destructive", title: "Error", description: result.message });
-        setIsLoading(false);
       }
+      // Reset loading state whether successful or not, unless loadGalleryItems handles it implicitly
+      setIsLoading(false); 
     }
   };
   
@@ -145,22 +144,7 @@ export default function GalleryContentPage() {
      if (fileInput) fileInput.value = '';
   };
 
-  // const onDragEnd = async (result: any /* DropResult from react-beautiful-dnd */) => {
-  //    if (!result.destination) return;
-  //    const items = Array.from(galleryItems);
-  //    const [reorderedItem] = items.splice(result.source.index, 1);
-  //    items.splice(result.destination.index, 0, reorderedItem);
-  //    const updatedItemsOrder = items.map((item, index) => ({ id: item.id, order: index + 1 }));
-  //    setIsLoading(true);
-  //    const updateResult = await updateGalleryOrderAction(updatedItemsOrder);
-  //    if (updateResult.success && updateResult.item && Array.isArray(updateResult.item)) {
-  //        setGalleryItems(updateResult.item); 
-  //        toast({title: "Success", description: "Gallery order updated."});
-  //    } else {
-  //        toast({variant: "destructive", title: "Error", description: updateResult.message || "Failed to update order."});
-  //        loadGalleryItems();
-  //    }
-  //    setIsLoading(false);
+  // const onDragEnd = async (result: any) => { // Removed unused onDragEnd
   // };
 
 
@@ -206,8 +190,8 @@ export default function GalleryContentPage() {
                   </div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)} disabled={isSaving}>Edit</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteItem(item.id)} disabled={isSaving || isLoading}>
-                      {isLoading && editingItem?.id !== item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteItem(item.id)} disabled={isSaving || (isLoading && editingItem?.id !== item.id) }> {/* Adjusted disabled condition */}
+                      {(isLoading && editingItem?.id !== item.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
                     </Button>
                   </div>
                 </div>
@@ -325,3 +309,5 @@ export default function GalleryContentPage() {
     </div>
   );
 }
+
+    
