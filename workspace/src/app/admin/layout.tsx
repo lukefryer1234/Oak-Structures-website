@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Keep useEffect for openSubMenus if re-enabled
 import Link from 'next/link';
 import {
     LayoutDashboard,
@@ -26,7 +26,7 @@ import {
     Loader2,
     UserPlus,
     MessageSquare,
-    Tags, // Icon for Main Product Prices
+    Tags,
 } from 'lucide-react';
 import {
     Sidebar,
@@ -104,11 +104,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const { toast } = useToast();
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
-    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check for dev purposes
     const isUserAdmin = () => {
+        // In a real app, you'd check currentUser?.email or a custom claim for admin role
+        // For now, to ensure visibility during dev when login might be an issue:
         return true;
     };
+
+    const isAdminUser = isUserAdmin(); // This will always be true now due to the above
 
     const toggleSubMenu = (label: string) => {
         setOpenSubMenus(prev => ({ ...prev, [label]: !prev[label] }));
@@ -118,15 +121,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (isSubItem) {
             return pathname === path;
         }
-        if (path === '/admin' && !pathname.startsWith('/admin/')) {
+        // For the main /admin dashboard link, only active if it's exactly /admin
+        if (path === '/admin') {
              return pathname === '/admin';
         }
+        // For other parent links, active if path starts with it (e.g. /admin/products is active for /admin/products/main-product-prices)
         return path !== '/admin' && pathname.startsWith(path);
     };
 
     const handleLogout = async () => {
         try {
           await signOut();
+          // Toast for success is usually handled in AuthContext or the component triggering sign out
         } catch (error: unknown) {
           if (error instanceof Error) {
             toast({ variant: "destructive", title: "Logout Error", description: error.message });
@@ -136,17 +142,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
     };
 
-    if (authLoading) { // Only show loader based on authLoading
+    // Only show loader based on authLoading, not currentUser or isAdminUser, to ensure layout renders
+    if (authLoading) {
         return (
             <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="mt-4 text-muted-foreground">
-                    Loading authentication state...
+                    Loading authentication state for Admin...
                 </p>
             </div>
         );
     }
 
+    // The rest of the layout will now render even if currentUser is null or not technically an admin,
+    // because isUserAdmin() and isAdminUser are temporarily true.
     const renderNavItems = (items: NavItem[], isSubmenu = false) => {
         return items.map((link) => {
             const active = isActive(link.href, isSubmenu);
@@ -165,47 +174,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 );
             }
 
-            if (link.label === "CRM" && hasSubItems) { // Special handling for CRM to add the "Hello" button
-                return (
-                    <SidebarMenuItem key={link.href}>
-                        <SidebarMenuButton
-                            onClick={() => toggleSubMenu(link.label)}
-                            isActive={active && !hasSubItems} 
-                            className="justify-between" 
-                        >
-                            <div className="flex items-center gap-2 w-full">
-                                <link.icon />
-                                <span>{link.label}</span>
-                                 <span className="ml-auto"> 
-                                   {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                                 </span>
-                            </div>
-                        </SidebarMenuButton>
-                         {isSubMenuOpen && (
-                            <SidebarMenuSub>
-                               {renderNavItems(link.subItems!, true)}
-                            </SidebarMenuSub>
-                         )}
-                        {/* Test Button */}
-                        <Button variant="outline" size="sm" className="w-full mt-1">Hello</Button>
-                    </SidebarMenuItem>
-                );
-            }
-
-
             return (
                 <SidebarMenuItem key={link.href}>
                     <SidebarMenuButton
                         onClick={hasSubItems ? () => toggleSubMenu(link.label) : undefined}
                         asChild={!hasSubItems}
-                        isActive={active && !hasSubItems} 
-                        className="justify-between" 
+                        isActive={active && !hasSubItems}
+                        className="justify-between"
                     >
                         {hasSubItems ? (
                             <div className="flex items-center gap-2 w-full">
                                 <link.icon />
                                 <span>{link.label}</span>
-                                 <span className="ml-auto"> 
+                                 <span className="ml-auto">
                                    {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
                                  </span>
                             </div>
@@ -228,36 +209,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 
     return (
-        <SidebarProvider>
-            <Sidebar>
-                <SidebarHeader>
-                    <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
-                     <SidebarTrigger/> 
-                </SidebarHeader>
-                <SidebarContent>
-                    <SidebarMenu>
-                        {renderNavItems(adminNavLinks)}
-                    </SidebarMenu>
-                </SidebarContent>
-                 <SidebarFooter>
-                     <div className="flex items-center gap-2 p-2 border-t border-sidebar-border">
-                         <Avatar className="h-8 w-8">
-                             <AvatarImage src={currentUser?.photoURL ?? undefined} alt={currentUser?.displayName ?? 'Admin'} />
-                             <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'A'}</AvatarFallback>
-                         </Avatar>
-                         <div className="flex flex-col text-xs truncate">
-                             <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email || "Guest Admin"}</span>
-                             {currentUser?.displayName && currentUser.email && <span className="text-muted-foreground">{currentUser.email}</span> }
+        <>
+            {/* Prominent visual marker */}
+            <h2 style={{ position: 'fixed', top: '5px', left: '5px', backgroundColor: 'yellow', color: 'black', padding: '10px', zIndex: 9999 }}>
+                ADMIN LAYOUT UPDATED - {new Date().toLocaleTimeString()}
+            </h2>
+            <SidebarProvider>
+                <Sidebar>
+                    <SidebarHeader>
+                        <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
+                         <SidebarTrigger/>
+                    </SidebarHeader>
+                    <SidebarContent>
+                        <SidebarMenu>
+                            {renderNavItems(adminNavLinks)}
+                        </SidebarMenu>
+                    </SidebarContent>
+                     <SidebarFooter>
+                         <div className="flex items-center gap-2 p-2 border-t border-sidebar-border">
+                             <Avatar className="h-8 w-8">
+                                 <AvatarImage src={currentUser?.photoURL ?? undefined} alt={currentUser?.displayName ?? 'Admin'} />
+                                 <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'G'}</AvatarFallback>
+                             </Avatar>
+                             <div className="flex flex-col text-xs truncate">
+                                 <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email || "Guest Admin"}</span>
+                                 {currentUser?.displayName && currentUser.email && <span className="text-muted-foreground">{currentUser.email}</span> }
+                             </div>
+                             <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
                          </div>
-                         <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
+                     </SidebarFooter>
+                </Sidebar>
+                <SidebarInset>
+                     <div className="p-4 md:p-8">
+                        {children}
                      </div>
-                 </SidebarFooter>
-            </Sidebar>
-            <SidebarInset>
-                 <div className="p-4 md:p-8">
-                    {children}
-                 </div>
-            </SidebarInset>
-        </SidebarProvider>
+                </SidebarInset>
+            </SidebarProvider>
+        </>
     );
 }
+
+    

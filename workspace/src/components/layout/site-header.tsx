@@ -11,7 +11,6 @@ import {
   TreeDeciduous,
   DoorOpen,
   Layers,
-  // Grid, // Unused
   Sparkles,
   LayoutGrid,
   FileText,
@@ -19,6 +18,9 @@ import {
   HelpCircle,
   Phone,
   LayoutDashboard,
+  Tags, // Added for Main Product Prices icon
+  Ruler, // Added for Unit Prices icon
+  ImageIcon as ImageIconLucide, // Renamed to avoid conflict
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,10 +45,11 @@ interface NavLink {
 }
 
 const mainNavLinks: NavLink[] = [
-  { href: "/", label: "Garages", icon: Wrench },
-  { href: "/", label: "Gazebos", icon: TreeDeciduous },
-  { href: "/", label: "Porches", icon: DoorOpen },
-  { href: "/", label: "Oak Beams", icon: Layers },
+  { href: "/", label: "Home", icon: Home }, // Changed to point to home for now
+  // { href: "/products/garages/configure", label: "Garages", icon: Wrench },
+  // { href: "/products/gazebos/configure", label: "Gazebos", icon: TreeDeciduous },
+  // { href: "/products/porches/configure", label: "Porches", icon: DoorOpen },
+  // { href: "/products/oak-beams/configure", label: "Oak Beams", icon: Layers },
   { href: "/special-deals", label: "Special Deals", icon: Sparkles },
 ];
 
@@ -58,6 +61,7 @@ const otherNavLinks: NavLink[] = [
   { href: "/contact", label: "Contact", icon: Phone },
 ];
 
+// Consistent skeleton for header loading state
 function HeaderContentSkeleton() {
   return (
     <header className="sticky top-0 z-50 w-full border-b h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -76,6 +80,8 @@ function HeaderContentSkeleton() {
   );
 }
 
+
+// Main header content, rendered after client mount and auth loading
 function ActualHeaderContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, signOut, loading: authLoading } = useAuth();
@@ -99,10 +105,12 @@ function ActualHeaderContent() {
       return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(price);
   }
 
-  const isAdmin = true; 
+  // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always true for admin links visibility
+  const isAdmin = true;
 
-  const basketItemCount = 3; 
-  const basketTotalPrice = 17575.00; 
+  // Placeholder basket data
+  const basketItemCount = 3;
+  const basketTotalPrice = 17575.00;
 
   if (authLoading) {
     return <HeaderContentSkeleton />;
@@ -110,7 +118,7 @@ function ActualHeaderContent() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-full items-center justify-between px-4 md:px-6">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -137,6 +145,7 @@ function ActualHeaderContent() {
                              <Home className="h-5 w-5" />
                              Home
                           </Link>
+                          {/* Always show Admin Dashboard link in mobile menu */}
                           {isAdmin && (
                             <Link
                                 href="/admin"
@@ -202,6 +211,7 @@ function ActualHeaderContent() {
                ))}
                <DropdownMenuSeparator />
                <DropdownMenuLabel>More</DropdownMenuLabel>
+                  {/* Always show Admin Dashboard link in desktop dropdown */}
                   {isAdmin && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin" className="flex items-center gap-2">
@@ -220,7 +230,7 @@ function ActualHeaderContent() {
                  ))}
              </DropdownMenuContent>
            </DropdownMenu>
-           
+
             {basketItemCount > 0 && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
                     {formatPrice(basketTotalPrice)}
@@ -240,6 +250,7 @@ function ActualHeaderContent() {
             </Link>
           </Button>
 
+          {/* Always show Admin Dashboard icon link if isAdmin is true */}
           {isAdmin && (
             <Button variant="ghost" size="icon" asChild className="h-9 w-9">
               <Link href="/admin" aria-label="Admin Dashboard">
@@ -297,8 +308,11 @@ export function SiteHeader() {
   }, []);
 
   if (!isClient) {
+    // Render a consistent skeleton on the server and for initial client render
     return <HeaderContentSkeleton />;
   }
 
   return <ActualHeaderContent />;
 }
+
+    
