@@ -39,17 +39,17 @@ interface ConfigurableAttributeChoice {
 }
 
 interface ConfigurableAttribute {
-  id: keyof ConfigurablePriceSelections; // e.g., 'size', 'trussType'
+  id: keyof ConfigurablePriceSelections; // e.g., 'g_size', 'gz_trussType'
   label: string; // e.g., 'Size', 'Truss Type'
   choices: ConfigurableAttributeChoice[];
 }
 
-// Specific selection types for formState
+// Specific selection types for formState's currentConfigSelections
 interface ConfigurablePriceSelections {
   // Garage options
   g_size?: string;
   g_trussType?: string;
-  g_bays?: string; // Storing as string from select, parse if needed
+  g_bays?: string;
   g_catSlide?: 'yes' | 'no';
   g_oakType?: string;
 
@@ -63,6 +63,9 @@ interface ConfigurablePriceSelections {
   p_legType?: string;
   p_sizeType?: string;
 }
+
+type ConfigurablePriceFormValue = string | number | boolean | undefined;
+
 
 interface PriceFormState {
   category?: ProductCategory;
@@ -132,8 +135,8 @@ export default function ConfigurablePricesPage() {
       }
     });
 
-    keyParts.sort(); // Ensure canonical key
-    const configKey = keyParts.length > 0 ? `${category.toLowerCase()}_${keyParts.join('_')}` : category.toLowerCase();
+    keyParts.sort(); 
+    const configKey = keyParts.length > 0 ? `${category.toLowerCase().replace(/\s+/g, '-')}_${keyParts.join('_')}` : category.toLowerCase().replace(/\s+/g, '-');
     const configDescription = descriptionParts.length > 0 ? `${category}: ${descriptionParts.join(', ')}` : category;
     
     return { configKey, configDescription };
@@ -149,11 +152,10 @@ export default function ConfigurablePricesPage() {
 
   const handleFormInputChange = (field: keyof PriceFormState, value: ProductCategory | string | number) => {
     if (field === 'category') {
-      // When category changes, reset selections for the previous category and clear generated key/desc
       setFormState(prev => ({
         ...prev,
         [field]: value as ProductCategory,
-        currentConfigSelections: {}, // Reset selections
+        currentConfigSelections: {}, 
         configKey: '',
         configDescription: '',
       }));
@@ -187,22 +189,33 @@ export default function ConfigurablePricesPage() {
 
     let priceEntryData: Omit<ConfigurablePrice, 'id'>;
 
-    if (editingPrice) { // Editing existing price
+    if (editingPrice) { 
       priceEntryData = {
         category: editingPrice.category,
         configKey: editingPrice.configKey,
         configDescription: editingPrice.configDescription,
         price: priceValue,
       };
-    } else { // Adding new price
+    } else { 
       if (!formState.configKey || !formState.configDescription || Object.keys(formState.currentConfigSelections).length === 0) {
-        toast({ variant: "destructive", title: "Validation Error", description: "Please select configuration options to generate a description and key." });
+        const activeDefinitions = formState.category ? allOptionDefinitions[formState.category] : [];
+        if (Object.keys(formState.currentConfigSelections).length < activeDefinitions.length) {
+            toast({ variant: "destructive", title: "Validation Error", description: "Please select all configuration options for the chosen category." });
+            return;
+        }
+      }
+       // Re-generate key and description one last time before saving to ensure it's based on final selections
+      const { configKey, configDescription } = generateConfigKeyAndDescription(formState.currentConfigSelections, formState.category);
+
+      if (!configKey || !configDescription ) {
+         toast({ variant: "destructive", title: "Validation Error", description: "Could not generate configuration key/description. Please ensure all options are selected." });
         return;
       }
+
       priceEntryData = {
         category: formState.category!,
-        configKey: formState.configKey!,
-        configDescription: formState.configDescription!,
+        configKey: configKey,
+        configDescription: configDescription,
         price: priceValue,
       };
     }
@@ -213,7 +226,7 @@ export default function ConfigurablePricesPage() {
     };
 
     if (editingPrice) {
-      setPrices(prev => prev.map(p => p.id === editingPrice.id ? newOrUpdatedPriceEntry : p));
+      setPrices(prev => prev.map(p => p.id === editingPrice!.id ? newOrUpdatedPriceEntry : p));
       toast({ title: "Success", description: "Price configuration updated." });
       console.log("Updated Price:", newOrUpdatedPriceEntry);
     } else {
@@ -235,7 +248,7 @@ export default function ConfigurablePricesPage() {
     setFormState({
       category: priceToEdit.category,
       price: priceToEdit.price,
-      currentConfigSelections: {}, // Selections not pre-filled for edit, description shown instead
+      currentConfigSelections: {}, 
       configKey: priceToEdit.configKey,
       configDescription: priceToEdit.configDescription,
     });
@@ -257,28 +270,33 @@ export default function ConfigurablePricesPage() {
   };
 
   const renderCategoryOptions = () => {
-    if (!formState.category || editingPrice) return null; // Don't render if no category or if editing
+    if (!formState.category || editingPrice) return null; 
 
     const currentDefinitions = allOptionDefinitions[formState.category];
     if (!currentDefinitions) return null;
 
-    return currentDefinitions.map(attr => (
-      <div key={attr.id} className="space-y-2">
-        <Label htmlFor={attr.id}>{attr.label} <span className="text-destructive">*</span></Label>
-        <Select
-          value={formState.currentConfigSelections[attr.id] || ''}
-          onValueChange={(value) => handleSelectionChange(attr.id, value)}
-          required
-        >
-          <SelectTrigger id={attr.id}>
-            <SelectValue placeholder={`Select ${attr.label}`} />
-          </SelectTrigger>
-          <SelectContent>
-            {attr.choices.map(choice => <SelectItem key={choice.value} value={choice.value}>{choice.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+    return (
+      <div className="p-4 border rounded-md bg-muted/50 space-y-4 my-4">
+        <p className="text-sm font-medium text-center text-muted-foreground">Configure Options for {formState.category}</p>
+        {currentDefinitions.map(attr => (
+          <div key={attr.id} className="space-y-2">
+            <Label htmlFor={attr.id}>{attr.label} <span className="text-destructive">*</span></Label>
+            <Select
+              value={formState.currentConfigSelections[attr.id] || ''}
+              onValueChange={(value) => handleSelectionChange(attr.id, value)}
+              required
+            >
+              <SelectTrigger id={attr.id} className="bg-background">
+                <SelectValue placeholder={`Select ${attr.label}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {attr.choices.map(choice => <SelectItem key={choice.value} value={choice.value}>{choice.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
       </div>
-    ));
+    );
   };
 
   return (
@@ -312,9 +330,9 @@ export default function ConfigurablePricesPage() {
                   value={formState.category}
                   onValueChange={(value) => handleFormInputChange('category', value as ProductCategory)}
                   required
-                  disabled={!!editingPrice} // Disable category change when editing
+                  disabled={!!editingPrice} 
                 >
-                  <SelectTrigger id="category" className={editingPrice ? "bg-muted/50" : ""}>
+                  <SelectTrigger id="category" className={editingPrice ? "bg-muted/50" : "bg-background"}>
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -323,7 +341,7 @@ export default function ConfigurablePricesPage() {
                 </Select>
               </div>
 
-              {!editingPrice && renderCategoryOptions()}
+              {renderCategoryOptions()}
               
               {editingPrice && formState.configDescription && (
                 <div className="space-y-2 mt-4 p-3 bg-muted/50 rounded-md border">
@@ -350,8 +368,8 @@ export default function ConfigurablePricesPage() {
               {!editingPrice && (
                 <div className="space-y-2 mt-4 p-3 bg-muted/50 rounded-md border">
                   <Label>Generated Description:</Label>
-                  <p className="text-sm">{formState.configDescription || 'Configure options above...'}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Key: {formState.configKey || 'Will be generated...'}</p>
+                  <p className="text-sm">{formState.configDescription || 'Select options to generate description...'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Generated Key: {formState.configKey || 'Will be generated...'}</p>
                 </div>
               )}
             </form>
@@ -410,3 +428,5 @@ export default function ConfigurablePricesPage() {
     </Card>
   );
 }
+
+    
