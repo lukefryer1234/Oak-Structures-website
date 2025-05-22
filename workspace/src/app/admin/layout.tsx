@@ -102,8 +102,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const { toast } = useToast();
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
-    const isUserAdmin = () => {
-        // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
+    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
+    const isUserAdmin = () => { // eslint-disable-line @typescript-eslint/no-unused-vars
         return true; 
         // Original logic (keep for reference):
         // if (!authLoading && !currentUser) return false;
@@ -126,7 +126,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (path === '/admin' && !pathname.startsWith('/admin/')) { // Exact match for /admin dashboard
              return pathname === '/admin';
         }
-        return pathname.startsWith(path) && path !== '/admin'; // Avoid /admin matching all sub-routes by default
+        // For parent items, check if the current path starts with the link's path,
+        // but only if the link's path is not just "/admin" (to avoid matching all sub-routes)
+        // and it's not an exact match for the dashboard page itself (which is handled above).
+        return path !== '/admin' && pathname.startsWith(path);
     };
 
     const handleLogout = async () => {
@@ -152,7 +155,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
-    // The rest of the layout will now render even if currentUser is null due to temporary admin check bypass
     const renderNavItems = (items: NavItem[], isSubmenu = false) => {
         return items.map((link) => {
             const active = isActive(link.href, isSubmenu);
