@@ -60,7 +60,7 @@ const adminNavLinks: NavItem[] = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     {
-        href: "/admin/products", // This parent href might not be directly navigable if it's just a group
+        href: "/admin/products",
         label: "Products",
         icon: Package,
         subItems: [
@@ -118,11 +118,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (isSubItem) {
             return pathname === path;
         }
-        // For top-level /admin, only active if pathname is exactly /admin
         if (path === '/admin' && !pathname.startsWith('/admin/')) {
              return pathname === '/admin';
         }
-        // For other top-level admin sections like /admin/orders, active if pathname starts with it
         return path !== '/admin' && pathname.startsWith(path);
     };
 
@@ -138,7 +136,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
     };
 
-    if (authLoading) {
+    if (authLoading) { // Only show loader based on authLoading
         return (
             <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -167,19 +165,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 );
             }
 
+            if (link.label === "CRM" && hasSubItems) { // Special handling for CRM to add the "Hello" button
+                return (
+                    <SidebarMenuItem key={link.href}>
+                        <SidebarMenuButton
+                            onClick={() => toggleSubMenu(link.label)}
+                            isActive={active && !hasSubItems} 
+                            className="justify-between" 
+                        >
+                            <div className="flex items-center gap-2 w-full">
+                                <link.icon />
+                                <span>{link.label}</span>
+                                 <span className="ml-auto"> 
+                                   {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                                 </span>
+                            </div>
+                        </SidebarMenuButton>
+                         {isSubMenuOpen && (
+                            <SidebarMenuSub>
+                               {renderNavItems(link.subItems!, true)}
+                            </SidebarMenuSub>
+                         )}
+                        {/* Test Button */}
+                        <Button variant="outline" size="sm" className="w-full mt-1">Hello</Button>
+                    </SidebarMenuItem>
+                );
+            }
+
+
             return (
                 <SidebarMenuItem key={link.href}>
                     <SidebarMenuButton
                         onClick={hasSubItems ? () => toggleSubMenu(link.label) : undefined}
                         asChild={!hasSubItems}
-                        isActive={active && !hasSubItems}
-                        className="justify-between"
+                        isActive={active && !hasSubItems} 
+                        className="justify-between" 
                     >
                         {hasSubItems ? (
                             <div className="flex items-center gap-2 w-full">
                                 <link.icon />
                                 <span>{link.label}</span>
-                                 <span className="ml-auto">
+                                 <span className="ml-auto"> 
                                    {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
                                  </span>
                             </div>
@@ -206,7 +232,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Sidebar>
                 <SidebarHeader>
                     <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
-                     <SidebarTrigger/>
+                     <SidebarTrigger/> 
                 </SidebarHeader>
                 <SidebarContent>
                     <SidebarMenu>
