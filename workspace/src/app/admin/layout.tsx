@@ -1,5 +1,5 @@
 
-"use client"; 
+"use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ import {
     BarChart3,
     Mail,
     FileText,
-    ImageIcon as ImageIconLucide, 
+    ImageIcon as ImageIconLucide,
     ScanSearch,
     Sparkles,
     Ruler,
@@ -60,14 +60,14 @@ const adminNavLinks: NavItem[] = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     {
-        href: "/admin/products", label: "Products", icon: Package, subItems: [
-            // This link now points to the page with the table of full product configurations
+        href: "/admin/products", // This parent href might not be directly navigable if it's just a group
+        label: "Products",
+        icon: Package,
+        subItems: [
             { href: "/admin/products/main-product-prices", label: "Main Product Prices", icon: Tags },
-            // The placeholder for component-level pricing is no longer in this primary submenu
-            // If needed later, a link to "/admin/products/configurable-prices" can be added for component prices
             { href: "/admin/products/unit-prices", label: "Unit Prices", icon: Ruler },
             { href: "/admin/products/special-deals", label: "Special Deals", icon: Sparkles },
-            { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide }, 
+            { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide },
         ]
     },
      {
@@ -94,7 +94,7 @@ const adminNavLinks: NavItem[] = [
             { href: "/admin/crm/leads", label: "Lead Management", icon: UserPlus },
             { href: "/admin/crm/contacts", label: "Contact History", icon: MessageSquare },
         ]
-    }, 
+    },
 ];
 
 
@@ -106,10 +106,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const isUserAdmin = () => { 
-        return true; 
+    const isUserAdmin = () => {
+        return true;
     };
-    
+
     const toggleSubMenu = (label: string) => {
         setOpenSubMenus(prev => ({ ...prev, [label]: !prev[label] }));
     };
@@ -118,9 +118,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (isSubItem) {
             return pathname === path;
         }
-        if (path === '/admin' && !pathname.startsWith('/admin/')) { 
+        // For top-level /admin, only active if pathname is exactly /admin
+        if (path === '/admin' && !pathname.startsWith('/admin/')) {
              return pathname === '/admin';
         }
+        // For other top-level admin sections like /admin/orders, active if pathname starts with it
         return path !== '/admin' && pathname.startsWith(path);
     };
 
@@ -170,14 +172,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <SidebarMenuButton
                         onClick={hasSubItems ? () => toggleSubMenu(link.label) : undefined}
                         asChild={!hasSubItems}
-                        isActive={active && !hasSubItems} 
-                        className="justify-between" 
+                        isActive={active && !hasSubItems}
+                        className="justify-between"
                     >
                         {hasSubItems ? (
                             <div className="flex items-center gap-2 w-full">
                                 <link.icon />
                                 <span>{link.label}</span>
-                                 <span className="ml-auto"> 
+                                 <span className="ml-auto">
                                    {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
                                  </span>
                             </div>
@@ -204,7 +206,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Sidebar>
                 <SidebarHeader>
                     <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
-                     <SidebarTrigger/> 
+                     <SidebarTrigger/>
                 </SidebarHeader>
                 <SidebarContent>
                     <SidebarMenu>
