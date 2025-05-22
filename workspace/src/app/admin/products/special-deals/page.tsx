@@ -1,7 +1,7 @@
 
 "use client"; // For state, dialogs, form handling
 
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,14 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
-  // DialogDescription, // Removed unused import
+  // DialogDescription, // Unused
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch"; // For activation status
+import { Switch } from "@/components/ui/switch";
 
 
 // --- Types and Placeholder Data ---
@@ -31,59 +31,52 @@ interface SpecialDeal {
   name: string;
   description: string;
   price: number;
-  originalPrice?: number; // Optional original price for showing discount
-  image: string; // URL or path to image
-  dataAiHint: string; // AI hint for placeholder image generation
-  href: string; // Link to the specific deal page (e.g., /special-deals/deal-slug)
-  isActive: boolean; // Is the deal currently live?
-  // Add fields relevant for shipping calculation if it's a Beam/Flooring type deal
-  isStructureType: boolean; // True if Garage/Gazebo/Porch (shipping included), false if Beam/Flooring (calc required)
-  volumeM3?: number; // Required if isStructureType is false
+  originalPrice?: number;
+  image: string;
+  dataAiHint: string;
+  href: string;
+  isActive: boolean;
+  isStructureType: boolean;
+  volumeM3?: number;
 }
 
-// Placeholder data - Fetch from backend
+type SpecialDealFormValue = string | number | boolean | undefined;
+
+
 const initialDeals: SpecialDeal[] = [
   { id: 'deal1', name: 'Pre-Configured Double Garage', description: 'Our popular 2-bay garage...', price: 8500, originalPrice: 9200, image: 'https://picsum.photos/seed/deal1/100/100', dataAiHint: 'double oak frame garage sale', href: '/special-deals/double-garage', isActive: true, isStructureType: true },
   { id: 'deal2', name: 'Garden Gazebo Kit', description: 'Easy-to-assemble 3m x 3m kit...', price: 3200, originalPrice: 3500, image: 'https://picsum.photos/seed/deal2/100/100', dataAiHint: 'garden gazebo kit wood offer', href: '/special-deals/gazebo-kit', isActive: true, isStructureType: true },
   { id: 'deal3', name: 'Rustic Oak Beam Bundle', description: 'Selection of 3 reclaimed beams...', price: 450, image: 'https://picsum.photos/seed/deal3/100/100', dataAiHint: 'rustic oak beams bundle', href: '/special-deals/beam-bundle', isActive: true, isStructureType: false, volumeM3: 0.3 },
-  { id: 'deal4', name: 'End-of-Line Oak Flooring (15m²)', description: '15 sq meters remaining...', price: 750, image: 'https://picsum.photos/seed/deal4/100/100', dataAiHint: 'oak flooring discount lot', href: '/special-deals/flooring-lot', isActive: false, isStructureType: false, volumeM3: 0.3 }, // Example inactive deal
+  { id: 'deal4', name: 'End-of-Line Oak Flooring (15m²)', description: '15 sq meters remaining...', price: 750, image: 'https://picsum.photos/seed/deal4/100/100', dataAiHint: 'oak flooring discount lot', href: '/special-deals/flooring-lot', isActive: false, isStructureType: false, volumeM3: 0.3 },
 ];
-
-type SpecialDealFormValue = string | number | boolean | undefined;
-
 
 export default function SpecialDealsPage() {
   const [deals, setDeals] = useState<SpecialDeal[]>(initialDeals);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<SpecialDeal | null>(null);
-  // Simplified form state - expand as needed
   const [formState, setFormState] = useState<Partial<SpecialDeal>>({ isActive: true, isStructureType: true });
 
   const handleFormChange = (field: keyof SpecialDeal, value: SpecialDealFormValue) => {
-     // Handle switch specifically
      if (field === 'isActive' || field === 'isStructureType') {
          setFormState(prev => ({ ...prev, [field]: value as boolean }));
      } else if (field === 'price' || field === 'originalPrice' || field === 'volumeM3') {
          const numValue = value === '' || value === undefined ? undefined : parseFloat(String(value));
          setFormState(prev => ({ ...prev, [field]: numValue }));
-     }
-      else {
+     } else {
          setFormState(prev => ({ ...prev, [field]: value as string }));
      }
   };
 
-  const handleSaveDeal = (event: React.FormEvent) => {
+  const handleSaveDeal = (event: FormEvent) => {
     event.preventDefault();
-    // --- Basic Validation ---
     if (!formState.name || !formState.description || !formState.price || formState.price <= 0 || !formState.href || !formState.image || !formState.dataAiHint) {
-        alert("Please fill in all required fields (Name, Description, Price, Href, Image URL, AI Hint)."); // Use toast
+        alert("Please fill in all required fields (Name, Description, Price, Href, Image URL, AI Hint).");
         return;
     }
     if (!formState.isStructureType && (!formState.volumeM3 || formState.volumeM3 <= 0)) {
-         alert("Please provide a valid positive Volume (m³) for Beam/Flooring type deals."); // Use toast
+         alert("Please provide a valid positive Volume (m³) for Beam/Flooring type deals.");
          return;
     }
-
 
     const newDealData: SpecialDeal = {
         id: editingDeal?.id ?? `deal${Date.now()}`,
@@ -101,38 +94,32 @@ export default function SpecialDealsPage() {
 
     if (editingDeal) {
         setDeals(prev => prev.map(d => d.id === editingDeal.id ? newDealData : d));
-        // TODO: API call to update deal
         console.log("Updated Deal:", newDealData);
     } else {
         setDeals(prev => [...prev, newDealData]);
-        // TODO: API call to add deal
         console.log("Added Deal:", newDealData);
     }
     closeDialog();
   };
 
-
    const openAddDialog = () => {
     setEditingDeal(null);
-    // Reset form with defaults
     setFormState({ isActive: true, isStructureType: true, price: undefined, originalPrice: undefined, volumeM3: undefined });
     setIsDialogOpen(true);
   };
 
    const openEditDialog = (deal: SpecialDeal) => {
     setEditingDeal(deal);
-    setFormState(deal); // Pre-fill form
+    setFormState(deal);
     setIsDialogOpen(true);
   };
 
   const handleDeleteDeal = (id: string) => {
      if (window.confirm("Are you sure you want to delete this special deal?")) {
         setDeals(prev => prev.filter(d => d.id !== id));
-         // TODO: API call to delete deal
         console.log("Deleted Deal ID:", id);
      }
   };
-
 
   const closeDialog = () => {
      setIsDialogOpen(false);
@@ -160,7 +147,6 @@ export default function SpecialDealsPage() {
                     <DialogTitle>{editingDeal ? 'Edit' : 'Add'} Special Deal</DialogTitle>
                  </DialogHeader>
                   <form onSubmit={handleSaveDeal} id="dealForm" className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
-                      {/* Form Fields */}
                       <div className="space-y-2">
                          <Label htmlFor="name">Deal Name <span className="text-destructive">*</span></Label>
                          <Input id="name" value={formState.name ?? ''} onChange={(e) => handleFormChange('name', e.target.value)} required />
@@ -182,7 +168,6 @@ export default function SpecialDealsPage() {
                         <div className="space-y-2">
                          <Label htmlFor="image">Image URL <span className="text-destructive">*</span></Label>
                          <Input id="image" placeholder="https://example.com/image.jpg or /images/deal.jpg" value={formState.image ?? ''} onChange={(e) => handleFormChange('image', e.target.value)} required />
-                         {/* TODO: Add file upload component here */}
                       </div>
                        <div className="space-y-2">
                          <Label htmlFor="dataAiHint">Image AI Hint <span className="text-destructive">*</span></Label>
@@ -294,3 +279,5 @@ export default function SpecialDealsPage() {
     </Card>
   );
 }
+
+    

@@ -1,32 +1,31 @@
 
 "use client"; // For state, potential uploads
 
-import React, { useState } from 'react';
+import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Trash2 } from 'lucide-react'; // Removed ImageIcon
+import { Upload, Trash2 } from 'lucide-react';
+// import { Image as ImageIcon } from 'lucide-react'; // Unused
 import Image from 'next/image'; // Use next/image for preview
-import { Slider } from "@/components/ui/slider"; // Import Slider
-import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { Slider } from "@/components/ui/slider";
+import { useToast } from "@/hooks/use-toast";
 
 // --- Types and Placeholder Data ---
 
-// Added 'background' type
 type ImageType = 'category' | 'special_deal' | 'config_option' | 'main_product' | 'background';
 
 interface ProductImage {
   id: string;
   type: ImageType;
-  target: string; // Category name, Deal ID/Name, Config Option ID, Page Key (e.g., 'home', 'garages')
-  url: string; // Image URL
-  altText: string; // Alt text for accessibility
-  opacity?: number; // Optional opacity for background images (0-100)
+  target: string;
+  url: string;
+  altText: string;
+  opacity?: number;
 }
 
-// Placeholder data - Fetch from backend
 const initialImages: ProductImage[] = [
   { id: 'img1', type: 'category', target: 'Garages', url: 'https://picsum.photos/seed/garage-category/200/200', altText: 'Oak Frame Garages Category' },
   { id: 'img2', type: 'category', target: 'Gazebos', url: 'https://picsum.photos/seed/gazebo-category/200/200', altText: 'Oak Frame Gazebos Category' },
@@ -34,16 +33,14 @@ const initialImages: ProductImage[] = [
   { id: 'img4', type: 'config_option', target: 'truss-curved', url: 'https://picsum.photos/seed/truss-curved/200/200', altText: 'Curved Truss Option Preview' },
   { id: 'img5', type: 'config_option', target: 'truss-straight', url: 'https://picsum.photos/seed/truss-straight/200/200', altText: 'Straight Truss Option Preview' },
   { id: 'img6', type: 'main_product', target: 'Garages', url: 'https://picsum.photos/seed/main-garage/400/300', altText: 'Main Garage Product Image' },
-   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 }, // Example with opacity
+   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 },
    { id: 'img8', type: 'background', target: 'about', url: 'https://picsum.photos/seed/about-bg/1920/1080', altText: 'About Page Background Image', opacity: 5 },
 ];
 
-// Updated imageTypes array
 const imageTypes: ImageType[] = ['category', 'main_product', 'background', 'special_deal', 'config_option'];
 const categoryTargets = ['Garages', 'Gazebos', 'Porches', 'Oak Beams', 'Oak Flooring', 'Special Deals'];
-// Placeholder targets for background images - add more as needed
 const pageTargets = ['home', 'products', 'gallery', 'about', 'contact', 'basket', 'checkout', 'account', 'admin', 'login', 'forgot-password', 'custom-order', 'delivery', 'faq', 'order-confirmation', 'privacy', 'terms'];
-// Add logic to fetch Special Deal IDs/Names and Config Option IDs
+
 
 export default function ProductPhotosPage() {
   const [images, setImages] = useState<ProductImage[]>(initialImages);
@@ -51,23 +48,22 @@ export default function ProductPhotosPage() {
   const [newImageTarget, setNewImageTarget] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageAlt, setNewImageAlt] = useState('');
-  const [newImageOpacity, setNewImageOpacity] = useState<number>(10); // Default opacity 10%
+  const [newImageOpacity, setNewImageOpacity] = useState<number>(10);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      setNewImageUrl(URL.createObjectURL(event.target.files[0])); // Show preview
-       // Auto-fill alt text from filename (basic)
+      setNewImageUrl(URL.createObjectURL(event.target.files[0]));
        setNewImageAlt(event.target.files[0].name.split('.')[0].replace(/[-_]/g, ' '));
     }
   };
 
-  const handleAddImage = async (event: React.FormEvent) => {
+  const handleAddImage = async (event: FormEvent) => {
     event.preventDefault();
     if (!newImageType || !newImageTarget || (!newImageUrl && !selectedFile) || !newImageAlt) {
-        toast({ // Use toast for validation
+        toast({
             variant: "destructive",
             title: "Validation Error",
             description: "Please fill in Type, Target, Alt Text, and provide an Image URL or Upload.",
@@ -77,15 +73,13 @@ export default function ProductPhotosPage() {
 
     let finalImageUrl = newImageUrl;
 
-    // --- Placeholder File Upload Logic ---
     if (selectedFile) {
         console.log("Uploading file:", selectedFile.name);
         await new Promise(resolve => setTimeout(resolve, 1000));
-        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`; 
+        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`;
         console.log("Simulated upload complete. URL:", finalImageUrl);
         toast({ title: "Info", description: "Image upload simulated." });
     }
-
 
     const newImage: ProductImage = {
         id: `img${Date.now()}`,
@@ -104,11 +98,10 @@ export default function ProductPhotosPage() {
     setNewImageTarget('');
     setNewImageUrl('');
     setNewImageAlt('');
-    setNewImageOpacity(10); 
+    setNewImageOpacity(10);
     setSelectedFile(null);
      const fileInput = document.getElementById('image-upload') as HTMLInputElement;
      if (fileInput) fileInput.value = '';
-
   };
 
   const handleDeleteImage = (id: string) => {
@@ -122,7 +115,7 @@ export default function ProductPhotosPage() {
   const renderTargetOptions = () => {
     switch (newImageType) {
       case 'category':
-      case 'main_product': 
+      case 'main_product':
         return (
            <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
              <SelectTrigger id="target-select">
@@ -133,7 +126,7 @@ export default function ProductPhotosPage() {
              </SelectContent>
            </Select>
         );
-       case 'background': 
+       case 'background':
            return (
              <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
                <SelectTrigger id="target-select">
@@ -273,3 +266,5 @@ export default function ProductPhotosPage() {
     </div>
   );
 }
+
+    

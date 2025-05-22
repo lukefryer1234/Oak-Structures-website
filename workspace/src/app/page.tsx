@@ -2,14 +2,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'; // CardHeader, CardFooter removed
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
+// import { CardHeader, CardFooter } from '@/components/ui/card'; // Unused
 import { ArrowRight } from 'lucide-react';
 
 const productCategories = [
-  { name: 'Garages', href: '/', description: 'Robust oak frame garages.', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
-  { name: 'Gazebos', href: '/', description: 'Elegant oak gazebos for your garden.', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
-  { name: 'Porches', href: '/', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
-  { name: 'Oak Beams', href: '/', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
+  { name: 'Garages', href: '/products/garages/configure', description: 'Robust oak frame garages.', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
+  { name: 'Gazebos', href: '/products/gazebos/configure', description: 'Elegant oak gazebos for your garden.', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
+  { name: 'Porches', href: '/products/porches/configure', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
+  { name: 'Oak Beams', href: '/products/oak-beams/configure', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
   { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 
@@ -91,3 +92,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
