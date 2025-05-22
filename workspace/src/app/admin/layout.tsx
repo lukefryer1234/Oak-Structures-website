@@ -61,8 +61,10 @@ const adminNavLinks: NavItem[] = [
     { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     {
         href: "/admin/products", label: "Products", icon: Package, subItems: [
+            // This link now points to the page with the table of full product configurations
             { href: "/admin/products/main-product-prices", label: "Main Product Prices", icon: Tags },
-            { href: "/admin/products/configurable-prices", label: "Config Prices (Components)", icon: DollarSign },
+            // The placeholder for component-level pricing is no longer in this primary submenu
+            // If needed later, a link to "/admin/products/configurable-prices" can be added for component prices
             { href: "/admin/products/unit-prices", label: "Unit Prices", icon: Ruler },
             { href: "/admin/products/special-deals", label: "Special Deals", icon: Sparkles },
             { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide }, 
@@ -103,18 +105,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
     // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
-    const isUserAdmin = () => { // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const isUserAdmin = () => { 
         return true; 
-        // Original logic (keep for reference):
-        // if (!authLoading && !currentUser) return false;
-        // if (!currentUser?.email) return false;
-        // const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"];
-        // return adminEmails.includes(currentUser.email);
     };
     
-    // const isAdmin = isUserAdmin(); // This will now always be true based on the above temporary change
-
-
     const toggleSubMenu = (label: string) => {
         setOpenSubMenus(prev => ({ ...prev, [label]: !prev[label] }));
     };
@@ -123,12 +118,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (isSubItem) {
             return pathname === path;
         }
-        if (path === '/admin' && !pathname.startsWith('/admin/')) { // Exact match for /admin dashboard
+        if (path === '/admin' && !pathname.startsWith('/admin/')) { 
              return pathname === '/admin';
         }
-        // For parent items, check if the current path starts with the link's path,
-        // but only if the link's path is not just "/admin" (to avoid matching all sub-routes)
-        // and it's not an exact match for the dashboard page itself (which is handled above).
         return path !== '/admin' && pathname.startsWith(path);
     };
 
