@@ -4,17 +4,13 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/public/**",
+      "**/.git/**",
+      "**/.next/cache/**"
     ],
     "frameworksBackend": {
-      "region": "us-central1",
-      "memory": "1024MB"
+      "region": "us-central1"
     }
-  },
-  "functions": {
-    "source": "hosting",
-    "runtime": "nodejs20",
-    "memory": "1024MB",
-    "region": "us-central1"
   }
 }
