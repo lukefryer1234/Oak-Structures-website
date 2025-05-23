@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  /* Use Geist Sans as the primary font */
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    /* Cool Grey Light Theme */
+    --background: 210 40% 98%; /* Very light cool grey */
+    --foreground: 210 10% 23%; /* Dark cool grey */
+    --card: 210 40% 98%; /* Very light cool grey */
+    --card-foreground: 210 10% 23%; /* Dark cool grey */
+    --popover: 210 40% 98%; /* Very light cool grey */
+    --popover-foreground: 210 10% 23%; /* Dark cool grey */
+    --primary: 210 15% 45%; /* Mid-dark cool grey */
+    --primary-foreground: 210 40% 98%; /* Very light cool grey */
+    --secondary: 210 10% 75%; /* Mid-light cool grey */
+    --secondary-foreground: 210 10% 23%; /* Dark cool grey */
+    --muted: 210 40% 94%; /* Slightly darker light grey */
+    --muted-foreground: 210 10% 45%; /* Mid cool grey */
+    --accent: 210 20% 60%; /* Stronger mid-grey */
+    --accent-foreground: 210 40% 98%; /* Very light cool grey */
+    --destructive: 0 84.2% 60.2%; /* Default Red */
+    --destructive-foreground: 0 0% 98%; /* Default Light */
+    --border: 210 20% 88%; /* Light grey border */
+    --input: 210 20% 88%; /* Light grey border */
+    --ring: 210 15% 45%; /* Mid-dark cool grey */
+    --chart-1: 210 20% 50%; /* Chart colors adjusted to greyscale */
+    --chart-2: 210 15% 70%;
+    --chart-3: 210 10% 40%;
+    --chart-4: 210 25% 60%;
+    --chart-5: 210 12% 80%;
+    --radius: 0.5rem;
+    /* Sidebar colors derived from main theme */
+    --sidebar-background: 210 40% 98%; /* Very light cool grey */
+    --sidebar-foreground: 210 10% 23%; /* Dark cool grey */
+    --sidebar-primary: 210 15% 45%; /* Mid-dark cool grey */
+    --sidebar-primary-foreground: 210 40% 98%; /* Very light cool grey */
+    --sidebar-accent: 210 40% 94%; /* Slightly darker light grey */
+    --sidebar-accent-foreground: 210 10% 23%; /* Dark cool grey */
+    --sidebar-border: 210 20% 88%; /* Light grey border */
+    --sidebar-ring: 210 15% 45%; /* Mid-dark cool grey */
+  }
+  .dark {
+    /* Cool Grey Dark Theme */
+    --background: 210 10% 15%; /* Very dark cool grey */
+    --foreground: 210 40% 95%; /* Light cool grey */
+    --card: 210 10% 18%; /* Slightly lighter dark grey */
+    --card-foreground: 210 40% 95%; /* Light cool grey */
+    --popover: 210 10% 18%; /* Slightly lighter dark grey */
+    --popover-foreground: 210 40% 95%; /* Light cool grey */
+    --primary: 210 15% 65%; /* Mid-light cool grey */
+    --primary-foreground: 210 10% 15%; /* Very dark cool grey */
+    --secondary: 210 10% 35%; /* Mid-dark cool grey */
+    --secondary-foreground: 210 40% 95%; /* Light cool grey */
+    --muted: 210 10% 25%; /* Darker muted grey */
+    --muted-foreground: 210 15% 70%; /* Lighter muted grey */
+    --accent: 210 20% 55%; /* Mid-grey accent */
+    --accent-foreground: 210 10% 15%; /* Very dark cool grey */
+    --destructive: 0 62.8% 30.6%; /* Default Dark Red */
+    --destructive-foreground: 0 0% 98%; /* Default Light */
+    --border: 210 10% 30%; /* Dark grey border */
+    --input: 210 10% 30%; /* Dark grey border */
+    --ring: 210 15% 65%; /* Mid-light cool grey */
+    --chart-1: 210 15% 60%; /* Chart colors adjusted to greyscale */
+    --chart-2: 210 10% 40%;
+    --chart-3: 210 20% 75%;
+    --chart-4: 210 12% 50%;
+    --chart-5: 210 25% 85%;
+     /* Sidebar dark colors derived from main dark theme */
+    --sidebar-background: 210 10% 15%; /* Very dark cool grey */
+    --sidebar-foreground: 210 40% 95%; /* Light cool grey */
+    --sidebar-primary: 210 15% 65%; /* Mid-light cool grey */
+    --sidebar-primary-foreground: 210 10% 15%; /* Very dark cool grey */
+    --sidebar-accent: 210 10% 25%; /* Darker muted grey */
+    --sidebar-accent-foreground: 210 40% 95%; /* Light cool grey */
+    --sidebar-border: 210 10% 30%; /* Dark grey border */
+    --sidebar-ring: 210 15% 65%; /* Mid-light cool grey */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -1,19 +1,44 @@
 {
   "private": true,
+  "main": "index.js",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "deploy": "firebase deploy --only functions,hosting",
+    "build:functions": "npm run build && firebase deploy --only functions"
   },
   "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.3.2",
     "next": "latest",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "sharp": "^0.32.6",
+    "nodemailer": "^6.9.7",
+    "@google-cloud/storage": "^7.7.0",
+    "date-fns": "^3.3.1"
   },
   "devDependencies": {
     "@types/node": "20.10.8",
     "@types/react": "18.2.47",
     "@types/react-dom": "18.2.18",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.0",
     "typescript": "^5.3.3"
+  },
+  "eslintConfig": {
+    "extends": [
+      "next",
+      "next/core-web-vitals",
+      "prettier"
+    ]
+  },
+  "engines": {
+    "node": "20"
   }
 }
