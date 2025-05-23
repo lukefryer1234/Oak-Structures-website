@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'; // Removed CardHeader, CardFooter
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 
 const productCategories = [
@@ -10,6 +10,7 @@ const productCategories = [
   { name: 'Gazebos', href: '/products/gazebos/configure', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
   { name: 'Porches', href: '/products/porches/configure', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
   { name: 'Oak Beams', href: '/products/oak-beams/configure', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
+  // { name: 'Oak Flooring', href: '/products/oak-flooring_COMPLETELY_DISABLED/configure', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
   { name: 'Special Deals', href: '/special-deals', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 

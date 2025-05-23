@@ -1,5 +1,5 @@
 
-"use client"; // For state, potential uploads
+"use client"; 
 
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
@@ -7,22 +7,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Trash2 } from 'lucide-react'; // Icons // Removed ImageIcon as unused
-import Image from 'next/image'; // Use next/image for preview
-import { Slider } from "@/components/ui/slider";
-import { useToast } from "@/hooks/use-toast";
-
-// --- Types and Placeholder Data ---
+import { Upload, Trash2 } from 'lucide-react';
+import Image from 'next/image'; 
+import { Slider } from "@/components/ui/slider"; 
+import { useToast } from "@/hooks/use-toast"; 
 
 type ImageType = 'category' | 'special_deal' | 'config_option' | 'main_product' | 'background';
 
 interface ProductImage {
   id: string;
   type: ImageType;
-  target: string;
-  url: string;
-  altText: string;
-  opacity?: number;
+  target: string; 
+  url: string; 
+  altText: string; 
+  opacity?: number; 
 }
 
 const initialImages: ProductImage[] = [
@@ -32,7 +30,7 @@ const initialImages: ProductImage[] = [
   { id: 'img4', type: 'config_option', target: 'truss-curved', url: 'https://picsum.photos/seed/truss-curved/200/200', altText: 'Curved Truss Option Preview' },
   { id: 'img5', type: 'config_option', target: 'truss-straight', url: 'https://picsum.photos/seed/truss-straight/200/200', altText: 'Straight Truss Option Preview' },
   { id: 'img6', type: 'main_product', target: 'Garages', url: 'https://picsum.photos/seed/main-garage/400/300', altText: 'Main Garage Product Image' },
-   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 },
+   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 }, 
    { id: 'img8', type: 'background', target: 'about', url: 'https://picsum.photos/seed/about-bg/1920/1080', altText: 'About Page Background Image', opacity: 5 },
 ];
 
@@ -40,21 +38,20 @@ const imageTypes: ImageType[] = ['category', 'main_product', 'background', 'spec
 const categoryTargets = ['Garages', 'Gazebos', 'Porches', 'Oak Beams', 'Oak Flooring', 'Special Deals'];
 const pageTargets = ['home', 'products', 'gallery', 'about', 'contact', 'basket', 'checkout', 'account', 'admin', 'login', 'forgot-password', 'custom-order', 'delivery', 'faq', 'order-confirmation', 'privacy', 'terms'];
 
-
 export default function ProductPhotosPage() {
   const [images, setImages] = useState<ProductImage[]>(initialImages);
   const [newImageType, setNewImageType] = useState<ImageType | ''>('');
   const [newImageTarget, setNewImageTarget] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageAlt, setNewImageAlt] = useState('');
-  const [newImageOpacity, setNewImageOpacity] = useState<number>(10);
+  const [newImageOpacity, setNewImageOpacity] = useState<number>(10); 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      setNewImageUrl(URL.createObjectURL(event.target.files[0]));
+      setNewImageUrl(URL.createObjectURL(event.target.files[0])); 
        setNewImageAlt(event.target.files[0].name.split('.')[0].replace(/[-_]/g, ' '));
     }
   };
@@ -62,7 +59,7 @@ export default function ProductPhotosPage() {
   const handleAddImage = async (event: FormEvent) => {
     event.preventDefault();
     if (!newImageType || !newImageTarget || (!newImageUrl && !selectedFile) || !newImageAlt) {
-        toast({
+        toast({ 
             variant: "destructive",
             title: "Validation Error",
             description: "Please fill in Type, Target, Alt Text, and provide an Image URL or Upload.",
@@ -75,7 +72,7 @@ export default function ProductPhotosPage() {
     if (selectedFile) {
         console.log("Uploading file:", selectedFile.name);
         await new Promise(resolve => setTimeout(resolve, 1000));
-        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`;
+        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`; 
         console.log("Simulated upload complete. URL:", finalImageUrl);
         toast({ title: "Info", description: "Image upload simulated." });
     }
@@ -97,10 +94,11 @@ export default function ProductPhotosPage() {
     setNewImageTarget('');
     setNewImageUrl('');
     setNewImageAlt('');
-    setNewImageOpacity(10);
+    setNewImageOpacity(10); 
     setSelectedFile(null);
      const fileInput = document.getElementById('image-upload') as HTMLInputElement;
      if (fileInput) fileInput.value = '';
+
   };
 
   const handleDeleteImage = (id: string) => {
@@ -114,7 +112,7 @@ export default function ProductPhotosPage() {
   const renderTargetOptions = () => {
     switch (newImageType) {
       case 'category':
-      case 'main_product':
+      case 'main_product': 
         return (
            <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
              <SelectTrigger id="target-select">
@@ -125,7 +123,7 @@ export default function ProductPhotosPage() {
              </SelectContent>
            </Select>
         );
-       case 'background':
+       case 'background': 
            return (
              <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
                <SelectTrigger id="target-select">

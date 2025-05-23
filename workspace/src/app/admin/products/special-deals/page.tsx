@@ -1,5 +1,5 @@
 
-"use client"; // For state, dialogs, form handling
+"use client";
 
 import React, { useState, FormEvent } from 'react';
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
-  // DialogDescription, // Unused
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -23,8 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 
-
-// --- Types and Placeholder Data ---
 
 interface SpecialDeal {
   id: string;
@@ -40,7 +37,6 @@ interface SpecialDeal {
   volumeM3?: number;
 }
 
-// Type for the value parameter in handleFormChange
 type SpecialDealFormValue = string | number | boolean | undefined;
 
 
@@ -64,11 +60,11 @@ export default function SpecialDealsPage() {
          const numValue = value === '' || value === undefined ? undefined : parseFloat(String(value));
          setFormState(prev => ({ ...prev, [field]: numValue }));
      } else {
-         setFormState(prev => ({ ...prev, [field]: value as string })); // Cast to string for other fields
+         setFormState(prev => ({ ...prev, [field]: value as string })); 
      }
   };
 
-  const handleSaveDeal = (event: FormEvent) => { // Typed event
+  const handleSaveDeal = (event: FormEvent) => { 
     event.preventDefault();
     if (!formState.name || !formState.description || !formState.price || formState.price <= 0 || !formState.href || !formState.image || !formState.dataAiHint) {
         alert("Please fill in all required fields (Name, Description, Price, Href, Image URL, AI Hint).");

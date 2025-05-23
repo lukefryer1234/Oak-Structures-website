@@ -3,13 +3,13 @@
 
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Removed CardFooter
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
-import { useState, useEffect, Suspense, FormEvent } from 'react'; // Added FormEvent
+import { useState, useEffect, Suspense, FormEvent } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -39,11 +39,10 @@ function AuthContent() {
         setError(null);
         setIsSubmitting(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error, setError, toast]);
 
 
-  const handleLocalLogin = async (event: FormEvent<HTMLFormElement>) => { // Typed event
+  const handleLocalLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
@@ -53,7 +52,7 @@ function AuthContent() {
     try {
       await signInWithEmail(email, password);
       toast({ title: "Login Successful", description: "Welcome back!" });
-    } catch (e: unknown) { // Changed to unknown
+    } catch (e: unknown) {
       console.error("Local login error:", e);
       const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during login.";
       setError(errorMessage);
@@ -62,7 +61,7 @@ function AuthContent() {
     }
   };
 
-  const handleLocalRegister = async (event: FormEvent<HTMLFormElement>) => { // Typed event
+  const handleLocalRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
@@ -82,7 +81,7 @@ function AuthContent() {
       if (user) {
         toast({ title: "Registration Successful", description: "Your account has been created." });
       }
-    } catch (e: unknown) { // Changed to unknown
+    } catch (e: unknown) {
       console.error("Local registration error:", e);
       const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during registration.";
       setError(errorMessage);
@@ -96,7 +95,7 @@ function AuthContent() {
     setError(null);
     try {
       await signInWithGoogle();
-    } catch (e: unknown) { // Changed to unknown
+    } catch (e: unknown) {
       console.error(`Google sign-in error:`, e);
       const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during Google sign-in.";
       setError(errorMessage);
@@ -105,7 +104,7 @@ function AuthContent() {
     }
   };
 
-  const handlePayPalAuth = (_unusedMode: 'login' | 'register') => { // parameter name changed
+  const handlePayPalAuth = (_modeUnused: 'login' | 'register') => {
     setError("PayPal authentication is not yet implemented.");
     toast({ variant: "default", title: "Coming Soon", description: "PayPal authentication is not yet implemented."});
   };
