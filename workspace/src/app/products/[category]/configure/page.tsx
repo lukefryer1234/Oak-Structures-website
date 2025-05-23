@@ -1,19 +1,19 @@
 
 // This is a server component
 import CategoryConfigClient from './client';
-import type { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata } from 'next';
 
 type Props = {
   params: { category: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  // searchParams: { [key: string]: string | string[] | undefined }; // searchParams not used for metadata here
 };
 
 // Valid categories for dynamic metadata and static params
-const validCategoriesForMeta = ['garages', 'gazebos', 'porches', 'oak-beams', 'oak-flooring'];
+const validCategoriesForMeta = ['garages', 'gazebos', 'porches', 'oak-beams', 'oak-flooring']; // Re-added oak-flooring
 
 export async function generateMetadata(
   { params }: Props,
-  _parent: ResolvingMetadata // parent can be used to inherit metadata
+  // _parent: ResolvingMetadata // parent can be used to inherit metadata
 ): Promise<Metadata> {
   const category = params.category;
 
@@ -26,12 +26,10 @@ export async function generateMetadata(
 
   const categoryTitle = category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
+  // Simplified description for minimal launch
   return {
-    title: `Configure ${categoryTitle} | Timberline Commerce`,
-    description: `Customize and price your bespoke ${categoryTitle}. Choose dimensions, materials, and features to get an instant estimate.`,
-    // openGraph: {
-    //   images: ['/some-specific-image.jpg'], // Optional: add a specific image for this category
-    // },
+    title: `${categoryTitle} | Timberline Commerce`,
+    description: `Learn more about our high-quality, bespoke ${categoryTitle}. Contact us for a custom quote.`,
   };
 }
 
@@ -43,11 +41,12 @@ export function generateStaticParams() {
     { category: 'gazebos' },
     { category: 'porches' },
     { category: 'oak-beams' },
-    { category: 'oak-flooring' }, // Re-added oak-flooring
+    { category: 'oak-flooring' }, // Ensured oak-flooring is included
   ];
 }
 
 export default function CategoryConfigPage() {
   // The actual rendering of the client component that handles specific category logic
+  // For a minimal launch, CategoryConfigClient might simply render children or a placeholder
   return <CategoryConfigClient />;
 }

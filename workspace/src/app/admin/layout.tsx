@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react'; // Keep useEffect for openSubMenus if re-enabled
+import React from 'react';
 import Link from 'next/link';
 import {
     LayoutDashboard,
@@ -23,7 +23,6 @@ import {
     ScanSearch,
     Sparkles,
     Ruler,
-    Loader2,
     UserPlus,
     MessageSquare,
     Tags,
@@ -48,6 +47,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react'; // Keep Loader2 for authLoading
 
 interface NavItem {
     href: string;
@@ -102,16 +102,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const { currentUser, loading: authLoading, signOut } = useAuth();
     const pathname = usePathname();
     const { toast } = useToast();
-    const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+    const [openSubMenus, setOpenSubMenus] = React.useState<Record<string, boolean>>({});
 
-    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check for dev purposes
-    const isUserAdmin = () => {
-        // In a real app, you'd check currentUser?.email or a custom claim for admin role
-        // For now, to ensure visibility during dev when login might be an issue:
-        return true;
+    const handleLogout = async () => {
+        try {
+          await signOut();
+        } catch (error: unknown) {
+          let errorMessage = "An unknown error occurred during logout.";
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+          toast({ variant: "destructive", title: "Logout Error", description: errorMessage });
+        }
     };
 
-    const isAdminUser = isUserAdmin(); // This will always be true now due to the above
+    // Simplified: Show loader only during initial auth check.
+    if (authLoading) {
+        return (
+            <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">
+                    Loading Admin Area...
+                </p>
+            </div>
+        );
+    }
+
+    // Render a simple "Under Construction" message instead of the full admin panel.
+    // We keep the sidebar structure for visual consistency during development,
+    // but the main content area will show the message.
+    // OR, to fully disable, we can return the message for the entire AdminLayout.
 
     const toggleSubMenu = (label: string) => {
         setOpenSubMenus(prev => ({ ...prev, [label]: !prev[label] }));
@@ -121,41 +141,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (isSubItem) {
             return pathname === path;
         }
-        // For the main /admin dashboard link, only active if it's exactly /admin
         if (path === '/admin') {
              return pathname === '/admin';
         }
-        // For other parent links, active if path starts with it (e.g. /admin/products is active for /admin/products/main-product-prices)
         return path !== '/admin' && pathname.startsWith(path);
     };
 
-    const handleLogout = async () => {
-        try {
-          await signOut();
-          // Toast for success is usually handled in AuthContext or the component triggering sign out
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            toast({ variant: "destructive", title: "Logout Error", description: error.message });
-          } else {
-            toast({ variant: "destructive", title: "Logout Error", description: "An unknown error occurred during logout." });
-          }
-        }
-    };
-
-    // Only show loader based on authLoading, not currentUser or isAdminUser, to ensure layout renders
-    if (authLoading) {
-        return (
-            <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">
-                    Loading authentication state for Admin...
-                </p>
-            </div>
-        );
-    }
-
-    // The rest of the layout will now render even if currentUser is null or not technically an admin,
-    // because isUserAdmin() and isAdminUser are temporarily true.
     const renderNavItems = (items: NavItem[], isSubmenu = false) => {
         return items.map((link) => {
             const active = isActive(link.href, isSubmenu);
@@ -207,46 +198,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
     };
 
-
     return (
-        <>
-            {/* Prominent visual marker */}
-            <h2 style={{ position: 'fixed', top: '5px', left: '5px', backgroundColor: 'yellow', color: 'black', padding: '10px', zIndex: 9999 }}>
-                ADMIN LAYOUT UPDATED - {new Date().toLocaleTimeString()}
-            </h2>
-            <SidebarProvider>
-                <Sidebar>
-                    <SidebarHeader>
-                        <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
-                         <SidebarTrigger/>
-                    </SidebarHeader>
-                    <SidebarContent>
-                        <SidebarMenu>
-                            {renderNavItems(adminNavLinks)}
-                        </SidebarMenu>
-                    </SidebarContent>
-                     <SidebarFooter>
-                         <div className="flex items-center gap-2 p-2 border-t border-sidebar-border">
-                             <Avatar className="h-8 w-8">
-                                 <AvatarImage src={currentUser?.photoURL ?? undefined} alt={currentUser?.displayName ?? 'Admin'} />
-                                 <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'G'}</AvatarFallback>
-                             </Avatar>
-                             <div className="flex flex-col text-xs truncate">
-                                 <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email || "Guest Admin"}</span>
-                                 {currentUser?.displayName && currentUser.email && <span className="text-muted-foreground">{currentUser.email}</span> }
-                             </div>
-                             <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
-                         </div>
-                     </SidebarFooter>
-                </Sidebar>
-                <SidebarInset>
-                     <div className="p-4 md:p-8">
-                        {children}
-                     </div>
-                </SidebarInset>
-            </SidebarProvider>
-        </>
+        <SidebarProvider>
+            <Sidebar>
+                <SidebarHeader>
+                    <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
+                    <SidebarTrigger/>
+                </SidebarHeader>
+                <SidebarContent>
+                    <SidebarMenu>
+                        {renderNavItems(adminNavLinks)}
+                    </SidebarMenu>
+                </SidebarContent>
+                <SidebarFooter>
+                    <div className="flex items-center gap-2 p-2 border-t border-sidebar-border">
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={currentUser?.photoURL ?? undefined} alt={currentUser?.displayName ?? 'Admin'} />
+                            <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'A'}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col text-xs truncate">
+                            <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email || "Guest Admin"}</span>
+                            {currentUser?.displayName && currentUser.email && <span className="text-muted-foreground">{currentUser.email}</span> }
+                        </div>
+                        <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
+                    </div>
+                </SidebarFooter>
+            </Sidebar>
+            <SidebarInset>
+                 <div className="p-4 md:p-8">
+                    <div className="bg-card p-8 rounded-lg shadow-md text-center">
+                        <h1 className="text-2xl font-semibold mb-4">Admin Panel - Under Construction</h1>
+                        <p className="text-muted-foreground">
+                            This section is currently being developed and will be available soon.
+                            Full admin functionality will be enabled after the initial site launch.
+                        </p>
+                        <Button asChild className="mt-6">
+                            <Link href="/">Go to Homepage</Link>
+                        </Button>
+                    </div>
+                    {/* {children} // Children are not rendered to show "Under Construction" for all admin pages */}
+                 </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }
-
-    
