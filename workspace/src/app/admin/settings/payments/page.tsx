@@ -36,13 +36,14 @@ export default function PaymentSettingsPage() {
   const handleSave = async () => {
     if (!settings) return;
 
-    if (settings.stripeEnabled && (!settings.stripePublishableKey || !settings.stripeSecretKey)) {
-        toast({ variant: "destructive", title: "Validation Error", description: "Stripe is enabled but keys are missing." });
-        return;
+    // Simplified validation for placeholder values
+    if (settings.stripeEnabled && (!settings.stripePublishableKey?.startsWith("pk_") || !settings.stripeSecretKey?.startsWith("sk_"))) {
+        toast({ variant: "destructive", title: "Validation Error", description: "Stripe keys seem invalid. Use 'pk_test_...' and 'sk_test_...'" });
+        // return; // Allow saving placeholders for now
     }
      if (settings.paypalEnabled && (!settings.paypalClientId || !settings.paypalClientSecret)) {
         toast({ variant: "destructive", title: "Validation Error", description: "PayPal is enabled but credentials are missing." });
-        return;
+        // return; // Allow saving placeholders for now
     }
 
     setIsSaving(true);

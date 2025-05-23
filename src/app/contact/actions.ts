@@ -1,3 +1,4 @@
+// src/app/contact/actions.ts
 'use server';
 
 import { z } from 'zod';
@@ -42,8 +43,12 @@ export async function submitContactForm(
       submittedAt: new Date(),
     });
     return { message: 'Your message has been sent successfully!', success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error submitting contact form:', error);
-    return { message: 'An error occurred. Please try again later.', success: false };
+    let errorMessage = 'An error occurred. Please try again later.';
+    if (error instanceof Error) {
+        errorMessage = error.message;
+    }
+    return { message: errorMessage, success: false };
   }
 }

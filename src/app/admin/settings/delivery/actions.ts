@@ -1,3 +1,4 @@
+// src/app/admin/settings/delivery/actions.ts
 'use server';
 
 import { z } from 'zod';
@@ -33,7 +34,8 @@ export async function fetchDeliverySettingsAction(): Promise<DeliverySettings> {
         console.warn("Fetched delivery settings from Firestore are invalid:", parsed.error.flatten().fieldErrors);
       }
     }
-    return { freeDeliveryThreshold: 1000, ratePerM3: 50, minimumDeliveryCharge: 25 }; // Default
+    // Default values if not found or invalid
+    return { freeDeliveryThreshold: 1000, ratePerM3: 50, minimumDeliveryCharge: 25 };
   } catch (error) {
     console.error("Error fetching delivery settings:", error);
     return { freeDeliveryThreshold: 1000, ratePerM3: 50, minimumDeliveryCharge: 25 }; // Default on error
@@ -63,8 +65,12 @@ export async function updateDeliverySettingsAction(
     const docRef = doc(db, SETTINGS_COLLECTION, DELIVERY_SETTINGS_DOC_ID);
     await setDoc(docRef, validatedFields.data, { merge: true });
     return { message: 'Delivery settings updated successfully.', success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error updating delivery settings:", error);
-    return { message: 'Failed to update delivery settings.', success: false };
+    let message = "Failed to update delivery settings.";
+    if (error instanceof Error) {
+        message = error.message;
+    }
+    return { message, success: false };
   }
 }

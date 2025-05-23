@@ -1,3 +1,4 @@
+// src/app/admin/settings/payments/actions.ts
 'use server';
 
 import { z } from 'zod';
@@ -9,30 +10,29 @@ const PAYMENT_SETTINGS_DOC_ID = 'paymentSettings';
 
 export interface PaymentSettings {
   stripeEnabled: boolean;
-  stripePublishableKey?: string; // Make optional to match schema
-  stripeSecretKey?: string;     // Make optional to match schema
+  stripePublishableKey?: string;
+  stripeSecretKey?: string;
   paypalEnabled: boolean;
-  paypalClientId?: string;     // Make optional to match schema
-  paypalClientSecret?: string; // Make optional to match schema
+  paypalClientId?: string;
+  paypalClientSecret?: string;
   paypalSandboxMode: boolean;
 }
 
 const paymentSettingsSchema = z.object({
   stripeEnabled: z.boolean(),
-  stripePublishableKey: z.string().optional(), // Optional if not enabled
-  stripeSecretKey: z.string().optional(), // Optional if not enabled
+  stripePublishableKey: z.string().optional(),
+  stripeSecretKey: z.string().optional(),
   paypalEnabled: z.boolean(),
-  paypalClientId: z.string().optional(), // Optional if not enabled
-  paypalClientSecret: z.string().optional(), // Optional if not enabled
+  paypalClientId: z.string().optional(),
+  paypalClientSecret: z.string().optional(),
   paypalSandboxMode: z.boolean(),
-}).refine(data => !data.stripeEnabled || (data.stripePublishableKey && data.stripeSecretKey), {
-  message: "Stripe keys are required if Stripe is enabled.",
+}).refine(data => !data.stripeEnabled || (data.stripePublishableKey && data.stripePublishableKey.trim() !== "" && data.stripeSecretKey && data.stripeSecretKey.trim() !== ""), {
+  message: "Stripe Publishable Key and Secret Key are required if Stripe is enabled.",
   path: ["stripePublishableKey", "stripeSecretKey"],
-}).refine(data => !data.paypalEnabled || (data.paypalClientId && data.paypalClientSecret), {
-  message: "PayPal credentials are required if PayPal is enabled.",
+}).refine(data => !data.paypalEnabled || (data.paypalClientId && data.paypalClientId.trim() !== "" && data.paypalClientSecret && data.paypalClientSecret.trim() !== ""), {
+  message: "PayPal Client ID and Client Secret are required if PayPal is enabled.",
   path: ["paypalClientId", "paypalClientSecret"],
 });
-
 
 export async function fetchPaymentSettingsAction(): Promise<PaymentSettings> {
   try {
@@ -41,7 +41,6 @@ export async function fetchPaymentSettingsAction(): Promise<PaymentSettings> {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Provide defaults for missing fields before parsing
       const dataWithDefaults = {
         stripeEnabled: data.stripeEnabled ?? false,
         stripePublishableKey: data.stripePublishableKey ?? "",
@@ -56,20 +55,26 @@ export async function fetchPaymentSettingsAction(): Promise<PaymentSettings> {
         return parsed.data;
       } else {
         console.warn("Fetched payment settings from Firestore are invalid:", parsed.error.flatten().fieldErrors);
+        // Fallback to defaults if parsing fails but doc exists
+        return {
+            stripeEnabled: true, stripePublishableKey: "pk_test_placeholder", stripeSecretKey: "sk_test_placeholder",
+            paypalEnabled: true, paypalClientId: "paypal_client_id_placeholder", paypalClientSecret: "paypal_secret_placeholder",
+            paypalSandboxMode: true,
+         };
       }
     }
-     return {
-        stripeEnabled: true, stripePublishableKey: "pk_test_...", stripeSecretKey: "sk_test_...",
-        paypalEnabled: true, paypalClientId: "PayPalClientID...", paypalClientSecret: "PayPalSecret...",
+     return { // Default if document doesn't exist
+        stripeEnabled: true, stripePublishableKey: "pk_test_placeholder", stripeSecretKey: "sk_test_placeholder",
+        paypalEnabled: true, paypalClientId: "paypal_client_id_placeholder", paypalClientSecret: "paypal_secret_placeholder",
         paypalSandboxMode: true,
-     }; // Default
+     };
   } catch (error) {
     console.error("Error fetching payment settings:", error);
-     return {
-        stripeEnabled: true, stripePublishableKey: "pk_test_...", stripeSecretKey: "sk_test_...",
-        paypalEnabled: true, paypalClientId: "PayPalClientID...", paypalClientSecret: "PayPalSecret...",
+     return { // Default on any error
+        stripeEnabled: true, stripePublishableKey: "pk_test_placeholder", stripeSecretKey: "sk_test_placeholder",
+        paypalEnabled: true, paypalClientId: "paypal_client_id_placeholder", paypalClientSecret: "paypal_secret_placeholder",
         paypalSandboxMode: true,
-     }; // Default on error
+     };
   }
 }
 
@@ -91,20 +96,34 @@ export async function updatePaymentSettingsAction(
       errors: validatedFields.error.errors,
     };
   }
-  
-  // IMPORTANT: In a real production app, secret keys should NOT be stored directly in Firestore
-  // or passed around like this. They should be managed via secure environment variables on the server
-  // and Cloud Functions. This is a simplified example for demonstration.
-  // For actual payment processing, you'd use these keys within secure Cloud Functions.
-  console.warn("Storing payment secret keys in Firestore is insecure for production environments. Use environment variables and secure backend services.");
 
+  console.warn("Storing payment secret keys directly in Firestore is insecure for production environments. Use environment variables and secure backend services for actual payment processing.");
 
   try {
     const docRef = doc(db, SETTINGS_COLLECTION, PAYMENT_SETTINGS_DOC_ID);
-    await setDoc(docRef, validatedFields.data, { merge: true });
+    // Ensure only defined fields from schema are saved, omitting potentially empty optional fields if not provided
+    const dataToSave: Partial<PaymentSettings> = {
+        stripeEnabled: validatedFields.data.stripeEnabled,
+        paypalEnabled: validatedFields.data.paypalEnabled,
+        paypalSandboxMode: validatedFields.data.paypalSandboxMode,
+    };
+    if (validatedFields.data.stripeEnabled) {
+        dataToSave.stripePublishableKey = validatedFields.data.stripePublishableKey;
+        dataToSave.stripeSecretKey = validatedFields.data.stripeSecretKey;
+    }
+    if (validatedFields.data.paypalEnabled) {
+        dataToSave.paypalClientId = validatedFields.data.paypalClientId;
+        dataToSave.paypalClientSecret = validatedFields.data.paypalClientSecret;
+    }
+
+    await setDoc(docRef, dataToSave, { merge: true });
     return { message: 'Payment settings updated successfully.', success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error updating payment settings:", error);
-    return { message: 'Failed to update payment settings.', success: false };
+    let message = 'Failed to update payment settings.';
+    if (error instanceof Error) {
+        message = error.message;
+    }
+    return { message, success: false };
   }
 }
