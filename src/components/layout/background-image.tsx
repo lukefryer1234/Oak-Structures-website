@@ -95,8 +95,7 @@ export function BackgroundImage({ children }: { children: React.ReactNode }) {
            <Image
              src={backgroundImage.url}
              alt={backgroundImage.altText || 'Background image'}
-             layout="fill"
-             objectFit="cover"
+             fill
              className={cn(
                 "absolute inset-0 -z-10 transition-opacity duration-500",
                 `opacity-${backgroundImage.opacity ?? 5}` // Apply opacity class dynamically

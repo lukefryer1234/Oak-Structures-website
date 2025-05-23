@@ -9,19 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, FormEvent } from 'react';
 import { useAuth } from '@/context/auth-context';
-// import { auth } from '@/lib/firebase'; // No longer directly used here, auth comes from context
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Import cn
+import { cn } from '@/lib/utils';
 
-// Separate component that uses useSearchParams
 function AuthContent() {
   const { currentUser, signUpWithEmail, signInWithEmail, signInWithGoogle, setError, error, loading: authLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams(); // This needs to be in a component wrapped by Suspense
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,11 +39,10 @@ function AuthContent() {
         setError(null);
         setIsSubmitting(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error]);
+  }, [error, setError, toast]);
 
 
-  const handleLocalLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLocalLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
@@ -53,23 +50,18 @@ function AuthContent() {
     const password = ((event.target as HTMLFormElement).elements.namedItem('password') as HTMLInputElement)?.value || '';
 
     try {
-      await signInWithEmail(email, password); // Use signInWithEmail from context
-      // Redirection is handled by useEffect checking currentUser
+      await signInWithEmail(email, password);
       toast({ title: "Login Successful", description: "Welcome back!" });
     } catch (e: unknown) {
-      // Error is set and displayed by AuthContext/useEffect
       console.error("Local login error:", e);
-       if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("An unknown error occurred during login.");
-      }
+      const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during login.";
+      setError(errorMessage);
     } finally {
         setIsSubmitting(false);
     }
   };
 
-  const handleLocalRegister = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLocalRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(null);
@@ -85,19 +77,14 @@ function AuthContent() {
     }
 
     try {
-      const user = await signUpWithEmail(email, password, name); // Use signUpWithEmail from context
+      const user = await signUpWithEmail(email, password, name);
       if (user) {
-        // Redirection is handled by useEffect checking currentUser
         toast({ title: "Registration Successful", description: "Your account has been created." });
       }
     } catch (e: unknown) {
-      // Error is set and displayed by AuthContext/useEffect
       console.error("Local registration error:", e);
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("An unknown error occurred during registration.");
-      }
+      const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during registration.";
+      setError(errorMessage);
     } finally {
         setIsSubmitting(false);
     }
@@ -108,23 +95,16 @@ function AuthContent() {
     setError(null);
     try {
       await signInWithGoogle();
-      // Redirection is handled by useEffect checking currentUser
-      // Toast for success is handled in AuthContext
     } catch (e: unknown) {
-      // Error is set and displayed by AuthContext/useEffect
       console.error(`Google sign-in error:`, e);
-       if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("An unknown error occurred during Google sign-in.");
-      }
+      const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during Google sign-in.";
+      setError(errorMessage);
     } finally {
         setIsSubmitting(false);
     }
   };
 
-  const handlePayPalAuth = (_mode: 'login' | 'register') => { // mode param is unused
-    // TODO: Implement PayPal OAuth flow
+  const handlePayPalAuth = (_modeUnused: 'login' | 'register') => {
     setError("PayPal authentication is not yet implemented.");
     toast({ variant: "default", title: "Coming Soon", description: "PayPal authentication is not yet implemented."});
   };
@@ -138,8 +118,6 @@ function AuthContent() {
         </div>
       );
   }
-  // If user is already logged in, this component might unmount due to redirect,
-  // or show briefly. Adding explicit null render if currentUser exists but still on this page.
   if (currentUser) {
       return null;
   }
@@ -240,7 +218,7 @@ function AuthContent() {
                                 <Input id="register-password" name="password" type="password" required disabled={isSubmitting} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="confirm-password">Confirm Password</Label>
+                                <Label htmlFor="confirm-password">Confirm New Password</Label>
                                 <Input id="confirm-password" name="confirm-password" type="password" required disabled={isSubmitting} />
                             </div>
                             <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -256,7 +234,6 @@ function AuthContent() {
   );
 }
 
-// Main component wrapped with Suspense
 export default function AuthPage() {
   return (
     <Suspense fallback={

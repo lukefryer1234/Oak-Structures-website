@@ -2,7 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Removed Card
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 
@@ -31,7 +31,6 @@ export default function AddressesPage() {
 
 
   return (
-    // Card styling is inherited from layout, only need header/content adjustments if necessary
     <>
       <CardHeader className="flex flex-row items-center justify-between">
          <div>
@@ -48,7 +47,7 @@ export default function AddressesPage() {
         ) : (
           addresses.map((address, index) => (
             <div key={address.id}>
-              {index > 0 && <Separator className="my-4 border-border/50"/>} {/* Lighter separator */}
+              {index > 0 && <Separator className="my-4 border-border/50"/>}
               <div className="flex flex-col sm:flex-row justify-between">
                   <div className="mb-4 sm:mb-0">
                      <p className="font-medium flex items-center gap-2">
@@ -56,7 +55,6 @@ export default function AddressesPage() {
                         {address.isDefault && <span className="text-xs text-muted-foreground">(Default)</span>}
                      </p>
                      <p className="text-sm text-muted-foreground">{address.line1}</p>
-                     {/* Add line 2 etc. if present */}
                      <p className="text-sm text-muted-foreground">{address.town}, {address.postcode}</p>
                   </div>
                   <div className="flex space-x-2 self-start sm:self-center">

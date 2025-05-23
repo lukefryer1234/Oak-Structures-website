@@ -3,15 +3,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
-// import { CardHeader, CardFooter } from '@/components/ui/card'; // Unused
 import { ArrowRight } from 'lucide-react';
 
 const productCategories = [
-  { name: 'Garages', href: '/products/garages/configure', description: 'Robust oak frame garages.', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
-  { name: 'Gazebos', href: '/products/gazebos/configure', description: 'Elegant oak gazebos for your garden.', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
-  { name: 'Porches', href: '/products/porches/configure', description: 'Welcoming oak porches.', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
-  { name: 'Oak Beams', href: '/products/oak-beams/configure', description: 'Structural and decorative oak beams.', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
-  { name: 'Special Deals', href: '/special-deals', description: 'Limited time offers and pre-configured items.', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
+  { name: 'Garages', href: '/products/garages/configure', image: '/images/garage-category.jpg', dataAiHint: 'oak frame garage' },
+  { name: 'Gazebos', href: '/products/gazebos/configure', image: '/images/gazebo-category.jpg', dataAiHint: 'oak frame gazebo garden' },
+  { name: 'Porches', href: '/products/porches/configure', image: '/images/porch-category.jpg', dataAiHint: 'oak frame porch entrance' },
+  { name: 'Oak Beams', href: '/products/oak-beams/configure', image: '/images/beams-category.jpg', dataAiHint: 'large oak beams rustic' },
+  // { name: 'Oak Flooring', href: '/products/oak-flooring_COMPLETELY_DISABLED/configure', image: '/images/flooring-category.jpg', dataAiHint: 'oak wood flooring interior' },
+  { name: 'Special Deals', href: '/special-deals', image: '/images/special-deals-category.jpg', dataAiHint: 'sale discount offer wood' },
 ];
 
 const featuredDeals = [
@@ -92,5 +92,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

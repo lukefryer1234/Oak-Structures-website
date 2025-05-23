@@ -1,3 +1,4 @@
+// src/app/admin/settings/financial/actions.ts
 'use server';
 
 import { z } from 'zod';
@@ -61,8 +62,12 @@ export async function updateFinancialSettingsAction(
     const docRef = doc(db, SETTINGS_COLLECTION, FINANCIAL_SETTINGS_DOC_ID);
     await setDoc(docRef, validatedFields.data, { merge: true });
     return { message: 'Financial settings updated successfully.', success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error updating financial settings:", error);
-    return { message: 'Failed to update financial settings.', success: false };
+    let message = "Failed to update financial settings.";
+    if (error instanceof Error) {
+        message = error.message;
+    }
+    return { message, success: false };
   }
 }

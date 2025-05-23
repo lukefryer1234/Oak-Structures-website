@@ -1,3 +1,4 @@
+// src/app/checkout/actions.ts
 'use server';
 
 import { z } from 'zod';
@@ -7,13 +8,13 @@ import type { User } from 'firebase/auth';
 
 // Basic schema for an address
 const addressSchema = z.object({
-  email: z.string().email(),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  addressLine1: z.string().min(1),
+  email: z.string().email({ message: "Invalid email address." }),
+  firstName: z.string().min(1, { message: "First name is required." }),
+  lastName: z.string().min(1, { message: "Last name is required." }),
+  addressLine1: z.string().min(1, { message: "Address line 1 is required." }),
   addressLine2: z.string().optional(),
-  town: z.string().min(1),
-  postcode: z.string().min(5).max(8),
+  town: z.string().min(1, { message: "Town/City is required." }),
+  postcode: z.string().min(5, { message: "Valid UK postcode is required." }).max(8),
   phone: z.string().optional(),
 });
 
@@ -34,7 +35,7 @@ const orderSchema = z.object({
   billingAddress: addressSchema,
   shippingAddress: addressSchema.optional(),
   useBillingAsShipping: z.boolean(),
-  paymentMethod: z.literal("paypal"), // Only PayPal allowed
+  paymentMethod: z.literal("paypal"), // Only PayPal allowed for now
   items: z.array(orderItemSchema).min(1, "Order must contain at least one item."),
   subtotal: z.number(),
   shippingCost: z.number(),
@@ -53,13 +54,13 @@ export interface PlaceOrderState {
 }
 
 export async function placeOrderAction(
-  currentUser: User | null, // Pass current user for userId
-  orderData: OrderData // Expect the full order data object
+  currentUser: User | null,
+  orderData: OrderData
 ): Promise<PlaceOrderState> {
-  
+
   const dataToValidate = {
     ...orderData,
-    userId: currentUser?.uid, // Add userId if user is logged in
+    userId: currentUser?.uid,
   };
 
   const validatedFields = orderSchema.safeParse(dataToValidate);
@@ -74,8 +75,7 @@ export async function placeOrderAction(
   }
 
   // Simulate payment processing
-  // In a real app, this would involve calling PayPal API and handling response
-  const paymentSuccessful = true; // Placeholder
+  const paymentSuccessful = true; // Placeholder for now
 
   if (!paymentSuccessful) {
     return { message: 'Payment processing failed. Please try again.', success: false, errors: { form: ['Payment failed.'] } };
@@ -89,20 +89,20 @@ export async function placeOrderAction(
     };
 
     const docRef = await addDoc(collection(db, 'orders'), orderPayload);
-    
-    // TODO: Send order confirmation email to customer
-    // TODO: Send order notification email to admin
-    // TODO: Clear the user's basket (if applicable)
 
-    return { 
-      message: 'Order placed successfully!', 
-      success: true, 
-      orderId: docRef.id 
+    return {
+      message: 'Order placed successfully!',
+      success: true,
+      orderId: docRef.id
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error placing order:', error);
-    return { 
-      message: 'An error occurred while placing your order. Please try again.', 
+    let errorMessage = 'An error occurred while placing your order. Please try again.';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    return {
+      message: errorMessage,
       success: false,
       errors: { form: ['Server error.'] }
     };

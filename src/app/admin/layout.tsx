@@ -1,254 +1,89 @@
 
-"use client"; 
+"use client";
 
-import React, { useState } /*useEffect removed*/ from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import {
-    LayoutDashboard,
-    ShoppingCart,
-    Package,
-    Settings,
-    GalleryHorizontal,
-    Users,
-    ChevronDown,
-    ChevronUp,
-    Building2,
-    DollarSign,
-    Truck,
-    CreditCard,
-    BarChart3,
-    Mail,
-    FileText,
-    ImageIcon as ImageIconLucide, 
-    ScanSearch,
-    // Box, // No longer used
-    Sparkles,
-    Ruler,
-    Loader2,
-    UserPlus,
-    MessageSquare
-} from 'lucide-react';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuItem,
-    SidebarMenuButton,
-    SidebarMenuSub,
-    SidebarMenuSubButton,
-    SidebarMenuSubItem,
-    SidebarProvider,
-    SidebarTrigger,
-    SidebarInset,
-    SidebarFooter,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname /*useRouter removed*/ } from 'next/navigation';
-import { useAuth } from '@/context/auth-context';
-import { useToast } from '@/hooks/use-toast';
-
-interface NavItem {
-    href: string;
-    label: string;
-    icon: React.ElementType;
-    subItems?: NavItem[];
-}
-
-const adminNavLinks: NavItem[] = [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-    {
-        href: "/admin/products", label: "Products", icon: Package, subItems: [
-            { href: "/admin/products/configurable-prices", label: "Config Prices", icon: DollarSign },
-            { href: "/admin/products/unit-prices", label: "Unit Prices", icon: Ruler },
-            { href: "/admin/products/special-deals", label: "Special Deals", icon: Sparkles },
-            { href: "/admin/products/photos", label: "Photos", icon: ImageIconLucide }, 
-        ]
-    },
-     {
-        href: "/admin/content", label: "Content", icon: FileText, subItems: [
-             { href: "/admin/content/gallery", label: "Gallery", icon: GalleryHorizontal },
-             { href: "/admin/content/custom-order-text", label: "Custom Order Text", icon: FileText },
-             { href: "/admin/content/seo", label: "SEO", icon: ScanSearch },
-        ]
-    },
-    {
-        href: "/admin/settings", label: "Settings", icon: Settings, subItems: [
-            { href: "/admin/settings/company", label: "Company Info", icon: Building2 },
-            { href: "/admin/settings/financial", label: "Financial", icon: DollarSign },
-            { href: "/admin/settings/delivery", label: "Delivery", icon: Truck },
-            { href: "/admin/settings/payments", label: "Payments", icon: CreditCard },
-            { href: "/admin/settings/analytics", label: "Analytics", icon: BarChart3 },
-            { href: "/admin/settings/notifications", label: "Notifications", icon: Mail },
-        ]
-    },
-    { href: "/admin/users", label: "Users", icon: Users },
-    {
-        href: "/admin/crm", label: "CRM", icon: UserPlus, subItems: [
-            { href: "/admin/crm", label: "Dashboard", icon: LayoutDashboard },
-            { href: "/admin/crm/leads", label: "Lead Management", icon: UserPlus },
-            { href: "/admin/crm/contacts", label: "Contact History", icon: MessageSquare },
-        ]
-    }, 
-];
-
+import { ShieldAlert, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/auth-context'; // Keep useAuth to manage loading state
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { currentUser, loading: authLoading, signOut } = useAuth();
-    // const router = useRouter(); // Temporarily unused
-    const pathname = usePathname();
-    const { toast } = useToast();
-    const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+  const { loading: authLoading, currentUser } = useAuth(); // Use authLoading
 
-    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
-    const isUserAdmin = () => {
-        return true; 
-        // Original logic:
-        // if (!currentUser) return false;
-        // const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"];
-        // return adminEmails.includes(currentUser.email || "");
-    };
-    
-    const isAdmin = isUserAdmin(); // This will now always be true
+  // For development: Admin access is temporarily open once auth state is resolved.
+  // In production, implement robust role-based access control.
+  const isUserAdmin = () => {
+    // return true; // Previous bypass for all users
+    if (!currentUser) return false;
+    // Define your admin emails or roles here
+    const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"]; // Example
+    return adminEmails.includes(currentUser.email || "");
+  };
 
-    // TEMPORARILY COMMENTED OUT FOR DEVELOPMENT to allow access without login
-    // useEffect(() => {
-    //     if (!authLoading) {
-    //         if (!currentUser) {
-    //             toast({ variant: "destructive", title: "Access Denied", description: "Please log in to access the admin panel." });
-    //             router.push('/login?redirect=/admin');
-    //         } else if (!isAdmin) { // isAdmin will always be true now
-    //             toast({ variant: "destructive", title: "Unauthorized", description: "You do not have permission to access the admin panel." });
-    //             router.push('/'); 
-    //         }
-    //     }
-    // }, [currentUser, authLoading, router, isAdmin, toast]);
+  const isAdmin = isUserAdmin(); // This check will be used after loading
 
-
-    const toggleSubMenu = (label: string) => {
-        setOpenSubMenus(prev => ({ ...prev, [label]: !prev[label] }));
-    };
-
-    const isActive = (path: string, isSubItem = false): boolean => {
-        if (isSubItem) {
-            return pathname === path;
-        }
-        if (path === '/admin') {
-             return pathname === '/admin';
-        }
-        return pathname.startsWith(path);
-    };
-
-    const handleLogout = async () => {
-        try {
-          await signOut();
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            toast({ variant: "destructive", title: "Logout Error", description: error.message });
-          } else {
-            toast({ variant: "destructive", title: "Logout Error", description: "An unknown error occurred during logout." });
-          }
-        }
-    };
-
-    // TEMPORARILY MODIFIED: Only show loader based on authLoading, not currentUser or isAdmin
-    if (authLoading) {
-        return (
-            <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">
-                    Loading authentication state...
-                </p>
-            </div>
-        );
-    }
-
-    // The rest of the layout will now render even if currentUser is null
-    const renderNavItems = (items: NavItem[], isSubmenu = false) => {
-        return items.map((link) => {
-            const active = isActive(link.href, isSubmenu);
-            const hasSubItems = link.subItems && link.subItems.length > 0;
-            const isSubMenuOpen = openSubMenus[link.label] ?? false;
-
-            if (isSubmenu) {
-                return (
-                     <SidebarMenuSubItem key={link.href}>
-                        <Link href={link.href} legacyBehavior passHref>
-                           <SidebarMenuSubButton isActive={active}>
-                              <span>{link.label}</span>
-                           </SidebarMenuSubButton>
-                        </Link>
-                     </SidebarMenuSubItem>
-                );
-            }
-
-            return (
-                <SidebarMenuItem key={link.href}>
-                    <SidebarMenuButton
-                        onClick={hasSubItems ? () => toggleSubMenu(link.label) : undefined}
-                        asChild={!hasSubItems}
-                        isActive={active && !hasSubItems} 
-                        className="justify-between" 
-                    >
-                        {hasSubItems ? (
-                            <div className="flex items-center gap-2 w-full">
-                                <link.icon />
-                                <span>{link.label}</span>
-                                 <span className="ml-auto"> 
-                                   {isSubMenuOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                                 </span>
-                            </div>
-                        ) : (
-                            <Link href={link.href} className="flex items-center gap-2">
-                                <link.icon />
-                                <span>{link.label}</span>
-                            </Link>
-                        )}
-                    </SidebarMenuButton>
-                     {hasSubItems && isSubMenuOpen && (
-                        <SidebarMenuSub>
-                           {renderNavItems(link.subItems!, true)}
-                        </SidebarMenuSub>
-                     )}
-                </SidebarMenuItem>
-            );
-        });
-    };
-
-
+  if (authLoading) {
     return (
-        <SidebarProvider>
-            <Sidebar>
-                <SidebarHeader>
-                    <h2 className="text-xl font-semibold p-2">Admin Panel</h2>
-                     <SidebarTrigger/> 
-                </SidebarHeader>
-                <SidebarContent>
-                    <SidebarMenu>
-                        {renderNavItems(adminNavLinks)}
-                    </SidebarMenu>
-                </SidebarContent>
-                 <SidebarFooter>
-                     <div className="flex items-center gap-2 p-2 border-t border-sidebar-border">
-                         <Avatar className="h-8 w-8">
-                             <AvatarImage src={currentUser?.photoURL ?? undefined} alt={currentUser?.displayName ?? 'Admin'} />
-                             <AvatarFallback>{currentUser?.displayName?.[0]?.toUpperCase() ?? currentUser?.email?.[0]?.toUpperCase() ?? 'A'}</AvatarFallback>
-                         </Avatar>
-                         <div className="flex flex-col text-xs truncate">
-                             <span className="font-medium text-sidebar-foreground">{currentUser?.displayName || currentUser?.email || "Guest Admin"}</span>
-                             {currentUser?.displayName && currentUser.email && <span className="text-muted-foreground">{currentUser.email}</span> }
-                         </div>
-                         <Button variant="ghost" size="sm" className="ml-auto" onClick={handleLogout}>Logout</Button>
-                     </div>
-                 </SidebarFooter>
-            </Sidebar>
-            <SidebarInset>
-                 <div className="p-4 md:p-8">
-                    {children}
-                 </div>
-            </SidebarInset>
-        </SidebarProvider>
+      <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-muted/20">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading User Information...</p>
+      </div>
     );
+  }
+
+  // Once auth loading is complete, check if the user is an admin or if access is open for dev
+  const effectiveIsAdmin = true; // TEMPORARY BYPASS FOR DEVELOPMENT as per last request
+
+  if (!effectiveIsAdmin) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-muted/20">
+        <Card className="w-full max-w-lg bg-card shadow-xl">
+          <CardHeader className="text-center">
+            <ShieldAlert className="h-16 w-16 mx-auto text-destructive mb-4" />
+            <CardTitle className="text-2xl md:text-3xl">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              You do not have permission to view this page. Please log in with an administrator account.
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/login?redirect=/admin">Login</Link>
+            </Button>
+            <Button variant="outline" asChild className="mt-2 sm:mt-0 sm:ml-2">
+              <Link href="/">Return to Homepage</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If admin access is granted (or bypassed for dev)
+  return (
+    <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-muted/20">
+       {/* The prominent yellow banner for testing if layout updates are seen - REMOVE FOR PRODUCTION */}
+       {/* <h2 style={{ position: 'fixed', top: '5px', left: '5px', backgroundColor: 'yellow', color: 'black', padding: '10px', zIndex: 9999 }}>ADMIN LAYOUT UPDATED - {new Date().toLocaleTimeString()}</h2> */}
+      <Card className="w-full max-w-2xl bg-card shadow-xl">
+        <CardHeader className="text-center">
+          <ShieldAlert className="h-16 w-16 mx-auto text-primary mb-4" />
+          <CardTitle className="text-2xl md:text-3xl">Admin Area - Under Construction</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          <p className="text-muted-foreground">
+            The full admin panel with management tools for orders, products, pricing, and site settings is currently under development and will be available in a future update.
+          </p>
+          <p className="text-muted-foreground">
+            For now, this section is a placeholder. Some sub-pages might be accessible for direct development.
+          </p>
+          <div className="mt-6 p-4 border rounded-md bg-background/50">
+            {children}
+          </div>
+          <Button asChild className="mt-6">
+            <Link href="/">Return to Homepage</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
