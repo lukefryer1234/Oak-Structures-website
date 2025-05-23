@@ -40,6 +40,7 @@ interface SpecialDeal {
   volumeM3?: number;
 }
 
+// Type for the value parameter in handleFormChange
 type SpecialDealFormValue = string | number | boolean | undefined;
 
 
@@ -63,11 +64,11 @@ export default function SpecialDealsPage() {
          const numValue = value === '' || value === undefined ? undefined : parseFloat(String(value));
          setFormState(prev => ({ ...prev, [field]: numValue }));
      } else {
-         setFormState(prev => ({ ...prev, [field]: value as string }));
+         setFormState(prev => ({ ...prev, [field]: value as string })); // Cast to string for other fields
      }
   };
 
-  const handleSaveDeal = (event: FormEvent) => {
+  const handleSaveDeal = (event: FormEvent) => { // Typed event
     event.preventDefault();
     if (!formState.name || !formState.description || !formState.price || formState.price <= 0 || !formState.href || !formState.image || !formState.dataAiHint) {
         alert("Please fill in all required fields (Name, Description, Price, Href, Image URL, AI Hint).");
@@ -279,5 +280,3 @@ export default function SpecialDealsPage() {
     </Card>
   );
 }
-
-    

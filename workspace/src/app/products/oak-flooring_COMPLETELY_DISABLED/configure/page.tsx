@@ -2,6 +2,8 @@
 "use client";
 
 import React from 'react';
+// Minimal content to avoid build errors while this path is effectively disabled.
+// All imports of complex components or specific types have been removed.
 
 export default function ConfigureOakFlooringPageMinimal() {
   return (
@@ -11,5 +13,3 @@ export default function ConfigureOakFlooringPageMinimal() {
     </div>
   );
 }
-
-    

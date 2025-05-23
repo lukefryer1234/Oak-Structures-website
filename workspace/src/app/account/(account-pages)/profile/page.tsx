@@ -9,12 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
 // import { auth } from "@/lib/firebase"; // No longer used
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react"; // Added FormEvent
 import { Loader2 } from "lucide-react";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, type User } from "firebase/auth"; // Added User type
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth"; // Removed type User
 
 export default function ProfilePage() {
-  const { currentUser, updateUserProfile, setError, error } = useAuth(); // Added updateUserProfile
+  const { currentUser, updateUserProfile, setError, error } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -36,9 +36,9 @@ export default function ProfilePage() {
       setIsPasswordSaving(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error, setError, toast]);
+  }, [error, setError, toast]); // setError and toast added to deps
 
-  const handleProfileUpdate = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleProfileUpdate = async (event: FormEvent<HTMLFormElement>) => { // Typed event
      event.preventDefault();
      if (!currentUser) {
         toast({ variant: "destructive", title: "Error", description: "No user logged in." });
@@ -49,15 +49,18 @@ export default function ProfilePage() {
      try {
         await updateUserProfile(currentUser, { displayName: name });
         // Toast for success is handled in AuthContext's updateUserProfile
-     } catch (e: unknown) {
+     } catch (e: unknown) { // Changed to unknown
         // Error handling is managed by AuthContext
         console.error("Profile update error from page:", e);
+        // Optionally set local error state or display a toast if context doesn't cover it fully
+        const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during profile update.";
+        toast({ variant: "destructive", title: "Profile Update Error", description: errorMessage });
      } finally {
         setIsProfileSaving(false);
      }
   };
 
-   const handlePasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
+   const handlePasswordChange = async (event: FormEvent<HTMLFormElement>) => { // Typed event
      event.preventDefault();
      setIsPasswordSaving(true);
      setError(null);
@@ -88,10 +91,10 @@ export default function ProfilePage() {
         await updatePassword(currentUser, newPassword);
         toast({ title: "Password Updated", description: "Your password has been successfully changed." });
         (event.target as HTMLFormElement).reset();
-      } catch (e: unknown) {
+      } catch (e: unknown) { // Changed to unknown
         console.error("Password change error:", e);
         const errorMessage = e instanceof Error ? e.message : "An unknown error occurred during password change.";
-        setError(errorMessage);
+        setError(errorMessage); // Display Firebase error message or custom one
       } finally {
         setIsPasswordSaving(false);
       }

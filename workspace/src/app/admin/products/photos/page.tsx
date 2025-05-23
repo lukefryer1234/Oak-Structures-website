@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Trash2 } from 'lucide-react';
-// import { Image as ImageIcon } from 'lucide-react'; // Unused
+import { Upload, Trash2 } from 'lucide-react'; // Icons // Removed ImageIcon as unused
 import Image from 'next/image'; // Use next/image for preview
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
@@ -266,5 +265,3 @@ export default function ProductPhotosPage() {
     </div>
   );
 }
-
-    

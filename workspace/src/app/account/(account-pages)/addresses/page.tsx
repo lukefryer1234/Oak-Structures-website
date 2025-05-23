@@ -2,7 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Removed Card
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 
