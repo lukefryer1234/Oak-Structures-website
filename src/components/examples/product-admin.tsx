@@ -452,5 +452,47 @@ function ProductAdmin({ productId }: { productId: string }) {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               {product.featured && (
-                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2
+                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                  Featured
+                </span>
+              )}
+              <span className="text-sm text-muted-foreground">
+                Last updated: {new Date(product.updatedAt || product.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium">Description</h3>
+                <p className="text-sm text-muted-foreground mt-1">{product.description || 'No description available'}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium">Price</h3>
+                  <p className="text-sm text-muted-foreground mt-1">${product.price?.toFixed(2)}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Stock</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{product.stock} units</p>
+                </div>
+              </div>
+            </div>
+            
+            <Button onClick={handleEditClick} className="mt-4">
+              Edit Product
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
+export default function ProductAdminWithErrorBoundary({ productId }: { productId: string }) {
+  return (
+    <ErrorBoundary fallback={<p>Error loading product administration interface</p>}>
+      <ProductAdmin productId={productId} />
+    </ErrorBoundary>
+  );
+}

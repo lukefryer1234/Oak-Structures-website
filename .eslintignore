@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Firebase
+.firebase/
+hosting/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# JavaScript files in functions directory
+src/functions/
+functions/
+
+# Generated files
+.vercel
+.idx
+.github
+.cache
+

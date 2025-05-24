@@ -20,36 +20,39 @@ export interface ProductImage {
  * Supports both object-based filtering and legacy productId string param
  */
 export function useProductImages(options?: { type?: string; target?: string } | string) {
-  // If options is a string, treat it as a productId for backward compatibility
-  if (typeof options === 'string') {
-    const productId = options;
-    return useSafeQuery<ProductImage[]>(
-      ['productImages', productId],
-      async () => {
-        return await ProductImagesService.getProductImagesByProductId(productId);
-      },
-      {
-        context: 'Fetching product images for specific product',
-        showErrorToast: true,
-        toastTitle: 'Failed to load product images',
-        queryOptions: {
-          enabled: !!productId,
-        }
-      }
-    );
-  }
+  // Prepare query parameters based on options type
+  const isStringOption = typeof options === 'string';
+  const productId = isStringOption ? options : undefined;
+  const queryKey = isStringOption 
+    ? ['productImages', productId] 
+    : ['productImages', options?.type, options?.target];
   
-  // Standard behavior for options object
+  // Context message based on query type
+  const contextMessage = isStringOption
+    ? 'Fetching product images for specific product'
+    : 'Fetching product images';
+    
+  // Unified query function
+  const fetchImages = async () => {
+    if (isStringOption && productId) {
+      return await ProductImagesService.getProductImagesByProductId(productId);
+    } else {
+      return await ProductImagesService.getAllProductImages(options as { type?: string; target?: string } | undefined);
+    }
+  };
+  
+  // Call useSafeQuery with unified parameters
   return useSafeQuery<ProductImage[]>(
-    // Include filter parameters in the query key for cache management
-    ['productImages', options?.type, options?.target],
-    async () => {
-      return await ProductImagesService.getAllProductImages(options);
-    },
+    queryKey,
+    fetchImages,
     {
-      context: 'Fetching product images',
+      context: contextMessage,
       showErrorToast: true,
       toastTitle: 'Failed to load product images',
+      queryOptions: {
+        // Only set enabled if we're using the productId path
+        ...(isStringOption && { enabled: !!productId }),
+      }
     }
   );
 }

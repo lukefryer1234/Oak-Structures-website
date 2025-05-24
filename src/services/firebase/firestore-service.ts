@@ -1,29 +1,18 @@
-// src/services/firebase/firestore-service.ts
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
+import { 
+  collection, doc, getDoc, getDocs, query, 
+  where, orderBy, limit, setDoc, updateDoc, 
+  deleteDoc, writeBatch, runTransaction,
   QueryConstraint,
   DocumentReference,
   DocumentData,
   QuerySnapshot,
   DocumentSnapshot,
   Timestamp,
-  writeBatch,
-  runTransaction,
-  serverTimestamp,
-  onSnapshot,
   Unsubscribe,
+  addDoc,
+  startAfter,
+  serverTimestamp,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 

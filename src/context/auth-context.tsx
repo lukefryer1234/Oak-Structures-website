@@ -19,6 +19,38 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
+// List of public paths that don't require authentication
+const publicPaths = [
+  '/',
+  '/products',
+  '/about',
+  '/contact',
+  '/gallery',
+  '/faq',
+  '/special-deals',
+  '/terms',
+  '/privacy',
+  '/login',
+  '/register',
+  '/forgot-password',
+];
+
+// Check if the current path starts with any of the public paths
+const isPublicPath = (path: string): boolean => {
+  // Handle product category paths specifically - these should ALWAYS be public
+  if (path.startsWith('/products/')) {
+    return true;
+  }
+  
+  // Handle gallery and other static content
+  if (path.startsWith('/gallery') || path.startsWith('/special-deals')) {
+    return true;
+  }
+  
+  return publicPaths.includes(path);
+};
+};
+
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -148,9 +180,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await firebaseSignOut(auth);
       setCurrentUser(null);
-      router.push('/login'); 
+      
+      // Get the current path
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        
+        // Only redirect to login if current path is not public
+        if (!isPublicPath(currentPath)) {
+          router.push('/login');
+        }
+      } else {
+        router.push('/login'); // Fallback if window is not available
+      }
+      
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
-    } catch (e: any)      {
+    } catch (e: any) {
       console.error("Sign out error:", e);
       setError(e.message);
       toast({ variant: "destructive", title: "Sign Out Error", description: e.message });
@@ -160,10 +204,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async (): Promise<User | null> => {
     setError(null);
     const provider = new GoogleAuthProvider();
+    
+    // Add these lines to force account selection and get refresh token
+    provider.setCustomParameters({
+      prompt: 'select_account',
+      access_type: 'offline'
+    });
+    
     try {
       const result = await signInWithPopup(auth, provider);
       // Firestore document sync is handled by onAuthStateChanged
       setCurrentUser(result.user);
+      
+      // Get the redirect URL from the URL parameters if available
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get('redirect') || '/account/profile';
+        
+        // Navigate to the redirect URL
+        router.push(redirectUrl);
+      } else {
+        router.push('/account/profile'); // Fallback if window is not available
+      }
+      
       toast({ title: "Signed In", description: "Successfully signed in with Google." });
       return result.user;
     } catch (e: any) {

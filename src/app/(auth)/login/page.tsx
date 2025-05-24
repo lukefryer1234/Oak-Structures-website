@@ -30,7 +30,12 @@ function AuthContent() {
 
   useEffect(() => {
     if (!authLoading && currentUser) {
-      router.push('/account/profile'); 
+      // Get the redirect URL from the URL parameters if available
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectUrl = urlParams.get('redirect') || '/account/profile';
+      
+      // Navigate to the redirect URL
+      router.push(redirectUrl);
     }
   }, [currentUser, authLoading, router]);
 
