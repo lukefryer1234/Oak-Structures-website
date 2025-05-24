@@ -1,13 +1,17 @@
 
 "use client"; // Needed for form/state
 
+// Add dynamic export configuration to prevent static generation
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { notFound, useRouter } from 'next/navigation'; // Added useRouter
+import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,7 +21,7 @@ import { cn } from '@/lib/utils';
 interface ConfigOption {
   id: string;
   label: string;
-  type: 'select' | 'radio'; // Simplified for Porches
+  type: 'select' | 'radio';
   options?: { value: string; label: string; image?: string, dataAiHint?: string }[];
   defaultValue?: any;
 }
@@ -34,8 +38,16 @@ const porchConfig: CategoryConfig = {
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
       { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
       { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: 'narrow', label: 'Narrow (e.g., 1.5m Wide)' }, { value: 'standard', label: 'Standard (e.g., 2m Wide)' }, { value: 'wide', label: 'Wide (e.g., 2.5m Wide)' }], defaultValue: 'standard' },
-      // { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'reclaimed' }, // Removed oak type
     ]
+};
+
+// Data fetching function for React Query
+const fetchPorchConfig = async (): Promise<CategoryConfig> => {
+  // In a real application, this would fetch from Firestore or an API
+  // For now, we return the hardcoded config
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(porchConfig), 500); // Simulate API call
+  });
 };
 
 // --- Helper Functions ---
@@ -54,23 +66,28 @@ const calculatePrice = (config: any): number => {
 
 export default function ConfigurePorchPage() {
   const category = 'porches';
-  const categoryConfig = porchConfig;
   const router = useRouter(); // Initialize router
 
-  const [configState, setConfigState] = useState<any>(() => {
-    const initialState: any = {};
-    categoryConfig.options.forEach(opt => {
-      initialState[opt.id] = opt.defaultValue;
-    });
-    return initialState;
+  const { data: categoryConfig, isLoading, isError, error } = useQuery<CategoryConfig, Error>({
+    queryKey: ['porchConfig'],
+    queryFn: fetchPorchConfig,
+    staleTime: Infinity, // Configuration data is static for now
+    refetchOnWindowFocus: false,
   });
 
-   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  const [configState, setConfigState] = useState<any>({});
+  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-   useEffect(() => {
-      setCalculatedPrice(calculatePrice(configState));
-   // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, []); // Run only once
+  useEffect(() => {
+    if (categoryConfig) {
+      const initialState: any = {};
+      categoryConfig.options.forEach(opt => {
+        initialState[opt.id] = opt.defaultValue;
+      });
+      setConfigState(initialState);
+      setCalculatedPrice(calculatePrice(initialState));
+    }
+  }, [categoryConfig]); // Re-run when categoryConfig is fetched or changes
 
    const handleConfigChange = (id: string, value: any) => {
      setConfigState((prev: any) => {
@@ -85,6 +102,26 @@ export default function ConfigurePorchPage() {
         const price = calculatedPrice !== null ? calculatedPrice.toFixed(2) : '0.00';
         router.push(`/preview?category=${category}&config=${configString}&price=${price}`);
    }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <p>Loading configuration...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center text-red-500">
+        <p>Error loading configuration: {error?.message || 'Unknown error'}</p>
+      </div>
+    );
+  }
+
+  if (!categoryConfig) {
+    notFound();
+  }
 
   return (
     <div>
@@ -103,13 +140,11 @@ export default function ConfigurePorchPage() {
                         value={configState[option.id]}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
-                        {/* Added justify-center */}
                         <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto justify-center">
                           <SelectValue placeholder={`Select ${option.label}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {option.options?.map((opt) => (
-                            // Added justify-center to SelectItem
                             <SelectItem key={opt.value} value={opt.value} className="justify-center">{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
@@ -121,7 +156,7 @@ export default function ConfigurePorchPage() {
                             onValueChange={(value) => handleConfigChange(option.id, value)}
                             className={cn(
                                 "mt-2 grid gap-4 justify-center",
-                                "grid-cols-2 max-w-md mx-auto" // Always side-by-side for radios in porch
+                                "grid-cols-2 max-w-md mx-auto"
                              )}
                          >
                            {option.options?.map((opt) => (
