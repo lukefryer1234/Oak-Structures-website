@@ -1,0 +1,239 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import {
+  exportCollection,
+  ExportOptions,
+  ExportResult,
+  ExportFormat,
+} from "@/lib/export-utils";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  where,
+  Timestamp, FieldValue,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { adminLogger, AdminActionType, LogSeverity } from "@/lib/admin-logger";
+import { adminDb } from "@/lib/firebase-admin";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { v4 as uuidv4 } from "uuid";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { storage } from "@/lib/firebase";
+
+/**
+ * Interface for export history entry stored in Firestore
+ */
+interface ExportHistoryEntry {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName?: string;
+  timestamp: Timestamp | FieldValue; // Firestore Timestamp or FieldValue
+  collection: string;
+  format: string;
+  recordCount: number;
+  fileSize: number;
+  fileName: string;
+  downloadUrl?: string;
+  expiresAt?: Timestamp | FieldValue; // Firestore Timestamp or FieldValue
+  options: ExportOptions;
+  status: "success" | "error";
+  error?: string;
+}
+
+/**
+ * Execute a data export and save the result to Firestore
+ */
+export async function executeExport(
+  options: ExportOptions,
+  user: { uid: string; email: string | null; displayName?: string | null },
+): Promise<ExportResult> {
+  try {
+    // Execute the export
+    const exportResult = await exportCollection(options);
+
+    // Log the action
+    await adminLogger.create(
+      user,
+      "exports",
+      `Exported ${exportResult.recordCount} records from ${options.collection}`,
+      {
+        details: {
+          collection: options.collection,
+          format: options.format,
+          recordCount: exportResult.recordCount,
+          fileSize: exportResult.fileSize,
+        },
+        targetType: "collection",
+        targetId: options.collection,
+      },
+    );
+
+    // Save export history to Firestore
+    const historyEntry: ExportHistoryEntry = {
+      id:
+        exportResult.id ??
+        `export_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      userId: user.uid,
+      userEmail: user.email || "unknown",
+      userName: user.displayName || undefined,
+      timestamp: serverTimestamp(),
+      collection: options.collection,
+      format: options.format,
+      recordCount: exportResult.recordCount ?? 0,
+      fileSize: exportResult.fileSize ?? 0,
+      fileName: exportResult.filename ?? "",
+      options,
+      status: exportResult.success ? "success" : "error",
+      error: exportResult.error,
+    };
+
+    // For exports to storage (not client download)
+    if (options.includeMetadata) {
+      // Set expiration date (7 days from now)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      historyEntry.expiresAt = Timestamp.fromDate(expiresAt);
+    }
+
+    // Add to export_history collection
+    await addDoc(collection(db, "export_history"), historyEntry);
+
+    // Revalidate the exports page to show updated history
+    revalidatePath("/admin/tools/exports");
+
+    return exportResult;
+  } catch (error) {
+    console.error("Error executing export:", error);
+
+    // Log the error
+    if (user) {
+      await adminLogger.error(
+        user,
+        "exports",
+        `Export failed for ${options.collection}`,
+        error,
+      );
+    }
+
+    // Return error result
+    return {
+      id: `error_${Date.now()}`,
+      success: false,
+      recordCount: 0,
+      fileSize: 0,
+      filename: "",
+      message: `Error exporting ${options.collection}`,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Get export history entries from Firestore
+ *
+ * @param limit Maximum number of entries to retrieve
+ * @returns Promise resolving to array of export history entries
+ */
+export async function getExportHistory(
+  maxLimit = 20,
+): Promise<ExportHistoryEntry[]> {
+  try {
+    // Create a query to get the most recent exports
+    const q = query(
+      collection(db, "export_history"),
+      orderBy("timestamp", "desc"),
+      limit(maxLimit),
+    );
+
+    // Execute the query
+    const snapshot = await getDocs(q);
+
+    // Convert snapshot to array of export history entries
+    const history: ExportHistoryEntry[] = [];
+
+    snapshot.forEach((doc) => {
+      const data = doc.data() as Omit<ExportHistoryEntry, "id">;
+
+      // Convert Firestore timestamps to JavaScript Dates for client-side use
+      const entry: ExportHistoryEntry = {
+        ...data,
+        id: doc.id,
+        timestamp: data.timestamp,
+      };
+
+      history.push(entry);
+    });
+
+    return history;
+  } catch (error) {
+    console.error("Error getting export history:", error);
+    return [];
+  }
+}
+
+/**
+ * Generate a temporary download URL for an export
+ *
+ * @param exportId ID of the export to generate URL for
+ * @returns Promise resolving to the download URL
+ */
+export async function generateExportDownloadUrl(
+  exportId: string,
+): Promise<string | null> {
+  try {
+    // Get the export history entry
+    const q = query(
+      collection(db, "export_history"),
+      where("id", "==", exportId),
+      limit(1),
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      throw new Error(`Export with ID ${exportId} not found`);
+    }
+
+    const exportEntry = snapshot.docs[0].data() as ExportHistoryEntry;
+
+    // If there's already a download URL and it hasn't expired, return it
+    if (exportEntry.downloadUrl && exportEntry.expiresAt) {
+      // Check if expiresAt is a Timestamp (which has toDate method)
+      const expiresAt = 'toDate' in exportEntry.expiresAt 
+        ? exportEntry.expiresAt.toDate() 
+        : new Date(); // Default to current date if it's a FieldValue
+      if (expiresAt > new Date()) {
+        return exportEntry.downloadUrl;
+      }
+    }
+
+    // Execute the export to regenerate the content
+    const exportResult = await exportCollection(exportEntry.options);
+
+    if (!exportResult.success) {
+      throw new Error(`Failed to regenerate export: ${exportResult.error}`);
+    }
+
+    // TODO: For a production system, upload the export file to Firebase Storage
+    // and generate a download URL. For now, we'll just return a placeholder.
+
+    // In a real implementation, this would be something like:
+    // const storageRef = ref(storage, `exports/${exportEntry.fileName}`);
+    // await uploadBytes(storageRef, new Blob([fileContent]));
+    // const downloadUrl = await getDownloadURL(storageRef);
+
+    return null; // Placeholder for download URL
+  } catch (error) {
+    console.error("Error generating download URL:", error);
+    return null;
+  }
+}

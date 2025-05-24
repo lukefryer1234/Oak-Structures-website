@@ -1,0 +1,2103 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+
+const productCategories = [
+  { id: 'garages', label: 'Garages' },
+  { id: 'gazebos', label: 'Gazebos' },
+  { id: 'porches', label: 'Porches' },
+  { id: 'oak-beams', label: 'Oak Beams' },
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+const imageSubcategories: Record<string, { id: string; label: string }[]> = {
+  'garages': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'roof-options', label: 'Roof Options' },
+    { id: 'cladding-options', label: 'Cladding Options' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'gazebos': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'porches': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'oak-beams': [
+    { id: 'types', label: 'Beam Types/Profiles' },
+    { id: 'finishes', label: 'Beam Finishes' },
+    { id: 'gallery', label: 'Application Gallery' },
+  ],
+  'oak-flooring': [
+    { id: 'grades', label: 'Flooring Grades' },
+    { id: 'finishes', label: 'Flooring Finishes' },
+    { id: 'gallery', label: 'Installation Gallery' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(productCategories[0].id);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  useEffect(() => {
+    const subcats = imageSubcategories[selectedCategory];
+    if (subcats && subcats.length > 0) {
+      setSelectedSubcategory(subcats[0].id);
+    } else {
+      setSelectedSubcategory('');
+    }
+  }, [selectedCategory]);
+
+  const memoizedLoadImages = useCallback(async () => {
+    if (!selectedCategory || !selectedSubcategory || !currentUser || !isUserAdmin()) {
+      setImages([]);
+      return;
+    }
+    setLoadingImages(true);
+    try {
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Images",
+        description: (error as Error).message || "Failed to load images. Please try again.",
+      });
+      setImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [selectedCategory, selectedSubcategory, currentUser, isUserAdmin, toast]);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!currentUser || !isUserAdmin()) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to access this page.",
+        });
+        router.push('/');
+        return;
+      }
+      if (selectedCategory && selectedSubcategory) {
+        memoizedLoadImages();
+      }
+    }
+  }, [currentUser, loading, isUserAdmin, router, toast, memoizedLoadImages, selectedCategory, selectedSubcategory]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedCategory || !selectedSubcategory) {
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a product category and image type first." });
+      return;
+    }
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an image file." });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast({ variant: "destructive", title: "File Too Large", description: "Image size should not exceed 10MB." });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const fileName = `${timestamp}_${sanitizedFileName}`;
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      
+      await uploadImage(file, path);
+      toast({ title: "Upload Successful", description: `${file.name} has been uploaded.` });
+      memoizedLoadImages(); 
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({ variant: "destructive", title: "Upload Failed", description: (error as Error).message || "Could not upload image." });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = ''; 
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) return;
+    
+    const originalImages = [...images];
+    setImages(images.filter(img => img !== imageUrl)); // Optimistic update
+
+    try {
+      const url = new URL(imageUrl);
+      const pathName = decodeURIComponent(url.pathname);
+      // Firebase storage URLs are typically /v0/b/<bucket-name>/o/<path-to-file>
+      const storagePath = pathName.substring(pathName.indexOf('/o/') + 3);
+
+      if (!storagePath.startsWith('products/')) { // Basic validation
+        throw new Error("Invalid image path derived for deletion. Path does not start with 'products/'.");
+      }
+      await deleteImage(storagePath);
+      toast({ title: "Image Deleted", description: "The image has been successfully deleted." });
+      // No need to call memoizedLoadImages() again due to optimistic update.
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      setImages(originalImages); // Revert optimistic update on error
+      toast({ variant: "destructive", title: "Deletion Failed", description: (error as Error).message || "Could not delete image." });
+    }
+  };
+  
+  if (loading) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Loading authentication state...</div>;
+  if (!currentUser || !isUserAdmin()) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Access Denied. Redirecting...</div>;
+
+  return (
+    <div className="container mx-auto px-2 sm:px-4 py-8">
+      <Card className="max-w-5xl mx-auto shadow-lg">
+        <CardHeader className="border-b">
+          <CardTitle className="text-xl sm:text-2xl font-semibold">Product Image Management</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">Upload, view, and delete images for product configurations.</CardDescription>
+        </CardHeader>
+
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+            <div>
+              <Label htmlFor="category-select" className="block text-sm font-medium mb-1">Product Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-select" className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subcategory-select" className="block text-sm font-medium mb-1">Image Type / Subfolder</Label>
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory} disabled={!selectedCategory || !imageSubcategories[selectedCategory]?.length}>
+                <SelectTrigger id="subcategory-select" className="w-full">
+                  <SelectValue placeholder="Select an image type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {imageSubcategories[selectedCategory]?.map((subcat) => (
+                    <SelectItem key={subcat.id} value={subcat.id}>{subcat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Tabs defaultValue="manage" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="manage">Manage Existing Images</TabsTrigger>
+              <TabsTrigger value="upload">Upload New Images</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="manage">
+              {loadingImages ? (
+                <div className="flex justify-center items-center py-10 text-muted-foreground">
+                  <RefreshCw className="h-6 w-6 animate-spin mr-2" /> Loading images...
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-lg">
+                  <Info className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+                  <p className="font-medium text-muted-foreground">No images found.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCategory && selectedSubcategory ? `Upload images for "${imageSubcategories[selectedCategory]?.find(s => s.id === selectedSubcategory)?.label}" in "${productCategories.find(c => c.id === selectedCategory)?.label}".` : "Select a category and type to view or upload images."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {images.map((imageUrl) => (
+                    <div key={imageUrl} className="relative group aspect-square border rounded-md overflow-hidden shadow-sm">
+                      <Image
+                        src={imageUrl}
+                        alt="Product image"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        priority={images.indexOf(imageUrl) < 8} // Prioritize loading for first few images
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="upload">
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                <Input
+                  type="file"
+                  accept="image/png, image/jpeg, image/gif, image/webp"
+                  onChange={handleFileChange}
+                  disabled={uploading || !selectedCategory || !selectedSubcategory}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <Label
+                  htmlFor="fileInput"
+                  className={`flex flex-col items-center justify-center py-8 rounded-md transition-colors ${(!selectedCategory || !selectedSubcategory) ? 'cursor-not-allowed bg-gray-50 opacity-70' : 'cursor-pointer hover:bg-gray-50'}`}
+                >
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-5 w-5 text-muted-foreground animate-spin mb-1" />
+                      <p className="text-sm font-medium text-muted-foreground">Uploading, please wait...</p>
+                    </>
+                  ) : (!selectedCategory || !selectedSubcategory) ? (
+                    <>
+                      <p className="font-semibold text-sm text-gray-600">Select Category & Image Type</p>
+                      <p className="text-xs text-gray-500 mt-1">Choose a product category and image type above before uploading.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-sm text-gray-600">Click or drag file to this area to upload</p>
+                      <p className="text-xs text-gray-500 mt-1">Supports PNG, JPG, GIF, WebP (max. 10MB)</p>
+                    </>
+                  )}
+                </Label>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        <CardFooter className="flex justify-end pt-6 border-t mt-4">
+          <Button onClick={() => router.push('/admin')} variant="outline">Back to Admin Dashboard</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+
+const productCategories = [
+  { id: 'garages', label: 'Garages' },
+  { id: 'gazebos', label: 'Gazebos' },
+  { id: 'porches', label: 'Porches' },
+  { id: 'oak-beams', label: 'Oak Beams' },
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+const imageSubcategories: Record<string, { id: string; label: string }[]> = {
+  'garages': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'roof-options', label: 'Roof Options' },
+    { id: 'cladding-options', label: 'Cladding Options' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'gazebos': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'porches': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'oak-beams': [
+    { id: 'types', label: 'Beam Types/Profiles' },
+    { id: 'finishes', label: 'Beam Finishes' },
+    { id: 'gallery', label: 'Application Gallery' },
+  ],
+  'oak-flooring': [
+    { id: 'grades', label: 'Flooring Grades' },
+    { id: 'finishes', label: 'Flooring Finishes' },
+    { id: 'gallery', label: 'Installation Gallery' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(productCategories[0].id);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  useEffect(() => {
+    const subcats = imageSubcategories[selectedCategory];
+    if (subcats && subcats.length > 0) {
+      setSelectedSubcategory(subcats[0].id);
+    } else {
+      setSelectedSubcategory('');
+    }
+  }, [selectedCategory]);
+
+  const memoizedLoadImages = useCallback(async () => {
+    if (!selectedCategory || !selectedSubcategory || !currentUser || !isUserAdmin()) {
+      setImages([]);
+      return;
+    }
+    setLoadingImages(true);
+    try {
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Images",
+        description: (error as Error).message || "Failed to load images. Please try again.",
+      });
+      setImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [selectedCategory, selectedSubcategory, currentUser, isUserAdmin, toast]);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!currentUser || !isUserAdmin()) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to access this page.",
+        });
+        router.push('/');
+        return;
+      }
+      if (selectedCategory && selectedSubcategory) {
+        memoizedLoadImages();
+      }
+    }
+  }, [currentUser, loading, isUserAdmin, router, toast, memoizedLoadImages, selectedCategory, selectedSubcategory]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedCategory || !selectedSubcategory) {
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a product category and image type first." });
+      return;
+    }
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an image file." });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File Too Large", description: "Image size should not exceed 10MB." });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const fileName = `${timestamp}_${sanitizedFileName}`;
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      
+      await uploadImage(file, path);
+      toast({ title: "Upload Successful", description: `${file.name} has been uploaded.` });
+      memoizedLoadImages(); 
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({ variant: "destructive", title: "Upload Failed", description: (error as Error).message || "Could not upload image." });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = ''; 
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) return;
+    
+    const originalImages = [...images];
+    setImages(images.filter(img => img !== imageUrl));
+
+    try {
+      const url = new URL(imageUrl);
+      const pathName = decodeURIComponent(url.pathname);
+      const storagePath = pathName.substring(pathName.indexOf('/o/') + 3);
+
+      if (!storagePath.startsWith('products/')) {
+        throw new Error("Invalid image path derived for deletion.");
+      }
+      await deleteImage(storagePath);
+      toast({ title: "Image Deleted", description: "The image has been successfully deleted." });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      setImages(originalImages); 
+      toast({ variant: "destructive", title: "Deletion Failed", description: (error as Error).message || "Could not delete image." });
+    }
+  };
+  
+  if (loading) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Loading authentication state...</div>;
+  if (!currentUser || !isUserAdmin()) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Access Denied. Redirecting...</div>;
+
+  return (
+    <div className="container mx-auto px-2 sm:px-4 py-8">
+      <Card className="max-w-5xl mx-auto shadow-lg">
+        <CardHeader className="border-b">
+          <CardTitle className="text-xl sm:text-2xl font-semibold">Product Image Management</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">Upload, view, and delete images for product configurations.</CardDescription>
+        </CardHeader>
+
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+            <div>
+              <Label htmlFor="category-select" className="block text-sm font-medium mb-1">Product Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-select" className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subcategory-select" className="block text-sm font-medium mb-1">Image Type / Subfolder</Label>
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory} disabled={!selectedCategory || !imageSubcategories[selectedCategory]?.length}>
+                <SelectTrigger id="subcategory-select" className="w-full">
+                  <SelectValue placeholder="Select an image type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {imageSubcategories[selectedCategory]?.map((subcat) => (
+                    <SelectItem key={subcat.id} value={subcat.id}>{subcat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Tabs defaultValue="manage" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="manage">Manage Existing Images</TabsTrigger>
+              <TabsTrigger value="upload">Upload New Images</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="manage">
+              {loadingImages ? (
+                <div className="flex justify-center items-center py-10 text-muted-foreground">
+                  <RefreshCw className="h-6 w-6 animate-spin mr-2" /> Loading images...
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-lg">
+                  <Info className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+                  <p className="font-medium text-muted-foreground">No images found.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCategory && selectedSubcategory ? `Upload images for "${imageSubcategories[selectedCategory]?.find(s => s.id === selectedSubcategory)?.label}" in "${productCategories.find(c => c.id === selectedCategory)?.label}".` : "Select a category and type to view or upload images."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {images.map((imageUrl) => (
+                    <div key={imageUrl} className="relative group aspect-square border rounded-md overflow-hidden shadow-sm">
+                      <Image
+                        src={imageUrl}
+                        alt="Product image"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        priority={images.indexOf(imageUrl) < 10}
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="upload">
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                <Input
+                  type="file"
+                  accept="image/png, image/jpeg, image/gif, image/webp"
+                  onChange={handleFileChange}
+                  disabled={uploading || !selectedCategory || !selectedSubcategory}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <Label
+                  htmlFor="fileInput"
+                  className={`flex flex-col items-center justify-center py-8 rounded-md transition-colors ${(!selectedCategory || !selectedSubcategory) ? 'cursor-not-allowed bg-gray-50 opacity-70' : 'cursor-pointer hover:bg-gray-50'}`}
+                >
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-5 w-5 text-muted-foreground animate-spin mb-1" />
+                      <p className="text-sm font-medium text-muted-foreground">Uploading, please wait...</p>
+                    </>
+                  ) : (!selectedCategory || !selectedSubcategory) ? (
+                    <>
+                      <p className="font-semibold text-sm text-gray-600">Select Category & Image Type</p>
+                      <p className="text-xs text-gray-500 mt-1">Choose a product category and image type above before uploading.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-sm text-gray-600">Click or drag file to this area to upload</p>
+                      <p className="text-xs text-gray-500 mt-1">Supports PNG, JPG, GIF, WebP (max. 10MB)</p>
+                    </>
+                  )}
+                </Label>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        <CardFooter className="flex justify-end pt-6 border-t mt-4">
+          <Button onClick={() => router.push('/admin')} variant="outline">Back to Admin Dashboard</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+
+// Define product categories - ensure this matches your data structure
+const productCategories = [
+  { id: 'garages', label: 'Garages' },
+  { id: 'gazebos', label: 'Gazebos' },
+  { id: 'porches', label: 'Porches' },
+  { id: 'oak-beams', label: 'Oak Beams' },
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+// Define image subcategories for each product category
+const imageSubcategories: Record<string, { id: string; label: string }[]> = {
+  'garages': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'roof-options', label: 'Roof Options' },
+    { id: 'cladding-options', label: 'Cladding Options' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'gazebos': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'porches': [
+    { id: 'main', label: 'Main Display Images' },
+    { id: 'gallery', label: 'Photo Gallery' },
+  ],
+  'oak-beams': [
+    { id: 'types', label: 'Beam Types/Profiles' },
+    { id: 'finishes', label: 'Beam Finishes' },
+    { id: 'gallery', label: 'Application Gallery' },
+  ],
+  'oak-flooring': [
+    { id: 'grades', label: 'Flooring Grades' },
+    { id: 'finishes', label: 'Flooring Finishes' },
+    { id: 'gallery', label: 'Installation Gallery' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(productCategories[0].id);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  // Initialize selectedSubcategory when component mounts or selectedCategory changes
+  useEffect(() => {
+    const subcats = imageSubcategories[selectedCategory];
+    if (subcats && subcats.length > 0) {
+      setSelectedSubcategory(subcats[0].id);
+    } else {
+      setSelectedSubcategory(''); // Reset if no subcategories for the current category
+    }
+  }, [selectedCategory]);
+
+  const memoizedLoadImages = useCallback(async () => {
+    if (!selectedCategory || !selectedSubcategory || !currentUser || !isUserAdmin()) {
+      setImages([]);
+      return;
+    }
+    setLoadingImages(true);
+    try {
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Images",
+        description: (error as Error).message || "Failed to load images. Please try again.",
+      });
+      setImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [selectedCategory, selectedSubcategory, currentUser, isUserAdmin, toast]);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!currentUser || !isUserAdmin()) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to access this page.",
+        });
+        router.push('/');
+        return;
+      }
+      // Load images if selections are valid and user is admin
+      if (selectedCategory && selectedSubcategory) {
+        memoizedLoadImages();
+      }
+    }
+  }, [currentUser, loading, isUserAdmin, router, toast, memoizedLoadImages, selectedCategory, selectedSubcategory]);
+
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedCategory || !selectedSubcategory) {
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a product category and image type first." });
+      return;
+    }
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an image file." });
+      return;
+    }
+     if (file.size > 10 * 1024 * 1024) { // Example: 10MB limit
+      toast({ variant: "destructive", title: "File Too Large", description: "Image size should not exceed 10MB." });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_'); // Sanitize filename
+      const fileName = `${timestamp}_${sanitizedFileName}`;
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      
+      await uploadImage(file, path);
+      toast({ title: "Upload Successful", description: `${file.name} has been uploaded.` });
+      memoizedLoadImages(); 
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({ variant: "destructive", title: "Upload Failed", description: (error as Error).message || "Could not upload image." });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = ''; 
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) return;
+    
+    // Show visual feedback that deletion is in progress
+    const originalImages = [...images];
+    setImages(images.filter(img => img !== imageUrl)); // Optimistic update
+
+    try {
+      const url = new URL(imageUrl);
+      const pathName = decodeURIComponent(url.pathname);
+      const storagePath = pathName.substring(pathName.indexOf('/o/') + 3);
+
+      if (!storagePath.startsWith('products/')) {
+        throw new Error("Invalid image path derived for deletion.");
+      }
+      await deleteImage(storagePath);
+      toast({ title: "Image Deleted", description: "The image has been successfully deleted." });
+      // No need to call memoizedLoadImages() if optimistic update is sufficient,
+      // but for consistency or if server-side state changes, it might be needed.
+      // For now, optimistic update is fine.
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      setImages(originalImages); // Revert optimistic update on error
+      toast({ variant: "destructive", title: "Deletion Failed", description: (error as Error).message || "Could not delete image." });
+    }
+  };
+  
+  if (loading) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Loading authentication state...</div>;
+  if (!currentUser || !isUserAdmin()) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Access Denied. Redirecting...</div>;
+
+  return (
+    <div className="container mx-auto px-2 sm:px-4 py-8">
+      <Card className="max-w-5xl mx-auto shadow-lg">
+        <CardHeader className="border-b">
+          <CardTitle className="text-xl sm:text-2xl font-semibold">Product Image Management</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">Upload, view, and delete images for product configurations.</CardDescription>
+        </CardHeader>
+
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+            <div>
+              <Label htmlFor="category-select" className="block text-sm font-medium mb-1">Product Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-select" className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subcategory-select" className="block text-sm font-medium mb-1">Image Type / Subfolder</Label>
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory} disabled={!selectedCategory || !imageSubcategories[selectedCategory]?.length}>
+                <SelectTrigger id="subcategory-select" className="w-full">
+                  <SelectValue placeholder="Select an image type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {imageSubcategories[selectedCategory]?.map((subcat) => (
+                    <SelectItem key={subcat.id} value={subcat.id}>{subcat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Tabs defaultValue="manage" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="manage">Manage Existing Images</TabsTrigger>
+              <TabsTrigger value="upload">Upload New Images</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="manage">
+              {loadingImages ? (
+                <div className="flex justify-center items-center py-10 text-muted-foreground">
+                  <RefreshCw className="h-6 w-6 animate-spin mr-2" /> Loading images...
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-lg">
+                  <Info className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
+                  <p className="font-medium text-muted-foreground">No images found.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCategory && selectedSubcategory ? `Upload images for "${imageSubcategories[selectedCategory]?.find(s => s.id === selectedSubcategory)?.label}" in "${productCategories.find(c => c.id === selectedCategory)?.label}".` : "Select a category and type to view or upload images."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {images.map((imageUrl) => (
+                    <div key={imageUrl} className="relative group aspect-square border rounded-md overflow-hidden shadow-sm">
+                      <Image
+                        src={imageUrl}
+                        alt="Product image"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        priority={images.indexOf(imageUrl) < 10} // Prioritize loading for first few images
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="upload">
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                <Input
+                  type="file"
+                  accept="image/png, image/jpeg, image/gif, image/webp"
+                  onChange={handleFileChange}
+                  disabled={uploading || !selectedCategory || !selectedSubcategory}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <Label
+                  htmlFor="fileInput"
+                  className={`flex flex-col items-center justify-center py-8 rounded-md transition-colors ${(!selectedCategory || !selectedSubcategory) ? 'cursor-not-allowed bg-gray-50 opacity-70' : 'cursor-pointer hover:bg-gray-50'}`}
+                >
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-5 w-5 text-muted-foreground animate-spin mb-1" />
+                      <p className="text-sm font-medium text-muted-foreground">Uploading, please wait...</p>
+                    </>
+                  ) : (!selectedCategory || !selectedSubcategory) ? (
+                    <>
+                      <p className="font-semibold text-sm text-gray-600">Select Category & Image Type</p>
+                      <p className="text-xs text-gray-500 mt-1">Choose a product category and image type above before uploading.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-sm text-gray-600">Click or drag file to this area to upload</p>
+                      <p className="text-xs text-gray-500 mt-1">Supports PNG, JPG, GIF, WebP (max. 10MB)</p>
+                    </>
+                  )}
+                </Label>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        <CardFooter className="flex justify-end pt-6 border-t mt-4">
+          <Button onClick={() => router.push('/admin')} variant="outline">Back to Admin Dashboard</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+
+const productCategories = [
+  { id: 'garages', label: 'Garages' },
+  { id: 'gazebos', label: 'Gazebos' },
+  { id: 'porches', label: 'Porches' },
+  { id: 'oak-beams', label: 'Oak Beams' },
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+const imageSubcategories: Record<string, { id: string; label: string }[]> = {
+  'garages': [
+    { id: 'main', label: 'Main Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'roof-options', label: 'Roof Options' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'gazebos': [
+    { id: 'main', label: 'Main Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'porches': [
+    { id: 'main', label: 'Main Images' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'oak-beams': [
+    { id: 'types', label: 'Beam Types' },
+    { id: 'finishes', label: 'Finishes' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'oak-flooring': [
+    { id: 'grades', label: 'Grades' },
+    { id: 'finishes', label: 'Finishes' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(productCategories[0].id);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>(imageSubcategories[productCategories[0].id]?.[0]?.id || '');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  const memoizedLoadImages = useCallback(async () => {
+    if (!selectedCategory || !selectedSubcategory || !currentUser || !isUserAdmin()) {
+      setImages([]);
+      return;
+    }
+    setLoadingImages(true);
+    try {
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Images",
+        description: (error as Error).message || "Failed to load images. Please try again.",
+      });
+      setImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [selectedCategory, selectedSubcategory, currentUser, isUserAdmin, toast]);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!currentUser || !isUserAdmin()) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to access this page.",
+        });
+        router.push('/');
+        return;
+      }
+      if (selectedCategory && selectedSubcategory) {
+        memoizedLoadImages();
+      }
+    }
+  }, [currentUser, loading, isUserAdmin, router, toast, memoizedLoadImages, selectedCategory, selectedSubcategory]);
+
+  useEffect(() => {
+    const subcats = imageSubcategories[selectedCategory];
+    if (subcats && subcats.length > 0) {
+      if (!selectedSubcategory || !subcats.find(s => s.id === selectedSubcategory)) {
+        setSelectedSubcategory(subcats[0].id);
+      }
+    } else {
+      setSelectedSubcategory('');
+    }
+  }, [selectedCategory, selectedSubcategory]);
+
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedCategory || !selectedSubcategory) {
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a product category and image type first." });
+      return;
+    }
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an image file." });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const fileName = `${timestamp}_${file.name.replace(/\s+/g, '_')}`;
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      await uploadImage(file, path);
+      toast({ title: "Upload Successful", description: `${file.name} has been uploaded.` });
+      memoizedLoadImages();
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({ variant: "destructive", title: "Upload Failed", description: (error as Error).message || "Could not upload image." });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) return;
+    setLoadingImages(true);
+    try {
+      const url = new URL(imageUrl);
+      const pathName = decodeURIComponent(url.pathname);
+      const storagePath = pathName.substring(pathName.indexOf('/o/') + 3);
+
+      if (!storagePath.startsWith('products/')) {
+        throw new Error("Invalid image path derived for deletion.");
+      }
+      await deleteImage(storagePath);
+      toast({ title: "Image Deleted", description: "The image has been successfully deleted." });
+      memoizedLoadImages();
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast({ variant: "destructive", title: "Deletion Failed", description: (error as Error).message || "Could not delete image." });
+    } finally {
+        setLoadingImages(false); // Ensure loading state is reset
+    }
+  };
+
+  if (loading) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Loading authentication state...</div>;
+  if (!currentUser || !isUserAdmin()) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Access Denied. Redirecting...</div>;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl">Product Image Management</CardTitle>
+          <CardDescription>Upload, view, and delete images for your product configurations.</CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <Label htmlFor="category-select" className="text-sm font-medium">Product Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-select" className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subcategory-select" className="text-sm font-medium">Image Type / Subfolder</Label>
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory} disabled={!selectedCategory}>
+                <SelectTrigger id="subcategory-select" className="w-full">
+                  <SelectValue placeholder="Select an image type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {imageSubcategories[selectedCategory]?.map((subcat) => (
+                    <SelectItem key={subcat.id} value={subcat.id}>{subcat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Tabs defaultValue="manage" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="manage">Manage Existing Images</TabsTrigger>
+              <TabsTrigger value="upload">Upload New Images</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="manage">
+              {loadingImages ? (
+                <div className="flex justify-center items-center py-10">
+                  <RefreshCw className="h-8 w-8 text-primary animate-spin mr-2" /> Loading images...
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Info className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-lg font-medium text-muted-foreground">No images found.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCategory && selectedSubcategory ? `Upload images for "${imageSubcategories[selectedCategory]?.find(s => s.id === selectedSubcategory)?.label}" in "${productCategories.find(c => c.id === selectedCategory)?.label}".` : "Select a category and type to view images."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {images.map((imageUrl) => (
+                    <div key={imageUrl} className="relative group aspect-square border rounded-lg overflow-hidden">
+                      <Image
+                        src={imageUrl}
+                        alt="Product image"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-opacity group-hover:opacity-80"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="upload">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={uploading || !selectedCategory || !selectedSubcategory}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <Label
+                  htmlFor="fileInput"
+                  className={`flex flex-col items-center justify-center py-8 ${(!selectedCategory || !selectedSubcategory) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-50'}`}
+                >
+                  <Upload className="h-12 w-12 text-gray-400 mb-3" />
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-6 w-6 text-muted-foreground animate-spin mb-2" />
+                      <p className="text-sm text-muted-foreground">Uploading, please wait...</p>
+                    </>
+                  ) : (!selectedCategory || !selectedSubcategory) ? (
+                    <>
+                      <p className="font-semibold text-gray-700">Select Category & Type</p>
+                      <p className="text-xs text-gray-500">Choose a product category and image type above before uploading.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-gray-700">Click or drag file to this area to upload</p>
+                      <p className="text-xs text-gray-500">Supports PNG, JPG, GIF up to 10MB</p>
+                    </>
+                  )}
+                </Label>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        <CardFooter className="flex justify-end pt-6 border-t mt-6">
+          <Button onClick={() => router.push('/admin')} variant="outline">Back to Admin Dashboard</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils'; // Ensure this path is correct
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+// Removed firestore imports as they are not used in this simplified version
+// import { firestore } from '@/lib/firebase';
+// import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+const productCategories = [
+  { id: 'garages', label: 'Garages' },
+  { id: 'gazebos', label: 'Gazebos' },
+  { id: 'porches', label: 'Porches' },
+  { id: 'oak-beams', label: 'Oak Beams' },
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+const imageSubcategories: Record<string, { id: string; label: string }[]> = {
+  'garages': [
+    { id: 'main', label: 'Main Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'roof-options', label: 'Roof Options' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'gazebos': [
+    { id: 'main', label: 'Main Images' },
+    { id: 'truss-options', label: 'Truss Options' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'porches': [
+    { id: 'main', label: 'Main Images' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'oak-beams': [
+    { id: 'types', label: 'Beam Types' },
+    { id: 'finishes', label: 'Finishes' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+  'oak-flooring': [
+    { id: 'grades', label: 'Grades' },
+    { id: 'finishes', label: 'Finishes' },
+    { id: 'gallery', label: 'Gallery' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(productCategories[0].id);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>(imageSubcategories[productCategories[0].id]?.[0]?.id || '');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  const memoizedLoadImages = useCallback(async () => {
+    if (!selectedCategory || !selectedSubcategory || !currentUser || !isUserAdmin()) {
+      setImages([]); // Clear images if not authorized or selections are missing
+      return;
+    }
+    setLoadingImages(true);
+    try {
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Images",
+        description: (error as Error).message || "Failed to load images. Please try again.",
+      });
+      setImages([]); // Clear images on error
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [selectedCategory, selectedSubcategory, currentUser, isUserAdmin, toast]);
+
+  useEffect(() => {
+    if (!loading) { // Wait for auth state to resolve
+      if (!currentUser || !isUserAdmin()) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to access this page.",
+        });
+        router.push('/');
+      } else {
+        // If category/subcategory are already set, load images
+        if (selectedCategory && selectedSubcategory) {
+            memoizedLoadImages();
+        }
+      }
+    }
+  }, [currentUser, loading, isUserAdmin, router, toast, memoizedLoadImages, selectedCategory, selectedSubcategory]);
+
+
+  // Update subcategory when category changes
+  useEffect(() => {
+    const subcats = imageSubcategories[selectedCategory];
+    if (subcats && subcats.length > 0) {
+      setSelectedSubcategory(subcats[0].id);
+    } else {
+      setSelectedSubcategory(''); // Reset if no subcategories
+    }
+  }, [selectedCategory]);
+
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedCategory || !selectedSubcategory) {
+      toast({ variant: "destructive", title: "Selection Required", description: "Please select a product category and image type first." });
+      return;
+    }
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an image file." });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const fileName = `${timestamp}_${file.name.replace(/\s+/g, '_')}`; // Sanitize filename
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      await uploadImage(file, path);
+      toast({ title: "Upload Successful", description: `${file.name} has been uploaded.` });
+      memoizedLoadImages(); // Refresh list
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({ variant: "destructive", title: "Upload Failed", description: (error as Error).message || "Could not upload image." });
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) return;
+    setLoadingImages(true); // Indicate activity
+    try {
+      const url = new URL(imageUrl);
+      const pathName = decodeURIComponent(url.pathname);
+      const storagePath = pathName.substring(pathName.indexOf('/o/') + 3);
+
+      if (!storagePath.startsWith('products/')) {
+        throw new Error("Invalid image path derived for deletion.");
+      }
+      await deleteImage(storagePath);
+      toast({ title: "Image Deleted", description: "The image has been successfully deleted." });
+      memoizedLoadImages(); // Refresh list
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast({ variant: "destructive", title: "Deletion Failed", description: (error as Error).message || "Could not delete image." });
+      setLoadingImages(false); // Reset loading state on error
+    }
+  };
+
+  if (loading) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Loading authentication state...</div>;
+  if (!currentUser || !isUserAdmin()) return <div className="flex justify-center items-center min-h-screen p-4 text-center">Access Denied. Redirecting...</div>;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl">Product Image Management</CardTitle>
+          <CardDescription>Upload, view, and delete images for your product configurations.</CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <Label htmlFor="category-select" className="text-sm font-medium">Product Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-select">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subcategory-select" className="text-sm font-medium">Image Type / Subfolder</Label>
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory} disabled={!selectedCategory}>
+                <SelectTrigger id="subcategory-select">
+                  <SelectValue placeholder="Select an image type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {imageSubcategories[selectedCategory]?.map((subcat) => (
+                    <SelectItem key={subcat.id} value={subcat.id}>{subcat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Tabs defaultValue="manage" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="manage">Manage Existing Images</TabsTrigger>
+              <TabsTrigger value="upload">Upload New Images</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="manage">
+              {loadingImages ? (
+                <div className="flex justify-center items-center py-10">
+                  <RefreshCw className="h-8 w-8 text-primary animate-spin mr-2" /> Loading images...
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Info className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-lg font-medium text-muted-foreground">No images found.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCategory && selectedSubcategory ? `Upload images for "${imageSubcategories[selectedCategory]?.find(s => s.id === selectedSubcategory)?.label}" in "${productCategories.find(c => c.id === selectedCategory)?.label}".` : "Select a category and type to view images."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {images.map((imageUrl) => (
+                    <div key={imageUrl} className="relative group aspect-square border rounded-lg overflow-hidden">
+                      <Image
+                        src={imageUrl}
+                        alt="Product image"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-opacity group-hover:opacity-80"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="upload">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={uploading || !selectedCategory || !selectedSubcategory}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <Label
+                  htmlFor="fileInput"
+                  className={`flex flex-col items-center justify-center py-8 ${(!selectedCategory || !selectedSubcategory) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-50'}`}
+                >
+                  <Upload className="h-12 w-12 text-gray-400 mb-3" />
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-6 w-6 text-muted-foreground animate-spin mb-2" />
+                      <p className="text-sm text-muted-foreground">Uploading, please wait...</p>
+                    </>
+                  ) : (!selectedCategory || !selectedSubcategory) ? (
+                    <>
+                      <p className="font-semibold text-gray-700">Select Category & Type</p>
+                      <p className="text-xs text-gray-500">Choose a product category and image type above before uploading.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-gray-700">Click or drag file to this area to upload</p>
+                      <p className="text-xs text-gray-500">Supports PNG, JPG, GIF up to 10MB</p>
+                    </>
+                  )}
+                </Label>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        <CardFooter className="flex justify-end pt-6 border-t mt-6">
+          <Button onClick={() => router.push('/admin')} variant="outline">Back to Admin Dashboard</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+import { firestore } from '@/lib/firebase'; // Corrected import path
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+// Product categories
+const productCategories = [
+  { id: 'garages', label: 'Garages' },
+  { id: 'gazebos', label: 'Gazebos' },
+  { id: 'porches', label: 'Porches' },
+  { id: 'oak-beams', label: 'Oak Beams' },
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+// Image subcategories for each product
+const imageSubcategories = {
+  'garages': [
+    { id: 'truss-curved', label: 'Curved Truss' },
+    { id: 'truss-straight', label: 'Straight Truss' },
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'gazebos': [
+    { id: 'truss-curved', label: 'Curved Truss' },
+    { id: 'truss-straight', label: 'Straight Truss' },
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'porches': [
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'oak-beams': [
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'oak-flooring': [
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [selectedCategory, setSelectedCategory] = useState('garages');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('truss-curved'); // Default to first valid subcategory
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(true);
+  // const [loadingConfig, setLoadingConfig] = useState(true); // Not currently used
+  // const [productConfig, setProductConfig] = useState<any>(null); // Not currently used
+
+  useEffect(() => {
+    if (!loading) {
+      if (!currentUser || !isUserAdmin()) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You don't have permission to access this page.",
+        });
+        router.push('/');
+        return;
+      }
+      // Initial load if user is admin
+      if (currentUser && isUserAdmin()) {
+         loadImages();
+         // loadProductConfig(); // Only if needed
+      }
+    }
+  }, [currentUser, loading, isUserAdmin, router]); // Removed selectedCategory, selectedSubcategory from here
+
+ useEffect(() => {
+    // Reload images when category or subcategory changes, and user is admin
+    if (currentUser && isUserAdmin()) {
+        loadImages();
+    }
+ }, [selectedCategory, selectedSubcategory, currentUser, isUserAdmin]);
+
+
+  const loadImages = async () => {
+    if (!selectedCategory || !selectedSubcategory) return; // Don't load if no selection
+    try {
+      setLoadingImages(true);
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Loading Images",
+        description: "Failed to load images. Please try again.",
+      });
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
+  // const loadProductConfig = async () => { ... }; // Functionality removed for now to simplify
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedCategory || !selectedSubcategory) {
+        toast({ variant: "destructive", title: "Selection Missing", description: "Please select a category and image type."});
+        return;
+    }
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    const fileType = file.type;
+
+    if (!fileType.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File Type",
+        description: "Please select an image file (e.g., JPEG, PNG).",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const timestamp = new Date().getTime();
+      const fileName = `${timestamp}_${file.name}`;
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      await uploadImage(file, path);
+      toast({
+        title: "Upload Successful",
+        description: "Image has been uploaded successfully.",
+      });
+      loadImages(); // Refresh the list
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload image. Please try again.",
+      });
+    } finally {
+      setUploading(false);
+      if (e.target) {
+        e.target.value = ''; // Reset file input
+      }
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image? This action cannot be undone.")) return;
+
+    try {
+      // Robust path extraction
+      const url = new URL(imageUrl);
+      const pathName = url.pathname; // e.g., /v0/b/your-bucket.appspot.com/o/products%2Fgarages%2Ftruss-curved%2Fimage.jpg
+      const decodedPathName = decodeURIComponent(pathName);
+      // Extract the path after '/o/' which is the root for storage objects
+      const storagePath = decodedPathName.substring(decodedPathName.indexOf('/o/') + 3);
+      
+      if (!storagePath.startsWith('products/')) {
+          throw new Error("Invalid image path for deletion.");
+      }
+
+      await deleteImage(storagePath);
+      toast({
+        title: "Image Deleted",
+        description: "Image has been deleted successfully.",
+      });
+      loadImages(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: (error as Error).message || "Failed to delete image. Please try again.",
+      });
+    }
+  };
+
+  // const saveProductConfig = async () => { ... }; // Functionality removed for now
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading authentication...</div>;
+  }
+  if (!currentUser || !isUserAdmin()) {
+     // This case should ideally be handled by the useEffect redirect, but as a fallback:
+    return <div className="flex justify-center items-center min-h-screen">Access Denied.</div>;
+  }
+
+
+  return (
+    <div className="container mx-auto px-4 py-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Images Management</CardTitle>
+          <CardDescription>Upload and manage images for product configurations</CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">Upload Images</TabsTrigger>
+              <TabsTrigger value="manage">Manage Images</TabsTrigger>
+            </TabsList>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category">Product Category</Label>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={(value) => {
+                    setSelectedCategory(value);
+                    // Auto-select first subcategory for the new category
+                    const subcats = imageSubcategories[value as keyof typeof imageSubcategories];
+                    if (subcats && subcats.length > 0) {
+                      setSelectedSubcategory(subcats[0].id);
+                    } else {
+                      setSelectedSubcategory(''); // Reset if no subcategories
+                    }
+                  }}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="subcategory">Image Type / Subfolder</Label>
+                <Select
+                  value={selectedSubcategory}
+                  onValueChange={setSelectedSubcategory}
+                  disabled={!selectedCategory}
+                >
+                  <SelectTrigger id="subcategory">
+                    <SelectValue placeholder="Select image type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedCategory && imageSubcategories[selectedCategory as keyof typeof imageSubcategories]?.map((subcat) => (
+                      <SelectItem key={subcat.id} value={subcat.id}>
+                        {subcat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <TabsContent value="upload" className="mt-6">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={uploading || !selectedCategory || !selectedSubcategory}
+                  className="hidden"
+                  id="fileInput"
+                />
+                <Label
+                  htmlFor="fileInput"
+                  className={`flex flex-col items-center justify-center h-32 ${(!selectedCategory || !selectedSubcategory) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                >
+                  {uploading ? (
+                    <>
+                      <RefreshCw className="h-10 w-10 text-muted-foreground animate-spin" />
+                      <p className="mt-2 text-sm text-muted-foreground">Uploading...</p>
+                    </>
+                  ) : (!selectedCategory || !selectedSubcategory) ? (
+                     <>
+                      <Upload className="h-10 w-10 text-muted-foreground" />
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Please select a category and image type first.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-10 w-10 text-muted-foreground" />
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Click to upload or drag and drop.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        (e.g., PNG, JPG, GIF)
+                      </p>
+                    </>
+                  )}
+                </Label>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="manage" className="mt-6">
+              {loadingImages ? (
+                <div className="flex justify-center py-12">
+                  <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+                </div>
+              ) : images.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Info className="h-12 w-12 mx-auto mb-3" />
+                  <p className="text-lg">No images found for the selected category/type.</p>
+                   <p className="text-sm">Upload some images in the "Upload Images" tab.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {images.map((imageUrl, index) => (
+                    <div key={imageUrl} className="relative group aspect-square">
+                      <Image
+                        src={imageUrl}
+                        alt={`Product image ${index + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                        style={{ objectFit: 'cover' }}
+                        className="rounded-md border transition-transform group-hover:scale-105"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+
+        <CardFooter className="flex justify-end mt-6">
+          <Button onClick={() => router.back()} variant="outline">Back to Admin</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+  { id: 'oak-flooring', label: 'Oak Flooring' },
+];
+
+// Image subcategories for each product
+const imageSubcategories = {
+  'garages': [
+    { id: 'truss-curved', label: 'Curved Truss' },
+    { id: 'truss-straight', label: 'Straight Truss' },
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'gazebos': [
+    { id: 'truss-curved', label: 'Curved Truss' },
+    { id: 'truss-straight', label: 'Straight Truss' },
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'porches': [
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'oak-beams': [
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+  'oak-flooring': [
+    { id: 'gallery', label: 'Gallery Images' },
+  ],
+};
+
+export default function ProductImagesPage() {
+  const { currentUser, loading, isUserAdmin } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  
+  const [selectedCategory, setSelectedCategory] = useState('garages');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('truss-curved');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(true);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+  const [productConfig, setProductConfig] = useState<any>(null);
+  
+  useEffect(() => {
+    // Redirect if not admin
+    if (!loading && (!currentUser || !isUserAdmin())) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to access this page.",
+      });
+      router.push('/');
+      return;
+    }
+    
+    if (currentUser && isUserAdmin()) {
+      loadImages();
+      loadProductConfig();
+    }
+  }, [currentUser, loading, router, selectedCategory, selectedSubcategory, isUserAdmin]);
+  
+  const loadImages = async () => {
+    try {
+      setLoadingImages(true);
+      const path = `products/${selectedCategory}/${selectedSubcategory}`;
+      const imageList = await listImages(path);
+      setImages(imageList);
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load images. Please try again.",
+      });
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+  
+  const loadProductConfig = async () => {
+    try {
+      setLoadingConfig(true);
+      const configDoc = await getDoc(doc(firestore, "productConfig", selectedCategory));
+      
+      if (configDoc.exists()) {
+        setProductConfig(configDoc.data());
+      } else {
+        setProductConfig(null);
+      }
+    } catch (error) {
+      console.error("Error loading product config:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load product configuration.",
+      });
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    const fileType = file.type;
+    
+    // Validate file is an image
+    if (!fileType.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File",
+        description: "Please select an image file (JPEG, PNG, etc.)",
+      });
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      // Create a unique filename
+      const timestamp = new Date().getTime();
+      const fileName = `${timestamp}_${file.name}`;
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      
+      // Upload the file
+      const downloadUrl = await uploadImage(file, path);
+      
+      toast({
+        title: "Upload Successful",
+        description: "Image has been uploaded successfully.",
+      });
+      
+      // Refresh the image list
+      loadImages();
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload image. Please try again.",
+      });
+    } finally {
+      setUploading(false);
+      
+      // Reset the file input
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+    
+    try {
+      // Extract path from URL (this is a simplification, may need adjustment)
+      const urlParts = imageUrl.split('?')[0].split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const path = `products/${selectedCategory}/${selectedSubcategory}/${fileName}`;
+      
+      await deleteImage(path);
+      
+      toast({
+        title: "Image Deleted",
+        description: "Image has been deleted successfully.",
+      });
+      
+      // Refresh the
+ "use client";
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { uploadImage, listImages, deleteImage } from '@/utils/storage-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Trash2, Upload, RefreshCw, Info } from 'lucide-react';
+import { firestore } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+className="container mx-auto px-4 py-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Images Management</CardTitle>
+          <CardDescription>Upload and manage images for product configurations</CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">Upload Images</TabsTrigger>
+              <TabsTrigger value="manage">Manage Images</TabsTrigger>
+            </TabsList>
+            
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category">Product Category</Label>
+                <Select 
+                  value={selectedCategory} 
+                  onValueChange={(value) => {
+                    setSelectedCategory(value);
+                    // Set first subcategory as default
+                    if (imageSubcategories[value as keyof typeof imageSubcategories]) {
+                      setSelectedSubcategory(imageSubcategories[value as keyof typeof imageSubcategories][0].id);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                

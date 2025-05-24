@@ -27,6 +27,7 @@ import { placeOrderAction, type OrderData } from './actions'; // Import server a
 import { useAuth } from "@/context/auth-context"; // For getting current user
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { PayPalButton } from "@/components/checkout/paypal-button";
 
 // Placeholder validation schema (adjust based on UK address specifics)
 const addressSchema = z.object({
@@ -79,6 +80,22 @@ export default function CheckoutPage() {
 
    const useBillingAsShipping = form.watch("useBillingAsShipping");
 
+  // Handle PayPal payment success
+  const handlePayPalSuccess = async (transactionId: string) => {
+    // The checkout-specific PayPal button component handles order submission
+    // We just need to handle any additional UI updates here
+    console.log("Payment successful with transaction ID:", transactionId);
+    // Note: No need to manually navigate as the PayPal button component handles redirection
+  };
+
+  // Handle PayPal payment error
+  const handlePayPalError = (error: any) => {
+    console.error("PayPal error:", error);
+    // The toast is now handled by the PayPal button component
+    setIsSubmitting(false);
+  };
+
+  // Form submission handler
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
     setIsSubmitting(true);
 
@@ -87,44 +104,18 @@ export default function CheckoutPage() {
       : values.shippingAddress;
 
     if (!values.useBillingAsShipping && !finalShippingAddress) {
-        toast({ variant: "destructive", title: "Validation Error", description: "Shipping address is required if not same as billing." });
-        setIsSubmitting(false);
-        return;
+      toast({ variant: "destructive", title: "Validation Error", description: "Shipping address is required if not same as billing." });
+      setIsSubmitting(false);
+      return;
     }
     
-    const orderDataPayload: OrderData = {
-        ...values,
-        shippingAddress: finalShippingAddress, // Ensure shippingAddress is always populated
-        items: orderSummary.items.map(item => ({ ...item, price: Number(item.price) })), // Ensure price is number
-        subtotal: orderSummary.subtotal,
-        shippingCost: orderSummary.shippingCost,
-        vat: orderSummary.vat,
-        total: orderSummary.total,
-    };
-
-    const result = await placeOrderAction(currentUser, orderDataPayload);
+    // Form validation passed, but we don't submit directly
+    // PayPal button handles the actual submission after payment
     setIsSubmitting(false);
-
-    if (result.success && result.orderId) {
-      toast({ title: "Order Placed!", description: result.message });
-      router.push(`/order-confirmation?orderId=${result.orderId}`);
-    } else {
-      toast({ 
-        variant: "destructive", 
-        title: "Checkout Error", 
-        description: result.message || "An unexpected error occurred.",
-      });
-      // Display specific field errors if available
-      if (result.errors) {
-        Object.entries(result.errors).forEach(([key, value]) => {
-          if (Array.isArray(value) && value.length > 0) {
-            // For react-hook-form, errors are typically set on fields like 'billingAddress.email'
-            // This simplified error display might need adjustment for nested fields.
-            form.setError(key as any, { type: 'manual', message: value.join(', ') });
-          }
-        });
-      }
-    }
+    toast({ 
+      title: "Form Validated", 
+      description: "Please complete payment using the PayPal button." 
+    });
   }
 
   const renderAddressFields = (fieldName: "billingAddress" | "shippingAddress") => (
@@ -286,8 +277,23 @@ export default function CheckoutPage() {
                         </FormItem>
                       )}
                     />
-                     <div className="mt-6 p-4 border border-border/50 rounded-md bg-muted/40 text-muted-foreground text-sm">
-                        Payment gateway integration placeholder. Secure PayPal button will appear here.
+                     <div className="mt-6">
+                        <PayPalButton 
+                          orderData={{
+                            ...form.getValues(),
+                            shippingAddress: form.getValues().useBillingAsShipping 
+                              ? form.getValues().billingAddress 
+                              : form.getValues().shippingAddress,
+                            items: orderSummary.items.map(item => ({ ...item, price: Number(item.price) })),
+                            subtotal: orderSummary.subtotal,
+                            shippingCost: orderSummary.shippingCost,
+                            vat: orderSummary.vat,
+                            total: orderSummary.total
+                          }}
+                          onSuccess={handlePayPalSuccess}
+                          onError={handlePayPalError}
+                          disabled={!form.formState.isValid || isSubmitting}
+                        />
                      </div>
                   </CardContent>
                 </Card>
@@ -385,7 +391,7 @@ export default function CheckoutPage() {
                   <CardFooter className="flex-col space-y-4 border-t border-border/50 pt-6">
                     <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
                       {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                       Place Order & Pay with PayPal
+                       Validate Order Details
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
                         By placing your order, you agree to our <Link href="/terms" className="underline hover:text-primary">Terms & Conditions</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.

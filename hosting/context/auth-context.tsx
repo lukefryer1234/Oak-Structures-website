@@ -10,9 +10,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  sendEmailVerification as firebaseSendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
-  updateProfile, // Added for updating display name
+  updateProfile,
   // OAuthProvider, // For PayPal if implemented
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -29,6 +30,8 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<User | null>;
   // signInWithPayPal: () => Promise<User | null>; 
   sendPasswordReset: (authInstance: Auth, email: string) => Promise<void>;
+  sendEmailVerification: (user: User) => Promise<void>;
+  isEmailVerified: () => boolean;
   signOut: () => Promise<void>;
   updateUserProfile: (user: User, profileData: { displayName?: string; photoURL?: string }) => Promise<void>;
 }
@@ -103,8 +106,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await updateProfile(userCredential.user, { displayName });
       }
       if (userCredential.user) {
+        // Send email verification
+        await firebaseSendEmailVerification(userCredential.user);
+        
         // Call the function to create/verify user document in Firestore
         await ensureUserDocumentInFirestore(userCredential.user);
+        
+        // Show verification email sent toast
+        toast({ 
+          title: "Verification Email Sent", 
+          description: "Please check your inbox and verify your email address." 
+        });
       }
       setCurrentUser(userCredential.user); // Update context state
       return userCredential.user;
@@ -197,6 +209,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({ variant: "destructive", title: "Profile Update Error", description: e.message });
     }
   };
+  
+  // Function to send email verification
+  const sendEmailVerification = async (user: User): Promise<void> => {
+    setError(null);
+    try {
+      await firebaseSendEmailVerification(user);
+      toast({ 
+        title: "Verification Email Sent", 
+        description: "Please check your inbox and verify your email address." 
+      });
+    } catch (e: any) {
+      console.error("Email verification error:", e);
+      setError(e.message);
+      toast({ 
+        variant: "destructive", 
+        title: "Email Verification Error", 
+        description: e.message 
+      });
+      throw e;
+    }
+  };
+  
+  // Function to check if the current user's email is verified
+  const isEmailVerified = (): boolean => {
+    if (!currentUser) return false;
+    return currentUser.emailVerified;
+  };
 
 
   const value: AuthContextType = {
@@ -208,6 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithEmail,
     signInWithGoogle,
     sendPasswordReset,
+    sendEmailVerification,
+    isEmailVerified,
     signOut,
     updateUserProfile,
   };

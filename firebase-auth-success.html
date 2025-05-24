@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Authentication Success Verification</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    h1 {
+      color: #1a73e8;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    
+    .info {
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+      color: #0c5460;
+    }
+    
+    .warning {
+      background-color: #fff3cd;
+      border-color: #ffeeba;
+      color: #856404;
+    }
+    
+    button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #1557b0;
+    }
+    
+    button.google {
+      background-color: #fff;
+      color: #444;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    button.google:hover {
+      background-color: #f5f5f5;
+    }
+    
+    button.google img {
+      width: 18px;
+      height: 18px;
+    }
+    
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .user-info {
+      display: none;
+      margin-top: 20px;
+    }
+    
+    .user-info.visible {
+      display: block;
+    }
+    
+    .user-photo {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    
+    .user-profile {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .step {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .step-number {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background-color: #1a73e8;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      font-weight: bold;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    
+    .step-completed .step-number {
+      background-color: #34a853;
+    }
+    
+    .step-failed .step-number {
+      background-color: #ea4335;
+    }
+    
+    .step-content {
+      flex-grow: 1;
+    }
+    
+    #loading {
+      display: none;
+      margin-top: 20px;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #1a73e8;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Firebase Authentication Verification</h1>
+  
+  <div class="card info" id="config-card">
+    <h2>1. Firebase Configuration</h2>
+    <div id="config-steps">
+      <div class="step" id="step-load-config">
+        <div class="step-number">1</div>
+        <div class="step-content">Loading Firebase configuration...</div>
+      </div>
+      <div class="step" id="step-init-firebase">
+        <div class="step-number">2</div>
+        <div class="step-content">Initializing Firebase...</div>
+      </div>
+      <div class="step" id="step-auth-ready">
+        <div class="step-number">3</div>
+        <div class="step-content">Setting up Firebase Authentication...</div>
+      </div>
+    </div>
+    <pre id="config-display"></pre>
+  </div>
+  
+  <div class="card" id="auth-test-card">
+    <h2>2. Google Authentication Test</h2>
+    <p>Now that we've verified the API key is valid, let's test Google Sign-In:</p>
+    <button id="google-signin" class="google" disabled>
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+      Sign in with Google
+    </button>
+    <div id="loading">
+      <div class="spinner"></div> Authenticating...
+    </div>
+    <div id="auth-result"></div>
+    
+    <div class="user-info" id="user-info">
+      <h3>User Information</h3>
+      <div class="user-profile">
+        <img id="user-photo" src="" alt="Profile photo" class="user-photo">
+        <div>
+          <div id="user-name"></div>
+          <div id="user-email"></div>
+        </div>
+      </div>
+      <button id="sign-out">Sign Out</button>
+    </div>
+  </div>
+  
+  <div class="card" id="summary-card">
+    <h2>3. Summary</h2>
+    <div id="summary-content">
+      <p>Complete the steps above to verify your Firebase authentication is working correctly.</p>
+    </div>
+  </div>
+  
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+      getAuth, 
+      onAuthStateChanged, 
+      GoogleAuthProvider, 
+      signInWithPopup,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDRyZFjrrGB3mBcMf6ug3qp_M2i7XllmF4",
+      authDomain: "timberline-commerce.firebaseapp.com",
+      projectId: "timberline-commerce",
+      storageBucket: "timberline-commerce.firebasestorage.app",
+      messagingSenderId: "139830852341",
+      appId: "1:139830852341:web:341d6cadb84ede9fbd23bc",
+      measurementId: "G-1XGV7DBMCL"
+    };
+    
+    // Elements
+    const stepLoadConfig = document.getElementById("step-load-config");
+    const stepInitFirebase = document.getElementById("step-init-firebase");
+    const stepAuthReady = document.getElementById("step-auth-ready");
+    const configDisplay = document.getElementById("config-display");
+    const googleSignInButton = document.getElementById("google-signin");
+    const authResult = document.getElementById("auth-result");
+    const userInfo = document.getElementById("user-info");
+    const userPhoto = document.getElementById("user-photo");
+    const userName = document.getElementById("user-name");
+    const userEmail = document.getElementById("user-email");
+    const signOutButton = document.getElementById("sign-out");
+    const loadingElement = document.getElementById("loading");
+    const summaryContent = document.getElementById("summary-content");
+    
+    // Variables
+    let app;
+    let auth;
+    let isInitialized = false;
+    
+    // Initialize Firebase
+    function initializeFirebase() {
+      // Display configuration
+      configDisplay.textContent = JSON.stringify(firebaseConfig, null, 2);
+      
+      // Mark config step as completed
+      stepLoadConfig.classList.add("step-completed");
+      stepLoadConfig.querySelector(".step-content").textContent = "Firebase configuration loaded successfully";
+      
+      try {
+        // Initialize Firebase
+        app = initializeApp(firebaseConfig);
+        
+        // Mark initialization step as completed
+        stepInitFirebase.classList.add("step-completed");
+        stepInitFirebase.querySelector(".step-content").textContent = "Firebase initialized successfully";
+        
+        // Get auth instance
+        auth = getAuth(app);
+        
+        // Set up auth state listener
+        onAuthStateChanged(auth, handleAuthStateChange);
+        
+        // Mark auth step as completed
+        stepAuthReady.classList.add("step-completed");
+        stepAuthReady.querySelector(".step-content").textContent = "Firebase Authentication ready";
+        
+        // Enable the sign-in button
+        googleSignInButton.disabled = false;
+        
+        isInitialized = true;
+        
+        // Update summary
+        updateSummary("API key validation successful! Firebase is properly initialized.");
+      } catch (error) {
+        handleError(error);
+      }
+    }
+    
+    // Handle sign-in button click
+    googleSignInButton.addEventListener("click", async () => {
+      if (!isInitialized) return;
+      
+      loadingElement.style.display = "block";
+      authResult.innerHTML = "";
+      
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        // Auth state change listener will handle the result
+      } catch (error) {
+        loadingElement.style.display = "none";
+        
+        if (error.code === "auth/popup-closed-by-user") {
+          authResult.innerHTML = `<div class="warning">Sign-in was cancelled by the user.</div>`;
+        } else {
+          authResult.innerHTML = `<div class="error">Error during Google Sign-In: ${error.message} (${error.code})</div>`;
+          updateSummary("Google Sign-In failed. The API key may be valid, but Google Authentication is not properly configured.", "error");
+        }
+      }
+    });
+    
+    // Handle sign-out button click
+    signOutButton.addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+        userInfo.classList.remove("visible");
+        authResult.innerHTML = `<div class="info">You have signed out successfully.</div>`;
+      } catch (error) {
+        authResult.innerHTML = `<div class="error">Error during sign out: ${error.message}</div>`;
+      }
+    });
+    
+    // Handle auth state changes
+    function handleAuthStateChange(user) {
+      loadingElement.style.display = "none";
+      
+      if (user) {
+        // User is signed in
+        authResult.innerHTML = `<div class="success">Google Sign-In successful!</div>`;
+        
+        // Display user info
+        userInfo.classList.add("visible");
+        userPhoto.src = user.photoURL || "https://www.gravatar.com/avatar/?d=mp";
+        userName.textContent = user.displayName || "User";
+        userEmail.textContent = user.email || "";
+        
+        updateSummary("Success! Firebase Authentication is working correctly.", "success");
+      } else {
+        // User is signed out
+        userInfo.classList.remove("visible");
+      }
+    }
+    
+    // Handle errors
+    function handleError(error) {
+      console.error("Firebase error:", error);
+      
+      // Mark appropriate steps as failed
+      if (!app) {
+        stepInitFirebase.classList.add("step-failed");
+        stepInitFirebase.querySelector(".step-content").textContent = `Firebase initialization failed: ${error.message}`;
+      }
+      
+      if (!auth) {
+        stepAuthReady.classList.add("step-failed");
+        stepAuthReady.querySelector(".step-content").textContent = `Firebase Authentication setup failed: ${error.message}`;
+      }
+      
+      // Update summary
+      if (error.code === "auth/api-key-not-valid") {
+        updateSummary("The API key is still not valid. Please review the configuration in the Firebase Console.", "error");
+      } else {
+        updateSummary(`Error: ${error.message}. The Firebase configuration may need additional setup.`, "error");
+      }
+    }
+    
+    // Update summary section
+    function updateSummary(message, type = "info") {
+      let html = "";
+      
+      switch (type) {
+        case "success":
+          html = `<div class="success">${message}</div>
+                  <p>The "auth/api-key-is-not-valid" error has been fixed!</p>
+                  <p>Your Firebase authentication is now working properly.</p>`;
+          break;
+        case "error":
+          html = `<div class="error">${message}</div>
+                  <p>There are still issues with your Firebase configuration.</p>
+                  <p>Please check the Google Cloud Console and Firebase Console settings.</p>`;
+          break;
+        default:
+          html = `<div class="info">${message}</div>`;
+      }
+      
+      summaryContent.innerHTML = html;
+    }
+    
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", initializeFirebase);
+  </script>
+</body>
+</html>
+

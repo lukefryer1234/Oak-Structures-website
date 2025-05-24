@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic user validation function
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Check if user is accessing their own data
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Allow users to read and update their own profiles
+      allow read: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      
+      // Only allow user creation through the createUser API
+      allow create: if false;
+    }
+    
+    // Products collection - publicly readable
+    match /products/{productId} {
+      allow read: if true;
+      // Write operations restricted to server-side only
+      allow write: if false;
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      // Users can read their own orders
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Users can create orders with their own userId
+      allow create: if isSignedIn() && 
+                     request.resource.data.userId == request.auth.uid;
+                     
+      // No client-side updates or deletes
+      allow update, delete: if false;
+    }
+    
+    // Gallery collection - publicly readable
+    match /gallery/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Settings collection - publicly readable for site settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
+

@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import React, { useState } /*useEffect removed*/ from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
     LayoutDashboard,
@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usePathname /*useRouter removed*/ } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
@@ -102,29 +102,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const { toast } = useToast();
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
-    // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always return true to bypass admin check
+    // Check if user has admin privileges
     const isUserAdmin = () => {
-        return true; 
-        // Original logic:
-        // if (!currentUser) return false;
-        // const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"];
-        // return adminEmails.includes(currentUser.email || "");
+        if (!currentUser) return false;
+        
+        // Option 1: Check by email (simple approach)
+        const adminEmails = ["luke@mcconversions.uk", "admin@timberline.com"];
+        if (adminEmails.includes(currentUser.email || "")) return true;
+        
+        // Option 2: Check by custom claims/roles if available
+        // This would be more robust in a production environment
+        // @ts-ignore - Accessing custom properties on Firebase user
+        return currentUser.customClaims?.admin === true || currentUser.role === 'admin';
     };
     
-    const isAdmin = isUserAdmin(); // This will now always be true
+    const isAdmin = isUserAdmin();
 
-    // TEMPORARILY COMMENTED OUT FOR DEVELOPMENT to allow access without login
-    // useEffect(() => {
-    //     if (!authLoading) {
-    //         if (!currentUser) {
-    //             toast({ variant: "destructive", title: "Access Denied", description: "Please log in to access the admin panel." });
-    //             router.push('/login?redirect=/admin');
-    //         } else if (!isAdmin) { // isAdmin will always be true now
-    //             toast({ variant: "destructive", title: "Unauthorized", description: "You do not have permission to access the admin panel." });
-    //             router.push('/'); 
-    //         }
-    //     }
-    // }, [currentUser, authLoading, router, isAdmin, toast]);
+    // Authentication check effect
+    useEffect(() => {
+        if (!authLoading) {
+            if (!currentUser) {
+                toast({ variant: "destructive", title: "Access Denied", description: "Please log in to access the admin panel." });
+                router.push('/login?redirect=/admin');
+            } else if (!isAdmin) {
+                toast({ variant: "destructive", title: "Unauthorized", description: "You do not have permission to access the admin panel." });
+                router.push('/'); 
+            }
+        }
+    }, [currentUser, authLoading, router, isAdmin, toast]);
 
 
     const toggleSubMenu = (label: string) => {
@@ -153,8 +158,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
     };
 
-    // TEMPORARILY MODIFIED: Only show loader based on authLoading, not currentUser or isAdmin
-    if (authLoading) {
+    // Show loading state or prevent access if not authenticated/authorized
+    if (authLoading || !currentUser || !isAdmin) {
         return (
             <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />

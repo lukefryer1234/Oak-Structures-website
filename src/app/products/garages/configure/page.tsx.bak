@@ -1,0 +1,436 @@
+"use client"; // Needed for form/state
+
+import { useState, useEffect } from "react"; // Added useEffect
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { notFound, useRouter } from "next/navigation"; // Added useRouter
+import Image from "next/image";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils"; // Import cn utility
+import { getFirstImageInDirectory } from "@/utils/storage-utils";
+
+// --- Configuration Interfaces & Data (Replace with actual data/logic) ---
+
+interface GarageConfig {
+  bays: number[];
+  beamSize: string;
+  trussType: string;
+  baySize: string;
+  catSlide: boolean;
+}
+
+interface ConfigOption {
+  id: string;
+  label: string;
+  type: "select" | "slider" | "radio" | "checkbox" | "dimensions" | "area"; // Removed 'preview' type
+  options?: {
+    value: string;
+    label: string;
+    image?: string;
+    dataAiHint?: string;
+  }[]; // For select/radio, added dataAiHint
+  min?: number; // For slider/numeric inputs
+  max?: number; // For slider/numeric inputs
+  step?: number; // For slider/numeric inputs
+  defaultValue?: string | number[] | boolean;
+  unit?: string; // For dimensions/area
+  fixedValue?: string | number; // For non-editable display like flooring thickness
+  perBay?: boolean; // True if the option applies individually to each bay
+  dataAiHint?: string; // Added for preview placeholder
+}
+
+interface CategoryConfig {
+  title: string;
+  options: ConfigOption[];
+  image?: string; // Main category image for config page
+  dataAiHint?: string;
+}
+
+// Specific configuration for Garages
+const garageConfig: CategoryConfig = {
+  title: "Configure Your Garage",
+  options: [
+    {
+      id: "bays",
+      label: "Number of Bays (Added from Left)",
+      type: "slider",
+      min: 1,
+      max: 4,
+      step: 1,
+      defaultValue: [2],
+    },
+    {
+      id: "beamSize",
+      label: "Structural Beam Sizes",
+      type: "select",
+      options: [
+        { value: "6x6", label: "6 inch x 6 inch" },
+        { value: "7x7", label: "7 inch x 7 inch" },
+        { value: "8x8", label: "8 inch x 8 inch" },
+      ],
+      defaultValue: "6x6",
+    },
+    // Removed preview option
+    {
+      id: "trussType",
+      label: "Truss Type",
+      type: "radio",
+      options: [
+        {
+          value: "curved",
+          label: "Curved",
+          image: "/images/config/truss-curved.jpg",
+          dataAiHint: "curved oak truss",
+        },
+        {
+          value: "straight",
+          label: "Straight",
+          image: "/images/config/truss-straight.jpg",
+          dataAiHint: "straight oak truss",
+        },
+      ],
+      defaultValue: "curved",
+    },
+    {
+      id: "baySize",
+      label: "Size Per Bay",
+      type: "select",
+      options: [
+        { value: "standard", label: "Standard (e.g., 3m wide)" },
+        { value: "large", label: "Large (e.g., 3.5m wide)" },
+      ],
+      defaultValue: "standard",
+    },
+    {
+      id: "catSlide",
+      label: "Include Cat Slide Roof? (Applies to all bays)",
+      type: "checkbox",
+      defaultValue: false,
+    }, // Changed to apply to all
+  ],
+};
+
+// --- Helper Functions (Replace with actual pricing logic) ---
+
+const calculatePrice = (config: GarageConfig): number => {
+  // --- THIS IS A VERY BASIC PLACEHOLDER ---
+  // --- Replace with actual pricing logic based on category ---
+  let basePrice = 0;
+  const bays = config.bays?.[0] || 1;
+  // Calculate catSlide cost based on single checkbox and number of bays
+  const catSlideCost = config.catSlide ? 150 * bays : 0; // Example: 150 per bay if selected
+  // Incorporate baySize into pricing (example logic)
+  const baySizeMultiplier = config.baySize === "large" ? 1.1 : 1.0;
+  //const oakMultiplier = config.oakType === 'reclaimed' ? 1.15 : 1.0; // Removed oak multiplier
+  // Incorporate beam size
+  let beamSizeCost = 0;
+  switch (config.beamSize) {
+    case "7x7":
+      beamSizeCost = 200 * bays;
+      break;
+    case "8x8":
+      beamSizeCost = 450 * bays;
+      break;
+    default:
+      beamSizeCost = 0; // 6x6 is base
+  }
+
+  basePrice =
+    (8000 + bays * 1500 + catSlideCost + beamSizeCost) * baySizeMultiplier; // Removed oakMultiplier
+
+  return Math.max(0, basePrice); // Ensure price is not negative
+};
+
+// --- Component ---
+
+export default function ConfigureGaragePage() {
+  const category = "garages"; // Hardcoded for this specific page
+  const categoryConfig = garageConfig; // Use the specific garage config
+  const router = useRouter(); // Initialize router
+
+  // Initialize state based on the found category config
+  const [configState, setConfigState] = useState<Partial<GarageConfig>>(() => {
+    if (!categoryConfig) return {} as GarageConfig; // Return empty if config not found
+    const initialState: Partial<GarageConfig> = {};
+    categoryConfig.options.forEach((opt) => {
+      // Handle each property based on its expected type in GarageConfig
+      switch (opt.id) {
+        case 'bays':
+          initialState.bays = opt.defaultValue as number[];
+          break;
+        case 'beamSize':
+        case 'trussType':
+        case 'baySize':
+          initialState[opt.id] = opt.defaultValue as string;
+          break;
+        case 'catSlide':
+          initialState.catSlide = opt.defaultValue as boolean;
+          break;
+      }
+    });
+    return initialState;
+  });
+
+  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  const [trussImages, setTrussImages] = useState<Record<string, string>>({});
+
+  // Recalculate initial price when config is available or changes
+  useEffect(() => {
+    if (categoryConfig) {
+      setCalculatedPrice(calculatePrice(configState as GarageConfig));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount with initial state
+
+  // Add useEffect to preload truss images
+  useEffect(() => {
+    const loadImages = async () => {
+      const images: Record<string, string> = {};
+
+      if (categoryConfig) {
+        const trussOption = categoryConfig.options.find(
+          (opt) => opt.id === "trussType",
+        );
+        if (trussOption && trussOption.options) {
+          for (const opt of trussOption.options) {
+            if (opt.image) {
+              const fallbackUrl = `https://picsum.photos/seed/${opt.dataAiHint?.replace(/\\s+/g, "-") || opt.value}/200/150`;
+              try {
+                const imageUrl = await getFirstImageInDirectory(
+                  `products/garages/${opt.dataAiHint || opt.value}`,
+                  fallbackUrl,
+                );
+                images[opt.value] = imageUrl;
+              } catch (error) {
+                console.error(`Error loading image for ${opt.value}:`, error);
+                images[opt.value] = fallbackUrl;
+              }
+            }
+          }
+        }
+      }
+
+      setTrussImages(images);
+    };
+
+    loadImages();
+  }, [categoryConfig]);
+
+  const handleConfigChange = (id: string, value: string | number[] | boolean) => {
+    setConfigState((prev) => {
+      const newState = { ...prev, [id as keyof GarageConfig]: value as GarageConfig[keyof GarageConfig] };
+      // Update price dynamically
+      setCalculatedPrice(calculatePrice(newState as GarageConfig));
+      return newState;
+    });
+  };
+
+  if (!categoryConfig) {
+    // Should not happen if garageConfig is defined, but good practice
+    notFound();
+  }
+
+  const handlePreviewPurchase = () => {
+    const configString = encodeURIComponent(JSON.stringify(configState));
+    const price =
+      calculatedPrice !== null ? calculatedPrice.toFixed(2) : "0.00";
+    router.push(
+      `/preview?category=${category}&config=${configString}&price=${price}`,
+    );
+  };
+
+  return (
+    // Removed relative isolate and background image handling
+    <div>
+      <div className="container mx-auto px-4 py-12">
+        {/* Adjusted card appearance */}
+        <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
+          <CardHeader className="text-center">
+            {" "}
+            {/* Center align header content */}
+            <CardTitle className="text-3xl">{categoryConfig.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-8">
+            {/* Configuration Options */}
+            <div className="space-y-6">
+              {categoryConfig.options.map((option) => (
+                <div key={option.id} className="text-center">
+                  {" "}
+                  {/* Center align each option block */}
+                  {/* Added text-center to center the label */}
+                  <Label
+                    htmlFor={option.id}
+                    className="text-base font-medium block mb-2"
+                  >
+                    {option.label}
+                  </Label>
+                  {option.type === "select" && (
+                    <Select
+                      value={configState[option.id as keyof GarageConfig] as string}
+                      onValueChange={(value) =>
+                        handleConfigChange(option.id, value)
+                      }
+                    >
+                      {/* Adjusted background and centered */}
+                      {/* Added justify-center */}
+                      <SelectTrigger
+                        id={option.id}
+                        className="mt-2 bg-background/70 max-w-sm mx-auto justify-center"
+                      >
+                        <SelectValue placeholder={`Select ${option.label}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {option.options?.map((opt) => (
+                          // Added justify-center to SelectItem
+                          <SelectItem
+                            key={opt.value}
+                            value={opt.value}
+                            className="justify-center"
+                          >
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {option.type === "radio" && (
+                    <RadioGroup
+                      value={configState[option.id as keyof GarageConfig] as string}
+                      onValueChange={(value) =>
+                        handleConfigChange(option.id, value)
+                      }
+                      // Make trussType options side-by-side
+                      className={cn(
+                        "mt-2 grid gap-4 justify-center", // Center the group
+                        option.id === "trussType"
+                          ? "grid-cols-2 max-w-md mx-auto"
+                          : "grid-cols-1 sm:grid-cols-2", // Use grid-cols-2 for trussType
+                      )}
+                    >
+                      {option.options?.map((opt) => (
+                        // Adjusted background and added cursor pointer
+                        <Label
+                          key={opt.value}
+                          htmlFor={`${option.id}-${opt.value}`}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover/70 p-4 hover:bg-accent/50 hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer"
+                        >
+                          <RadioGroupItem
+                            value={opt.value}
+                            id={`${option.id}-${opt.value}`}
+                            className="sr-only"
+                          />
+                          {/* Add image rendering for radio options */}
+                          {opt.image && (
+                            <div className="mb-2 relative w-full aspect-[4/3] rounded overflow-hidden">
+                              <Image
+                                src={
+                                  trussImages[opt.value] ||
+                                  `https://picsum.photos/seed/${opt.dataAiHint?.replace(/\s+/g, "-") || opt.value}/200/150`
+                                }
+                                alt={opt.label}
+                                fill
+                                style={{ objectFit: "cover" }}
+                                data-ai-hint={opt.dataAiHint || opt.label}
+                              />
+                            </div>
+                          )}
+                          <span className="text-sm font-medium mt-auto">
+                            {opt.label}
+                          </span>
+                        </Label>
+                      ))}
+                    </RadioGroup>
+                  )}
+                  {option.type === "slider" && (
+                    // Centered slider
+                    <div className="mt-2 space-y-2 max-w-sm mx-auto">
+                      <Slider
+                        id={option.id}
+                        min={option.min}
+                        max={option.max}
+                        step={option.step}
+                        value={configState[option.id as keyof GarageConfig] as number[]}
+                        onValueChange={(value) =>
+                          handleConfigChange(option.id, value)
+                        }
+                        className="py-2"
+                      />
+                      <div className="text-center text-sm text-muted-foreground">
+                        {Array.isArray(configState[option.id as keyof GarageConfig]) 
+                          ? (configState[option.id as keyof GarageConfig] as number[])[0]
+                          : configState[option.id as keyof GarageConfig]} {option.unit || ""}
+                        {Array.isArray(configState[option.id as keyof GarageConfig]) && 
+                         ((configState[option.id as keyof GarageConfig] as number[])[0] > 1) ? "s" : ""}
+                      </div>
+                    </div>
+                  )}
+                  {/* Standard checkbox rendering (not per bay) */}
+                  {option.type === "checkbox" && (
+                    <div className="flex items-center justify-center space-x-2 mt-2">
+                      <Checkbox
+                        id={option.id}
+                        checked={configState[option.id as keyof GarageConfig] as boolean}
+                        onCheckedChange={(checked) =>
+                          handleConfigChange(option.id, checked)
+                        }
+                      />
+                      {/* Added normal weight */}
+                      <Label htmlFor={option.id} className="font-normal">
+                        Yes
+                      </Label>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Price & Add to Basket Section */}
+            {/* Added margin top */}
+            <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Estimated Price (excl. VAT & Delivery)
+                </p>
+                <p className="text-3xl font-bold">
+                  {calculatedPrice !== null
+                    ? `£${calculatedPrice.toFixed(2)}`
+                    : "Calculating..."}
+                </p>
+              </div>
+              {/* Centered button */}
+              <Button
+                size="lg"
+                className="w-full max-w-xs mx-auto block"
+                onClick={handlePreviewPurchase}
+                disabled={calculatedPrice === null || calculatedPrice <= 0}
+              >
+                Preview Purchase <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

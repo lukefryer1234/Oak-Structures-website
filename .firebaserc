@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "test-solid-oak",
+    "default": "timberline-commerce",
     "testproject": "test-solid-oak"
   },
   "targets": {},

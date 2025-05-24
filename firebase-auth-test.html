@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Authentication Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #1a73e8;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #1a73e8;
+      margin-top: 1.5em;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    .info {
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+      color: #0c5460;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border-color: #ffeeba;
+      color: #856404;
+    }
+    button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #1557b0;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 10px 0;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    #log {
+      margin-top: 20px;
+      height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    .log-error {
+      color: #721c24;
+    }
+    .log-success {
+      color: #155724;
+    }
+    .log-info {
+      color: #0c5460;
+    }
+    .log-warning {
+      color: #856404;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      margin-right: 5px;
+      background-color: #f8f9fa;
+    }
+    .tab.active {
+      background-color: white;
+      border-color: #ddd;
+      border-bottom-color: white;
+      margin-bottom: -1px;
+      font-weight: bold;
+      color: #1a73e8;
+    }
+    .tab-content {
+      display: none;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .config-option {
+      margin-bottom: 15px;
+    }
+    .config-option label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .config-option select, .config-option input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Firebase Authentication Test</h1>
+  
+  <div class="card info">
+    <h2>Firebase Configuration</h2>
+    <p>Project ID: <strong>timberline-commerce</strong></p>
+    <p>API Key: <strong>AIzaSyDRyZFjrrGB3mBcMf6ug3qp_M2i7XllmF4</strong></p>
+    <p>Auth Domain: <strong>timberline-commerce.firebaseapp.com</strong></p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="basic-test">Basic Test</div>
+    <div class="tab" data-tab="advanced-test">Advanced Test</div>
+    <div class="tab" data-tab="regional-test">Regional Test</div>
+    <div class="tab" data-tab="api-key-test">API Key Test</div>
+    <div class="tab" data-tab="hosting-test">Hosting Test</div>
+  </div>
+
+  <!-- Basic Test Tab -->
+  <div id="basic-test" class="tab-content active">
+    <div class="card">
+      <h2>Basic Authentication Test</h2>
+      <p>Click the button below to test Google Sign-In with default configuration:</p>
+      <div class="button-group">
+        <button id="google-signin">Sign in with Google</button>
+        <button id="check-config">Check Firebase Config</button>
+        <button id="clear-cache">Clear Auth Cache</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Test Tab -->
+  <div id="advanced-test" class="tab-content">
+    <div class="card">
+      <h2>Advanced Authentication Test</h2>
+      <p>Customize Firebase configuration to test different scenarios:</p>
+      
+      <div class="config-option">
+        <label for="custom-auth-domain">Auth Domain:</label>
+        <select id="custom-auth-domain">
+          <option value="timberline-commerce.firebaseapp.com">timberline-commerce.firebaseapp.com (Default)</option>
+          <option value="timberline-commerce.web.app">timberline-commerce.web.app</option>
+          <option value="localhost">localhost</option>
+        </select>
+      </div>
+
+      <div class="config-option">
+        <label for="custom-api-key">API Key:</label>
+        <select id="custom-api-key">
+          <option value="AIzaSyDRyZFjrrGB3mBcMf6ug3qp_M2i7XllmF4">AIzaSyDRyZFjrrGB3mBcMf6ug3qp_M2i7XllmF4 (Default)</option>
+          <option value="AIzaS
+
+    // Google Sign-In handler
+    document.getElementById('google-signin').addEventListener('click', async () => {
+      try {
+        log("Starting Google Sign-In process...");
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        
+        // The signed-in user info
+        const user = result.user;
+        log(`Signed in successfully as: ${user.displayName}`, 'success');
+        
+        showResult(`
+          <h3>Sign-In Successful!</h3>
+          <p><strong>User:</strong> ${user.displayName}</p>
+          <p><strong>Email:</strong> ${user.email}</p>
+          <p><strong>UID:</strong> ${user.uid}</p>
+        `, true);
+      } catch (error) {
+        log(`Google Sign-In error: ${error.code} - ${error.message}`, 'error');
+        
+        // Build detailed error message
+        let errorDetails = `<h3>Sign-In Error</h3>`;
+        errorDetails += `<p><strong>Error Code:</strong> ${error.code}</p>`;
+        errorDetails += `<p><strong>Error Message:</strong> ${error.message}</p>`;
+        
+        if (error.code === 'auth/api-key-not-valid') {
+          errorDetails += `
+            <h4>API Key Not Valid Error</h4>
+            <p>This usually means:</p>
+            <ol>
+              <li>The API key is incorrect in the Firebase configuration</li>
+              <li>The API key doesn't have the Identity Toolkit API enabled</li>
+              <li>The API key has restrictions that prevent it from being used for authentication</li>
+            </ol>
+            <p><strong>Actions to try:</strong></p>
+            <ol>
+              <li>Verify the API key in Google Cloud Console</li>
+              <li>Enable the Identity Toolkit API for this key</li>
+              <li>Check for API key restrictions in Google Cloud Console</li>
+              <li>Clear your browser cache and try again</li>
+            </ol>
+          `;
+        }
+        
+        if (error.code === 'auth/unauthorized-domain') {
+          errorDetails += `
+            <h4>Unauthorized Domain Error</h4>
+            <p>This means that 'localhost' is not in the list of authorized domains.</p>
+            <p><strong>To fix:</strong></p>
+            <ol>
+              <li>Go to Firebase Console > Authentication > Settings</li>
+              <li>Add 'localhost' to the Authorized Domains list</li>
+              <li>Save changes and try again</li>
+            </ol>
+          `;
+        }
+        
+        showResult(errorDetails, false);
+      }
+    });
+
+    // Check Firebase Config
+    document.getElementById('check-config').addEventListener('click', () => {
+      log("Checking Firebase configuration...");
+      
+      const configDisplay = `
+        <h3>Firebase Configuration</h3>
+        <pre>${JSON.stringify(firebaseConfig, null, 2)}</pre>
+      `;
+      
+      showResult(configDisplay, true);
+    });
+
+    // Clear Auth Cache
+    document.getElementById('clear-cache').addEventListener('click', async () => {
+      try {
+        log("Clearing authentication cache...");
+        
+        // Sign out current user
+        await signOut(auth);
+        
+        // Clear IndexedDB data
+        const dbs = ['firebaseLocalStorageDb', 'firebase-heartbeat-database'];
+        dbs.forEach(dbName => {
+          const request = indexedDB.deleteDatabase(dbName);
+          request.onsuccess = () => log(`IndexedDB '${dbName}' deleted successfully`);
+          request.onerror = () => log(`Error deleting IndexedDB '${dbName}'`, 'error');
+        });
+        
+        // Clear localStorage
+        localStorage.clear();
+        log("localStorage cleared");
+        
+        showResult(`
+          <h3>Authentication Cache Cleared</h3>
+          <p>Successfully signed out and cleared all Firebase-related storage.</p>
+          <p>Please try signing in again.</p>
+        `, true);
+      } catch (error) {
+        log(`Error clearing cache: ${error.message}`, 'error');
+        showResult(`<h3>Error Clearing Cache</h3><p>${error.message}</p>`, false);
+      }
+    });
+
+    // Initial log message
+    log("Firebase Auth Test page loaded. Firebase SDK version: 10.7.1");
+  </script>
+</body>
+</html>
+
