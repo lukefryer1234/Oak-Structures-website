@@ -1,7 +1,11 @@
 
 "use client"; // Needed for form/state
 
-import { useState, useEffect } from 'react'; // Added useEffect
+// Add dynamic export configuration to prevent static generation
+export const dynamic = 'force-dynamic';
+
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -48,13 +52,20 @@ const garageConfig: CategoryConfig = {
     options: [
       { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
       { id: 'beamSize', label: 'Structural Beam Sizes', type: 'select', options: [ { value: '6x6', label: '6 inch x 6 inch' }, { value: '7x7', label: '7 inch x 7 inch' }, { value: '8x8', label: '8 inch x 8 inch' } ], defaultValue: '6x6' },
-      // Removed preview option
       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
       { id: 'baySize', label: 'Size Per Bay', type: 'select', options: [{ value: 'standard', label: 'Standard (e.g., 3m wide)' }, { value: 'large', label: 'Large (e.g., 3.5m wide)' }], defaultValue: 'standard' },
-      { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false }, // Changed to apply to all
+      { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false },
     ]
 };
 
+// Data fetching function for React Query
+const fetchGarageConfig = async (): Promise<CategoryConfig> => {
+  // In a real application, this would fetch from Firestore or an API
+  // For now, we return the hardcoded config
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(garageConfig), 500); // Simulate API call
+  });
+};
 
 // --- Helper Functions (Replace with actual pricing logic) ---
 
@@ -85,28 +96,29 @@ const calculatePrice = (config: any): number => {
 
 export default function ConfigureGaragePage() {
   const category = 'garages'; // Hardcoded for this specific page
-  const categoryConfig = garageConfig; // Use the specific garage config
   const router = useRouter(); // Initialize router
 
-  // Initialize state based on the found category config
-  const [configState, setConfigState] = useState<any>(() => {
-    if (!categoryConfig) return {}; // Return empty if config not found
-    const initialState: any = {};
-    categoryConfig.options.forEach(opt => {
-      initialState[opt.id] = opt.defaultValue;
-    });
-    return initialState;
+  const { data: categoryConfig, isLoading, isError, error } = useQuery<CategoryConfig, Error>({
+    queryKey: ['garageConfig'],
+    queryFn: fetchGarageConfig,
+    staleTime: Infinity, // Configuration data is static for now
+    refetchOnWindowFocus: false,
   });
 
-   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  // Initialize state based on the fetched category config
+  const [configState, setConfigState] = useState<any>({});
+  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-   // Recalculate initial price when config is available or changes
-   useEffect(() => {
-      if (categoryConfig) {
-          setCalculatedPrice(calculatePrice(configState));
-      }
-   // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, []); // Run only once on mount with initial state
+  useEffect(() => {
+    if (categoryConfig) {
+      const initialState: any = {};
+      categoryConfig.options.forEach(opt => {
+        initialState[opt.id] = opt.defaultValue;
+      });
+      setConfigState(initialState);
+      setCalculatedPrice(calculatePrice(initialState));
+    }
+  }, [categoryConfig]); // Re-run when categoryConfig is fetched or changes
 
 
    const handleConfigChange = (id: string, value: any) => {
@@ -119,8 +131,24 @@ export default function ConfigureGaragePage() {
    };
 
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <p>Loading configuration...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center text-red-500">
+        <p>Error loading configuration: {error?.message || 'Unknown error'}</p>
+      </div>
+    );
+  }
+
   if (!categoryConfig) {
-    // Should not happen if garageConfig is defined, but good practice
+    // This case should ideally be covered by isLoading/isError, but as a fallback
     notFound();
   }
 
@@ -201,9 +229,9 @@ export default function ConfigureGaragePage() {
                       <div className="mt-2 space-y-2 max-w-sm mx-auto">
                          <Slider
                             id={option.id}
-                            min={option.min}
-                            max={option.max}
-                            step={option.step}
+                            min={option.min || 1}
+                            max={option.max || 10}
+                            step={option.step || 1}
                             value={configState[option.id]}
                             onValueChange={(value) => handleConfigChange(option.id, value)}
                             className="py-2"
