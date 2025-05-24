@@ -1,7 +1,7 @@
 // src/app/admin/crm/actions.ts
 'use server';
 
-import { collection, getDocs, query, orderBy, limit, where, doc, updateDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // Types
@@ -10,6 +10,115 @@ export interface CustomerSummary {
   totalLeads: number;
   openInquiries: number;
   averageConversionRate: number;
+}
+
+/**
+ * Fetches a single lead by ID from the appropriate collection
+ */
+export async function getLeadAction(
+  leadId: string,
+  sourceCollection: 'contactSubmissions' | 'customOrderInquiries'
+): Promise<Lead | null> {
+  try {
+    if (!leadId) {
+      console.error("Lead ID is required");
+      return null;
+    }
+
+    const docRef = doc(db, sourceCollection, leadId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      console.error(`Lead with ID ${leadId} not found in ${sourceCollection}`);
+      return null;
+    }
+    
+    const data = docSnap.data();
+    
+    // Construct the lead object based on the collection type
+    if (sourceCollection === 'contactSubmissions') {
+      return {
+        id: docSnap.id,
+        name: data.name || 'Unknown',
+        email: data.email || 'No email',
+        source: 'Contact Form',
+        status: data.status || 'New',
+        createdAt: data.submittedAt ?
+          (data.submittedAt.toDate ? data.submittedAt.toDate().toISOString() : new Date(data.submittedAt).toISOString()) :
+          new Date().toISOString(),
+        notes: data.message || undefined
+      };
+    } else {
+      return {
+        id: docSnap.id,
+        name: data.fullName || 'Unknown',
+        email: data.email || 'No email',
+        source: 'Custom Order',
+        status: data.status || 'New',
+        createdAt: data.submittedAt ?
+          (data.submittedAt.toDate ? data.submittedAt.toDate().toISOString() : new Date(data.submittedAt).toISOString()) :
+          new Date().toISOString(),
+        notes: data.description || undefined
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching lead:", error);
+    return null;
+  }
+}
+
+/**
+ * Updates lead details in the appropriate collection
+ */
+export async function updateLeadAction(
+  leadId: string,
+  updateData: Partial<Lead>,
+  sourceCollection: 'contactSubmissions' | 'customOrderInquiries'
+): Promise<StatusUpdateResponse> {
+  try {
+    if (!leadId) {
+      return {
+        success: false,
+        message: "Lead ID is required."
+      };
+    }
+
+    const docRef = doc(db, sourceCollection, leadId);
+    
+    // Map the Lead interface fields to the appropriate collection fields
+    const updateFields: Record<string, any> = {
+      lastUpdated: new Date().toISOString()
+    };
+    
+    if (sourceCollection === 'contactSubmissions') {
+      if (updateData.name) updateFields.name = updateData.name;
+      if (updateData.email) updateFields.email = updateData.email;
+      if (updateData.status) updateFields.status = updateData.status;
+      if (updateData.notes) updateFields.message = updateData.notes;
+    } else {
+      if (updateData.name) updateFields.fullName = updateData.name;
+      if (updateData.email) updateFields.email = updateData.email;
+      if (updateData.status) updateFields.status = updateData.status;
+      if (updateData.notes) updateFields.description = updateData.notes;
+    }
+    
+    await updateDoc(docRef, updateFields);
+
+    return {
+      success: true,
+      message: "Lead updated successfully."
+    };
+  } catch (error: unknown) {
+    console.error("Error updating lead:", error);
+    let message = "Failed to update lead. Please try again.";
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    return {
+      success: false,
+      message
+    };
+  }
 }
 
 export interface Lead {

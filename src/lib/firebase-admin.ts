@@ -1,4 +1,4 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { initializeApp, getApps, cert, getApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
@@ -37,5 +37,30 @@ const adminAuth = getAuth();
 // FIREBASE_STORAGE_EMULATOR_HOST="localhost:9199"
 // The Firebase CLI (e.g., when using `firebase emulators:exec`) usually sets these.
 // No explicit `connect...Emulator` calls are needed for the Admin SDK.
+
+/**
+ * Returns the Firebase Admin app instance, initializing it if necessary.
+ * This is useful for parts of the app that need direct access to the admin app.
+ */
+export function getAdminApp() {
+  try {
+    // Try to get an existing app
+    return getApp();
+  } catch (error) {
+    // If no app exists, initialize and return it
+    if (projectId && clientEmail && privateKey) {
+      return initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, "\n"),
+        }),
+      });
+    } else {
+      // Initialize without credentials for dev environment
+      return initializeApp({});
+    }
+  }
+}
 
 export { adminDb, adminAuth };

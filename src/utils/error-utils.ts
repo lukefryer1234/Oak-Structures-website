@@ -26,6 +26,72 @@ export function isFirebaseError(error: unknown): boolean {
 }
 
 /**
+ * General error handler for both sync and async operations
+ * Logs the error and returns a user-friendly error message
+ */
+export function handleError(error: unknown, options: {
+  context?: string;
+  logLevel?: 'error' | 'warn' | 'info';
+  throwError?: boolean;
+} = {}): string {
+  const { 
+    context, 
+    logLevel = 'error',
+    throwError = false 
+  } = options;
+  
+  // Log the error with the specified log level
+  if (logLevel === 'error') {
+    logError(error, context);
+  } else if (logLevel === 'warn') {
+    console.warn(`Warning${context ? ` (${context})` : ''}:`, error);
+  } else if (logLevel === 'info') {
+    console.info(`Info${context ? ` (${context})` : ''}:`, error);
+  }
+  
+  // Get a user-friendly error message
+  const errorMessage = getErrorMessage(error);
+  
+  // Optionally rethrow the error
+  if (throwError) {
+    throw error;
+  }
+  
+  return errorMessage;
+}
+
+/**
+ * Async version of handleError that can be awaited
+ * Useful for handling errors in async contexts
+ */
+export async function handleErrorAsync<T>(
+  promise: Promise<T>,
+  options: {
+    context?: string;
+    fallback?: T;
+    throwError?: boolean;
+  } = {}
+): Promise<{ data: T | null; error: string | null }> {
+  const { context, fallback, throwError = false } = options;
+  
+  try {
+    const data = await promise;
+    return { data, error: null };
+  } catch (error) {
+    const errorMessage = handleError(error, { context, throwError: false });
+    
+    if (throwError) {
+      throw error;
+    }
+    
+    return { 
+      data: fallback !== undefined ? fallback : null, 
+      error: errorMessage 
+    };
+  }
+}
+
+/**
  * Returns a user-friendly error message from any error
  */
 export function getErrorMessage(error: unknown): string {
