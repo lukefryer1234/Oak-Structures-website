@@ -5,7 +5,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+// import { useQuery } from '@tanstack/react-query'; // Replaced by useFirestoreDocument
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,9 @@ import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFirestoreDocument } from '@/hooks/firebase/useFirestoreDocument';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 // --- Configuration Interfaces & Data ---
 
@@ -26,38 +29,38 @@ interface ConfigOption {
   defaultValue?: any;
 }
 
-interface CategoryConfig {
+interface CategoryConfig { // This interface might need an `id` field if fetched directly as a document
+  id?: string; // Optional: if the document ID is separate from its content
   title: string;
   options: ConfigOption[];
 }
 
-// Specific configuration for Porches
-const porchConfig: CategoryConfig = {
-    title: "Configure Your Porch",
-    options: [
-      { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
-      { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
-      { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: 'narrow', label: 'Narrow (e.g., 1.5m Wide)' }, { value: 'standard', label: 'Standard (e.g., 2m Wide)' }, { value: 'wide', label: 'Wide (e.g., 2.5m Wide)' }], defaultValue: 'standard' },
-    ]
-};
+// Specific configuration for Porches - This will now be fetched from Firestore
+// const porchConfig: CategoryConfig = {
+//     title: "Configure Your Porch",
+//     options: [
+//       { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
+//       { id: 'legType', label: 'Leg Type', type: 'select', options: [{ value: 'floor', label: 'Legs to Floor' }, { value: 'wall', label: 'Legs to Wall' }], defaultValue: 'floor' },
+//       { id: 'sizeType', label: 'Size Type', type: 'select', options: [{ value: 'narrow', label: 'Narrow (e.g., 1.5m Wide)' }, { value: 'standard', label: 'Standard (e.g., 2m Wide)' }, { value: 'wide', label: 'Wide (e.g., 2.5m Wide)' }], defaultValue: 'standard' },
+//     ]
+// };
 
-// Data fetching function for React Query
-const fetchPorchConfig = async (): Promise<CategoryConfig> => {
-  // In a real application, this would fetch from Firestore or an API
-  // For now, we return the hardcoded config
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(porchConfig), 500); // Simulate API call
-  });
-};
+// Data fetching is now handled by useFirestoreDocument
+// const fetchPorchConfig = async (): Promise<CategoryConfig> => {
+//   // In a real application, this would fetch from Firestore or an API
+//   // For now, we return the hardcoded config
+//   return new Promise((resolve) => {
+//     setTimeout(() => resolve(porchConfig), 500); // Simulate API call
+//   });
+// };
 
 // --- Helper Functions ---
 
-const calculatePrice = (config: any): number => {
-  let basePrice = 2000; // Base price for Porch
+const calculatePrice = (config: any, basePriceFromConfig?: number): number => {
+  let basePrice = basePriceFromConfig || 2000; // Base price for Porch, can be overridden by config
   if (config.sizeType === 'wide') basePrice += 400;
   if (config.sizeType === 'narrow') basePrice -= 200;
   if (config.legType === 'floor') basePrice += 150;
-  // if (config.oakType === 'reclaimed') basePrice += 200; // Removed oak type condition
   // Add other pricing adjustments based on config.trussType if needed
   return Math.max(0, basePrice);
 };
@@ -66,33 +69,53 @@ const calculatePrice = (config: any): number => {
 
 export default function ConfigurePorchPage() {
   const category = 'porches';
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const { data: categoryConfig, isLoading, isError, error } = useQuery<CategoryConfig, Error>({
-    queryKey: ['porchConfig'],
-    queryFn: fetchPorchConfig,
-    staleTime: Infinity, // Configuration data is static for now
-    refetchOnWindowFocus: false,
-  });
+  // Fetch configuration from Firestore
+  const {
+    data: categoryConfig,
+    isLoading,
+    isError,
+    error
+  } = useFirestoreDocument<CategoryConfig>(
+    'product_configurations', // Collection name
+    'porches_default_config', // Document ID for porch configuration
+    {
+      staleTime: 1000 * 60 * 5, // 5 minutes stale time
+      onSuccess: (data) => {
+        console.log("Porch configuration loaded:", data);
+      },
+      onError: (err) => {
+        console.error("Error loading porch configuration:", err);
+        toast({
+          title: "Error Loading Configuration",
+          description: err.message || "Could not load porch configuration data. Please try again later.",
+          variant: "destructive",
+        });
+      },
+    }
+  );
 
   const [configState, setConfigState] = useState<any>({});
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
   useEffect(() => {
-    if (categoryConfig) {
+    if (categoryConfig?.options) {
       const initialState: any = {};
       categoryConfig.options.forEach(opt => {
         initialState[opt.id] = opt.defaultValue;
       });
       setConfigState(initialState);
-      setCalculatedPrice(calculatePrice(initialState));
+      // Assuming basePrice might come from config in the future, e.g. categoryConfig.basePrice
+      setCalculatedPrice(calculatePrice(initialState /*, categoryConfig.basePrice */));
     }
-  }, [categoryConfig]); // Re-run when categoryConfig is fetched or changes
+  }, [categoryConfig]);
 
    const handleConfigChange = (id: string, value: any) => {
      setConfigState((prev: any) => {
         const newState = { ...prev, [id]: value };
-        setCalculatedPrice(calculatePrice(newState));
+        setCalculatedPrice(calculatePrice(newState /*, categoryConfig?.basePrice */));
         return newState;
      });
    };
@@ -105,23 +128,65 @@ export default function ConfigurePorchPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <p>Loading configuration...</p>
+      <div className="container mx-auto px-4 py-12">
+        <Card className="max-w-3xl mx-auto">
+          <CardHeader className="text-center">
+            <Skeleton className="h-8 w-3/4 mx-auto" /> {/* Title Skeleton */}
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-8">
+            <div className="space-y-6">
+              {[1, 2, 3].map((n) => ( // Assuming 3 options to skeleton load
+                <div key={n} className="text-center space-y-2">
+                  <Skeleton className="h-6 w-1/2 mx-auto" /> {/* Label Skeleton */}
+                  <Skeleton className="h-10 w-3/4 mx-auto" /> {/* Input Skeleton */}
+                  {n === 1 && ( // Example: Skeleton for radio options with images
+                    <div className="mt-2 grid gap-4 justify-center grid-cols-2 max-w-md mx-auto">
+                      <Skeleton className="h-32 w-full rounded-md" />
+                      <Skeleton className="h-32 w-full rounded-md" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="space-y-6 border-t pt-6 mt-4">
+              <div className="text-center space-y-2">
+                <Skeleton className="h-4 w-1/3 mx-auto" /> {/* Price Label Skeleton */}
+                <Skeleton className="h-10 w-1/2 mx-auto" /> {/* Price Skeleton */}
+              </div>
+              <Skeleton className="h-12 w-full max-w-xs mx-auto" /> {/* Button Skeleton */}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (isError) {
+  if (isError || !categoryConfig) {
+     // Toast is already shown by useFirestoreDocument's onError.
+     // We can show a fallback UI here or rely on the toast.
     return (
-      <div className="container mx-auto px-4 py-12 text-center text-red-500">
-        <p>Error loading configuration: {error?.message || 'Unknown error'}</p>
+      <div className="container mx-auto px-4 py-12 text-center">
+        <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
+            <CardHeader>
+                <CardTitle className="text-2xl text-destructive text-center">Configuration Unavailable</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-center">
+                    We encountered an issue loading the configuration options for porches.
+                    Please try refreshing the page or contact support if the problem persists.
+                </p>
+                {error && <p className="text-center text-sm text-muted-foreground mt-2">Error: {error.message}</p>}
+            </CardContent>
+            <CardFooter>
+                <Button onClick={() => router.refresh()} className="mx-auto">Refresh Page</Button>
+            </CardFooter>
+        </Card>
       </div>
     );
   }
-
-  if (!categoryConfig) {
-    notFound();
-  }
+  // Removed the !categoryConfig check here as isError should cover it if data is truly missing after load.
+  // If useFirestoreDocument resolves with null/undefined successfully, then notFound() might be appropriate.
+  // For now, assuming an error state is more likely if data isn't there.
 
   return (
     <div>
@@ -137,7 +202,7 @@ export default function ConfigurePorchPage() {
                     <Label htmlFor={option.id} className="text-base font-medium block mb-2">{option.label}</Label>
                     {option.type === 'select' && (
                       <Select
-                        value={configState[option.id]}
+                        value={configState[option.id] ?? option.defaultValue ?? ''}
                         onValueChange={(value) => handleConfigChange(option.id, value)}
                       >
                         <SelectTrigger id={option.id} className="mt-2 bg-background/70 max-w-sm mx-auto justify-center">
@@ -152,11 +217,11 @@ export default function ConfigurePorchPage() {
                     )}
                      {option.type === 'radio' && (
                         <RadioGroup
-                            value={configState[option.id]}
+                            value={configState[option.id] ?? option.defaultValue ?? ''}
                             onValueChange={(value) => handleConfigChange(option.id, value)}
                             className={cn(
                                 "mt-2 grid gap-4 justify-center",
-                                "grid-cols-2 max-w-md mx-auto"
+                                "grid-cols-2 max-w-md mx-auto" // Ensure this matches skeleton if specific
                              )}
                          >
                            {option.options?.map((opt) => (
@@ -165,7 +230,8 @@ export default function ConfigurePorchPage() {
                                  {opt.image && (
                                     <div className="mb-2 relative w-full aspect-[4/3] rounded overflow-hidden">
                                         <Image
-                                            src={`https://picsum.photos/seed/${opt.dataAiHint?.replace(/\s+/g, '-') || opt.value}/200/150`}
+                                            // Using a more robust placeholder or actual image URL from Firestore if available
+                                            src={opt.image.startsWith('/') ? opt.image : `https://picsum.photos/seed/${opt.dataAiHint?.replace(/\s+/g, '-') || opt.value}/200/150`}
                                             alt={opt.label}
                                             layout="fill"
                                             objectFit="cover"

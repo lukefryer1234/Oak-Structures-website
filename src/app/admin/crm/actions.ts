@@ -1,15 +1,16 @@
 // src/app/admin/crm/actions.ts
 'use server';
 
+// Client-side Firestore imports - check if all are unused after refactoring
 import { collection, getDocs, query, orderBy, limit, where, doc, getDoc, updateDoc, getCountFromServer } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase'; // Client SDK db
 
 // Types
 export interface CustomerSummary {
   totalCustomers: number;
-  totalLeads: number;
-  openInquiries: number;
-  averageConversionRate: number;
+  totalLeads: number; // From contactSubmissions + customOrderInquiries
+  openInquiries: number; // Placeholder based on totalLeads
+  averageConversionRate: number; // Placeholder calculation
 }
 
 /**
@@ -150,42 +151,45 @@ export interface StatusUpdateResponse {
  * Fetches summary statistics for the CRM dashboard
  */
 export async function fetchCustomerSummaryAction(): Promise<CustomerSummary> {
+  const defaultSummary: CustomerSummary = {
+    totalCustomers: 0,
+    totalLeads: 0,
+    openInquiries: 0,
+    averageConversionRate: 0,
+  };
+
   try {
-    const usersQuery = query(
-      collection(db, 'users'),
-      where('role', '==', 'Customer')
-    );
-    const usersSnapshot = await getCountFromServer(usersQuery);
-    const totalCustomers = usersSnapshot.data().count;
+    // Ensure the host is correctly set for server-side fetch
+    // For server components, relative URLs might not work as expected without a full host.
+    // Using an absolute URL. In a real app, this should come from an environment variable.
+    const host = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'; // Fallback for local dev if not set
+    const response = await fetch(`${host}/api/admin/crm/summary`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Consider adding cache-revalidation options if needed, e.g. next: { revalidate: 60 }
+    });
 
-    const contactsSnapshot = await getCountFromServer(collection(db, 'contactSubmissions'));
-    const inquiriesSnapshot = await getCountFromServer(collection(db, 'customOrderInquiries'));
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})); // Try to parse error, default to empty if fail
+      console.error(
+        `Error fetching customer summary from API: ${response.status} ${response.statusText}`,
+        errorData.details || ''
+      );
+      return defaultSummary;
+    }
 
-    const totalContacts = contactsSnapshot.data().count;
-    const totalInquiries = inquiriesSnapshot.data().count;
+    const summaryData: CustomerSummary = await response.json();
+    return summaryData;
 
-    const totalLeads = totalContacts + totalInquiries;
-
-    // Placeholder for open inquiries until status field is consistently implemented
-    const openInquiries = Math.round(totalLeads * 0.25); // Assuming 25% are open
-
-    const averageConversionRate = totalCustomers > 0 && totalLeads > 0
-      ? Math.round((totalCustomers / (totalLeads + totalCustomers)) * 100)
-      : 0;
-
-    return {
-      totalCustomers,
-      totalLeads,
-      openInquiries,
-      averageConversionRate
-    };
   } catch (error) {
-    console.error("Error fetching customer summary:", error);
+    console.error("Error fetching customer summary via API route:", error);
     return {
       totalCustomers: 0,
       totalLeads: 0,
       openInquiries: 0,
-      averageConversionRate: 0
+      averageConversionRate: 0,
     };
   }
 }
