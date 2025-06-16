@@ -1,0 +1,42 @@
+{
+  "title": "Configure Your Gazebo",
+  "basePrice": 2800,
+  "image": "/images/gazebo-category.jpg",
+  "dataAiHint": "configurable oak gazebo",
+  "options": [
+    {
+      "id": "trussType",
+      "label": "Truss Type",
+      "type": "radio",
+      "defaultValue": "straight",
+      "values": {
+        "straight": { "label": "Straight", "priceImpact": 0, "image": "/images/config/truss-straight.jpg", "dataAiHint": "straight oak truss" },
+        "curved": { "label": "Curved", "priceImpact": 120, "image": "/images/config/truss-curved.jpg", "dataAiHint": "curved oak truss" }
+      },
+      "notes": "Price impact is a one-off for the entire structure."
+    },
+    {
+      "id": "legType",
+      "label": "Leg Type",
+      "type": "select",
+      "defaultValue": "full",
+      "values": {
+        "full": { "label": "Full Height Legs", "priceImpact": 0 },
+        "wall": { "label": "Wall Mount (Half Legs)", "priceImpact": -150 }
+      },
+      "notes": "Wall mount might be cheaper as it uses less timber."
+    },
+    {
+      "id": "sizeType",
+      "label": "Size Type",
+      "type": "select",
+      "defaultValue": "3x3",
+      "values": {
+        "3x3": { "label": "3m x 3m", "priceImpact": 0 },
+        "4x3": { "label": "4m x 3m", "priceImpact": 250 },
+        "4x4": { "label": "4m x 4m", "priceImpact": 450 }
+      },
+      "notes": "Price impact for different sizes."
+    }
+  ]
+}

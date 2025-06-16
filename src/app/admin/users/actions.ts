@@ -35,39 +35,43 @@ const firestoreUserSchema = z.object({
 
 export async function fetchUsersAction(): Promise<UserData[]> {
   try {
-    const usersCollection = collection(db, 'users');
-    const querySnapshot = await getDocs(usersCollection);
-    const users: UserData[] = [];
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      // Validate data against schema before returning
-      const parsed = firestoreUserSchema.safeParse(data);
-      if (parsed.success) {
-         users.push({
-           id: docSnap.id, // This is the UID
-           name: parsed.data.displayName,
-           email: parsed.data.email,
-           role: parsed.data.role,
-           avatarUrl: parsed.data.avatarUrl,
-           lastLogin: parsed.data.lastLogin,
-           orderCount: parsed.data.orderCount,
-         });
-      } else {
-          console.warn(`User data for ${docSnap.id} failed validation:`, parsed.error.flatten().fieldErrors);
-          // Fallback for potentially missing role or other fields
-          users.push({
-            id: docSnap.id,
-            email: data.email || 'N/A',
-            role: data.role || 'Customer', // Default role if missing
-            name: data.displayName,
-            avatarUrl: data.avatarUrl,
-          });
-      }
+    // Determine the base URL for server-side fetches
+    // Use NEXT_PUBLIC_APP_URL for deployed environments, fallback to localhost for dev.
+    // Ensure this var is set in your Vercel/deployment env.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+
+    const response = await fetch(`${appUrl}/api/admin/users/list`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Server-side fetch can have different caching.
+      // 'no-store' ensures fresh data, but consider 'default' or revalidation strategies.
+      cache: 'no-store',
     });
+
+    if (!response.ok) {
+      let errorDetails = "No error details from API.";
+      try {
+        const errorData = await response.json(); // Try to parse JSON error from API
+        errorDetails = errorData.details || errorData.message || JSON.stringify(errorData);
+      } catch (e) {
+        errorDetails = await response.text(); // Fallback to raw text if not JSON
+      }
+      console.error(`API responded with ${response.status}: ${errorDetails}`);
+      throw new Error(`Failed to fetch users: API responded with ${response.status}. Details: ${errorDetails}`);
+    }
+
+    const users: UserData[] = await response.json();
     return users;
   } catch (error) {
-    console.error("Error fetching users:", error);
-    return [];
+    // Log the error with more context if possible
+    if (error instanceof Error) {
+      console.error("Error in fetchUsersAction calling API route:", error.message, error.stack);
+    } else {
+      console.error("Unknown error in fetchUsersAction calling API route:", error);
+    }
+    return []; // Return empty array on error, consistent with original behavior
   }
 }
 
