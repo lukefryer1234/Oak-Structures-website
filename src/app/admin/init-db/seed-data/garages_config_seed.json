@@ -1,0 +1,61 @@
+{
+  "title": "Configure Your Garage",
+  "basePrice": 7500,
+  "image": "/images/garage-category.jpg",
+  "dataAiHint": "configurable oak garage",
+  "options": [
+    {
+      "id": "bays",
+      "label": "Number of Bays",
+      "type": "slider",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "defaultValue": [2],
+      "notes": "Base price includes 1 bay. Slider value used as multiplier for perBay costs or direct impact if defined."
+    },
+    {
+      "id": "beamSize",
+      "label": "Structural Beam Sizes",
+      "type": "select",
+      "defaultValue": "6x6",
+      "values": {
+        "6x6": { "label": "6 inch x 6 inch", "priceImpact": 0, "perBay": true },
+        "7x7": { "label": "7 inch x 7 inch", "priceImpact": 250, "perBay": true },
+        "8x8": { "label": "8 inch x 8 inch", "priceImpact": 500, "perBay": true }
+      },
+      "notes": "Price impact is per bay for the selected beam size."
+    },
+    {
+      "id": "trussType",
+      "label": "Truss Type",
+      "type": "radio",
+      "defaultValue": "straight",
+      "values": {
+        "straight": { "label": "Straight", "priceImpact": 0, "perBay": false, "image": "/images/config/truss-straight.jpg", "dataAiHint": "straight oak truss" },
+        "curved": { "label": "Curved", "priceImpact": 150, "perBay": false, "image": "/images/config/truss-curved.jpg", "dataAiHint": "curved oak truss" }
+      },
+      "notes": "Price impact is a one-off for the entire structure."
+    },
+    {
+      "id": "baySize",
+      "label": "Size Per Bay",
+      "type": "select",
+      "defaultValue": "standard",
+      "values": {
+        "standard": { "label": "Standard (e.g., 3m wide)", "priceImpact": 0, "perBay": true },
+        "large": { "label": "Large (e.g., 3.5m wide)", "priceImpact": 350, "perBay": true }
+      },
+      "notes": "Price impact is per bay for the selected size."
+    },
+    {
+      "id": "catSlide",
+      "label": "Include Cat Slide Roof?",
+      "type": "checkbox",
+      "defaultValue": false,
+      "priceImpact": 300,
+      "perBay": true,
+      "notes": "If true, this cost is added per bay."
+    }
+  ]
+}

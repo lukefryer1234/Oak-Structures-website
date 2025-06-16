@@ -6,122 +6,40 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// Remove local interface definitions, they will be imported
+// interface GarageConfigValue { ... }
+// interface GarageConfigOption { ... }
+// interface GarageConfigData { ... }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+// Import interfaces and calculatePrice function from the new file
+import {
+  GarageConfigData,
+  // GarageConfigOption, // Not directly used in page.tsx props/state, but part of GarageConfigData
+  // GarageConfigValue, // Not directly used in page.tsx props/state
+  calculatePrice as calculatePurePrice // Alias to avoid conflict if needed, or use directly
+} from './garagePricing';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, MinusIcon, PlusIcon } from 'lucide-react';
+import { ArrowRight, MinusIcon, PlusIcon } from 'lucide-react'; // ArrowRight might be unused now
 import { cn } from '@/lib/utils';
 import { useFirestoreDocument } from '@/hooks/firebase/useFirestoreDocument';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
 // --- Firestore Data Structure Definition (Comment) ---
-// Expected structure for Firestore document at 'product_configurations/garages_default_config':
-// {
-//   id: "garages_default_config", // Document ID
-//   title: "Configure Your Garage",
-//   basePrice: 8000, // Base price for a single bay garage of standard size/beam etc.
-//   image: "/images/products/garage-main.jpg", // Optional: Main image for the configurator page
-//   dataAiHint: "oak frame garage configurator",
-//   options: [
-//     {
-//       id: "bays",
-//       label: "Number of Bays",
-//       type: "slider",
-//       min: 1,
-//       max: 4,
-//       step: 1,
-//       defaultValue: [2], // Slider default value is an array
-//       // Note: Pricing for additional bays is often handled by multiplying base bay components,
-//       // or could be a priceImpact on the slider values if simple enough.
-//       // For this example, we'll assume bay count primarily acts as a multiplier for perBay options
-//       // and might influence some direct component costs if not using a sophisticated BOM system.
-//     },
-//     {
-//       id: "beamSize",
-//       label: "Structural Beam Sizes",
-//       type: "select",
-//       defaultValue: "6x6",
-//       values: { // Changed from 'options' array to 'values' object for easier lookup
-//         "6x6": { label: "6 inch x 6 inch", priceImpact: 0 }, // Base, no extra cost
-//         "7x7": { label: "7 inch x 7 inch", priceImpact: 200, perBay: true }, // Example: +£200 per bay
-//         "8x8": { label: "8 inch x 8 inch", priceImpact: 450, perBay: true }  // Example: +£450 per bay
-//       }
-//     },
-//     {
-//       id: "trussType",
-//       label: "Truss Type",
-//       type: "radio",
-//       defaultValue: "curved",
-//       values: {
-//         "curved": { label: "Curved", priceImpact: 50, perBay: true, image: "/images/config/truss-curved.jpg", dataAiHint: "curved oak truss" },
-//         "straight": { label: "Straight", priceImpact: 0, perBay: true, image: "/images/config/truss-straight.jpg", dataAiHint: "straight oak truss" }
-//       }
-//     },
-//     {
-//       id: "baySize", // e.g., width of each bay
-//       label: "Size Per Bay",
-//       type: "select",
-//       defaultValue: "standard",
-//       values: {
-//         "standard": { label: "Standard (e.g., 3m wide)", priceImpact: 0 },
-//         "large": { label: "Large (e.g., 3.5m wide)", priceImpact: 300, perBay: true } // Example: +£300 per bay for larger size
-//       }
-//     },
-//     {
-//       id: "catSlide",
-//       label: "Include Cat Slide Roof?",
-//       type: "checkbox",
-//       defaultValue: false,
-//       priceImpact: 150, // This is the cost if checked
-//       perBay: true // Cost is per bay
-//     }
-//     // ... other options like roofing, cladding, doors, windows etc.
-//   ]
-// }
+// This comment is now primarily in garagePricing.ts for direct reference by the logic.
+// A summary could be kept here if desired, but for DRY principle, main definition is with the logic.
 // --- End Firestore Data Structure Definition ---
 
-interface GarageConfigValue {
-  label: string;
-  priceImpact?: number;
-  priceMultiplier?: number; // Alternative to priceImpact
-  perBay?: boolean;
-  image?: string;
-  dataAiHint?: string;
-}
-
-interface GarageConfigOption {
-  id: string;
-  label: string;
-  type: 'select' | 'slider' | 'radio' | 'checkbox';
-  min?: number;
-  max?: number;
-  step?: number;
-  defaultValue?: any;
-  unit?: string;
-  values?: Record<string, GarageConfigValue>; // For select/radio options
-  priceImpact?: number; // For checkbox type or simple options
-  perBay?: boolean; // For checkbox type or simple options
-  dataAiHint?: string;
-}
-
-interface GarageConfigData {
-  id?: string;
-  title: string;
-  basePrice: number;
-  options: GarageConfigOption[];
-  image?: string;
-  dataAiHint?: string;
-}
 
 // --- Component ---
 export default function ConfigureGaragePage() {
-  const category = 'garages';
+  const category = 'garages'; // This might become dynamic if page handles multiple categories
   const router = useRouter();
   const { toast } = useToast();
 
@@ -151,46 +69,10 @@ export default function ConfigureGaragePage() {
   const [overallQuantity, setOverallQuantity] = useState<number>(1);
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-  const calculatePrice = useCallback((currentConfig: any, quantity: number, configData?: GarageConfigData): number | null => {
-    if (!configData) return null;
-
-    let singleGaragePrice = configData.basePrice;
-    const numberOfBays = currentConfig.bays?.[0] || 1; // Default to 1 bay if not set
-
-    configData.options.forEach(option => {
-      const selectedValue = currentConfig[option.id];
-      if (selectedValue === undefined) return; // Skip if option not selected yet
-
-      let optionCost = 0;
-
-      if (option.type === 'checkbox') {
-        if (selectedValue && option.priceImpact) {
-          optionCost = option.priceImpact;
-        }
-      } else if (option.values && option.values[selectedValue]) {
-        const valueDetails = option.values[selectedValue];
-        if (valueDetails.priceImpact) {
-          optionCost = valueDetails.priceImpact;
-        } else if (valueDetails.priceMultiplier) {
-          // This logic needs base for multiplier. For simplicity, let's assume multiplier applies to a portion of base or specific item cost.
-          // Advanced: priceMultiplier might apply to (basePrice / number of options of this type) or similar.
-          // For now, let's assume priceMultiplier is not the primary mode here or applies to a sub-component price not detailed.
-          // Defaulting to 0 if only multiplier is present without clear base.
-          optionCost = 0;
-        }
-      }
-      // No specific handling for 'slider' type direct price impact here, assuming 'bays' slider primarily acts as a multiplier for 'perBay' options.
-      // If slider itself has a direct cost (e.g. more bays = more base framework), it could be modeled as a 'perBay' priceImpact on the slider values.
-
-      if ((option.perBay || (option.values && option.values[selectedValue]?.perBay)) && option.id !== 'bays') {
-        optionCost *= numberOfBays;
-      }
-
-      singleGaragePrice += optionCost;
-    });
-
-    return Math.max(0, singleGaragePrice) * quantity;
-  }, []);
+  // Use the imported pure calculatePurePrice function within useCallback
+  const calculatePriceCallback = useCallback((currentConfig: any, quantity: number, configData?: GarageConfigData): number | null => {
+    return calculatePurePrice(currentConfig, quantity, configData);
+  }, []); // calculatePurePrice is stable, so dependencies array is empty for this useCallback
 
   useEffect(() => {
     if (garageConfigData) {
@@ -199,14 +81,14 @@ export default function ConfigureGaragePage() {
         initialState[opt.id] = opt.defaultValue;
       });
       setConfigState(initialState);
-      setCalculatedPrice(calculatePrice(initialState, overallQuantity, garageConfigData));
+      setCalculatedPrice(calculatePriceCallback(initialState, overallQuantity, garageConfigData));
     }
-  }, [garageConfigData, overallQuantity, calculatePrice]);
+  }, [garageConfigData, overallQuantity, calculatePriceCallback]);
 
   const handleConfigChange = (id: string, value: any) => {
     setConfigState((prev: any) => {
       const newState = { ...prev, [id]: value };
-      setCalculatedPrice(calculatePrice(newState, overallQuantity, garageConfigData));
+      setCalculatedPrice(calculatePriceCallback(newState, overallQuantity, garageConfigData));
       return newState;
     });
   };
@@ -214,21 +96,23 @@ export default function ConfigureGaragePage() {
   const handleQuantityChange = (newQuantity: number) => {
     const quantity = Math.max(1, newQuantity); // Ensure quantity is at least 1
     setOverallQuantity(quantity);
-    setCalculatedPrice(calculatePrice(configState, quantity, garageConfigData));
+    setCalculatedPrice(calculatePriceCallback(configState, quantity, garageConfigData));
   };
 
   const handleAddToBasket = async () => {
     console.log("Adding to basket:", {
-      configState,
+      configState, // This is the state of selected options
       overallQuantity,
-      calculatedPrice,
+      unitPrice: calculatedPrice !== null ? calculatedPrice / overallQuantity : 0, // Example: if you want unit price
+      totalPrice: calculatedPrice,
+      garageConfigTitle: garageConfigData?.title, // Example of including some config meta
       timestamp: new Date().toISOString(),
     });
     // TODO: Implement actual basket logic (e.g., call a context function or API endpoint)
     // Example: await basketContext.addItem({ productId: 'garage_configured', configuration: configState, quantity: overallQuantity, price: calculatedPrice });
     toast({
       title: "Added to Basket (Simulated)",
-      description: `${overallQuantity} garage(s) with selected configuration. Price: £${calculatedPrice?.toFixed(2)}`,
+      description: `${overallQuantity} "${garageConfigData?.title || 'Garage'}"(s) added. Total: £${calculatedPrice?.toFixed(2)}`,
     });
   };
 
@@ -243,10 +127,16 @@ export default function ConfigureGaragePage() {
     // This might also involve adding to basket first, then redirecting.
     toast({
       title: "Pay Now Clicked (Simulated)",
-      description: `Proceeding with ${overallQuantity} garage(s). Price: £${calculatedPrice?.toFixed(2)}`,
+      description: `Proceeding with ${overallQuantity} "${garageConfigData?.title || 'Garage'}"(s). Total: £${calculatedPrice?.toFixed(2)}`,
     });
     // Example: router.push('/checkout?item=garage_configured&config=...&quantity=...');
   };
+  // Loading and error states, rendering logic remains largely the same as before,
+  // just ensuring that calculatePriceCallback is used.
+  // The actual JSX for rendering options, quantity, price, and buttons
+  // would be here, identical to the previous version of the component.
+  // For brevity, I'm not repeating that large JSX block if it's unchanged
+  // other than using calculatePriceCallback instead of a local calculatePrice.
 
   if (isLoading) {
     return (
