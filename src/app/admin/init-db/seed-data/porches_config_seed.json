@@ -1,0 +1,64 @@
+{
+  "title": "Configure Your Custom Porch",
+  "description": "Design a welcoming entrance to your home with our customizable oak porches. Choose from various styles, sizes, and finishes to create the perfect addition to your property, all crafted from high-quality oak.",
+  "basePrice": 1800,
+  "image": "/images/porch-category.jpg",
+  "dataAiHint": "configurable oak porch",
+  "options": [
+    {
+      "id": "porchSize",
+      "label": "Porch Size",
+      "type": "select",
+      "defaultValue": "standard",
+      "values": {
+        "small": { "label": "Small (e.g., 1.2m W x 0.8m D)", "priceImpact": -150 },
+        "standard": { "label": "Standard (e.g., 1.5m W x 1m D)", "priceImpact": 0 },
+        "large": { "label": "Large (e.g., 1.8m W x 1.2m D)", "priceImpact": 250 }
+      },
+      "notes": "Select the overall dimensions for your porch."
+    },
+    {
+      "id": "roofStyle",
+      "label": "Roof Style",
+      "type": "radio",
+      "defaultValue": "gabled",
+      "values": {
+        "gabled": { "label": "Gabled Roof", "priceImpact": 0, "image": "/images/config/roof-gabled-porch.jpg", "dataAiHint": "gabled porch roof" },
+        "hipped": { "label": "Hipped Roof", "priceImpact": 220, "image": "/images/config/roof-hipped-porch.jpg", "dataAiHint": "hipped porch roof" }
+      },
+      "notes": "Choose the style of roof for your porch."
+    },
+    {
+      "id": "legStyle",
+      "label": "Leg/Post Style",
+      "type": "radio",
+      "defaultValue": "square",
+      "values": {
+        "square": { "label": "Square Posts", "priceImpact": 0, "image": "/images/config/posts-square-porch.jpg", "dataAiHint": "square oak posts" },
+        "turned": { "label": "Turned Posts", "priceImpact": 180, "image": "/images/config/posts-turned-porch.jpg", "dataAiHint": "turned oak posts" }
+      },
+      "notes": "Select the style for the supporting posts."
+    },
+    {
+      "id": "sideInfills",
+      "label": "Side Infills",
+      "type": "select",
+      "defaultValue": "none",
+      "values": {
+        "none": { "label": "None (Open Sides)", "priceImpact": 0 },
+        "halfHeightTandG": { "label": "Half-Height Tongue & Groove", "priceImpact": 280 },
+        "fullHeightTandG": { "label": "Full-Height Tongue & Groove", "priceImpact": 500 },
+        "balustrade": { "label": "Oak Balustrade", "priceImpact": 400 }
+      },
+      "notes": "Choose infill options for the sides of the porch."
+    },
+    {
+      "id": "glazing",
+      "label": "Include Glazing in Infills?",
+      "type": "checkbox",
+      "defaultValue": false,
+      "priceImpact": 350,
+      "notes": "Applies if side infills are selected and suitable for glazing (e.g., T&G). Cost is for glazing suitable sections."
+    }
+  ]
+}

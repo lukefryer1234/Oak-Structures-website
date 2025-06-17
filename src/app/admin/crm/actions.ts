@@ -20,51 +20,43 @@ export async function getLeadAction(
   leadId: string,
   sourceCollection: 'contactSubmissions' | 'customOrderInquiries'
 ): Promise<Lead | null> {
+  if (!leadId) {
+    console.error("Lead ID is required for getLeadAction");
+    return null;
+  }
+  // sourceCollection is validated by its TypeScript type 'contactSubmissions' | 'customOrderInquiries'
+
   try {
-    if (!leadId) {
-      console.error("Lead ID is required");
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://your-production-url.com'); // Replace with actual prod URL
+    const apiUrl = `${appUrl}/api/admin/crm/lead/${leadId}?sourceCollection=${sourceCollection}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (response.status === 404) {
+      console.log(`Lead with ID ${leadId} not found in ${sourceCollection} via API.`);
       return null;
     }
 
-    const docRef = doc(db, sourceCollection, leadId);
-    const docSnap = await getDoc(docRef);
-    
-    if (!docSnap.exists()) {
-      console.error(`Lead with ID ${leadId} not found in ${sourceCollection}`);
-      return null;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error fetching lead ${leadId} from API: ${response.status} ${response.statusText} - ${errorText}`);
+      // Consider not throwing here if the expectation is to return null on any error,
+      // or make the error handling more specific. For now, let it fall to the catch block.
+      throw new Error(`Failed to fetch lead: API responded with ${response.status}`);
     }
-    
-    const data = docSnap.data();
-    
-    // Construct the lead object based on the collection type
-    if (sourceCollection === 'contactSubmissions') {
-      return {
-        id: docSnap.id,
-        name: data.name || 'Unknown',
-        email: data.email || 'No email',
-        source: 'Contact Form',
-        status: data.status || 'New',
-        createdAt: data.submittedAt ?
-          (data.submittedAt.toDate ? data.submittedAt.toDate().toISOString() : new Date(data.submittedAt).toISOString()) :
-          new Date().toISOString(),
-        notes: data.message || undefined
-      };
-    } else {
-      return {
-        id: docSnap.id,
-        name: data.fullName || 'Unknown',
-        email: data.email || 'No email',
-        source: 'Custom Order',
-        status: data.status || 'New',
-        createdAt: data.submittedAt ?
-          (data.submittedAt.toDate ? data.submittedAt.toDate().toISOString() : new Date(data.submittedAt).toISOString()) :
-          new Date().toISOString(),
-        notes: data.description || undefined
-      };
-    }
+
+    const lead: Lead = await response.json();
+    return lead;
+
   } catch (error) {
-    console.error("Error fetching lead:", error);
-    return null;
+    console.error(`Error in getLeadAction calling API for lead ${leadId} in ${sourceCollection}:`, error);
+    return null; // Consistent with original behavior: log error and return null
   }
 }
 
@@ -76,49 +68,58 @@ export async function updateLeadAction(
   updateData: Partial<Lead>,
   sourceCollection: 'contactSubmissions' | 'customOrderInquiries'
 ): Promise<StatusUpdateResponse> {
+  if (!leadId) {
+    return { success: false, message: "Lead ID is required for updateLeadAction." };
+  }
+  // Basic validation for updateData: ensure it's not empty if we expect actual changes.
+  // The API route itself also validates this.
+  if (!updateData || Object.keys(updateData).length === 0) {
+    return { success: false, message: "No update data provided." };
+  }
+
   try {
-    if (!leadId) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://your-production-url.com'); // Replace with actual prod URL
+    const apiUrl = `${appUrl}/api/admin/crm/lead/${leadId}?sourceCollection=${sourceCollection}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+      // cache: 'no-store', // PUT requests are typically not cached by default
+    });
+
+    // Attempt to parse the JSON response, regardless of response.ok status,
+    // as our API route is designed to return JSON for errors too.
+    let result: StatusUpdateResponse;
+    try {
+        result = await response.json();
+    } catch (e) {
+        // If response is not JSON (e.g., HTML error page from a proxy or unexpected server crash)
+        const responseText = await response.text(); // Try to get text content
+        console.error(`Error updating lead ${leadId} via API: Non-JSON response ${response.status} ${response.statusText} - Body: ${responseText}`);
+        return {
+            success: false,
+            message: `Failed to update lead: API returned non-JSON response (${response.status}). Check server logs.`
+        };
+    }
+
+    if (!response.ok) {
+      console.error(`Error updating lead ${leadId} via API: ${response.status} ${response.statusText} - Response: ${JSON.stringify(result)}`);
       return {
         success: false,
-        message: "Lead ID is required."
+        message: result.message || `Failed to update lead: API responded with ${response.status}`,
+        // error field is not part of StatusUpdateResponse in actions.ts, so not assigning result.error
       };
     }
+    
+    return result; // This should be { success: true, message: "..." } from the API
 
-    const docRef = doc(db, sourceCollection, leadId);
-    
-    // Map the Lead interface fields to the appropriate collection fields
-    const updateFields: Record<string, any> = {
-      lastUpdated: new Date().toISOString()
-    };
-    
-    if (sourceCollection === 'contactSubmissions') {
-      if (updateData.name) updateFields.name = updateData.name;
-      if (updateData.email) updateFields.email = updateData.email;
-      if (updateData.status) updateFields.status = updateData.status;
-      if (updateData.notes) updateFields.message = updateData.notes;
-    } else {
-      if (updateData.name) updateFields.fullName = updateData.name;
-      if (updateData.email) updateFields.email = updateData.email;
-      if (updateData.status) updateFields.status = updateData.status;
-      if (updateData.notes) updateFields.description = updateData.notes;
-    }
-    
-    await updateDoc(docRef, updateFields);
-
-    return {
-      success: true,
-      message: "Lead updated successfully."
-    };
-  } catch (error: unknown) {
-    console.error("Error updating lead:", error);
-    let message = "Failed to update lead. Please try again.";
-    if (error instanceof Error) {
-      message = error.message;
-    }
-    return {
-      success: false,
-      message
-    };
+  } catch (error) {
+    console.error(`Error in updateLeadAction calling API for lead ${leadId} in ${sourceCollection}:`, error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message: `An unexpected error occurred: ${errorMessage}` };
   }
 }
 
