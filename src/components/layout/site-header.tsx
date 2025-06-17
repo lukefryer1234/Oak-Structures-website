@@ -38,6 +38,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { useBasket } from '@/context/basket-context'; // Import useBasket
 // import { cn } from "@/lib/utils"; // No longer used
 
 interface NavLink {
@@ -90,6 +91,7 @@ function ActualHeaderContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { itemCount } = useBasket(); // Use the basket hook
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -112,11 +114,11 @@ function ActualHeaderContent() {
   // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always true for admin links visibility
   const isAdmin = true; 
 
-  // Placeholder basket data
-  const basketItemCount = 3; 
-  const basketTotalPrice = 17575.00; 
+  // Placeholder basket data - REMOVE basketItemCount, use itemCount from useBasket()
+  // const basketItemCount = 3;
+  // const basketTotalPrice = 17575.00; // This will be removed as it's not used in this refactor
 
-  if (authLoading) {
+  if (authLoading) { // Still show skeleton if auth is loading, basket will update once auth is done
     return <HeaderContentSkeleton />;
   }
 
@@ -242,21 +244,21 @@ function ActualHeaderContent() {
             </Link>
           </Button>
 
-
-            {basketItemCount > 0 && (
+            {/* Removed basketTotalPrice display from here */}
+            {/* {itemCount > 0 && ( // Example if you wanted to show total price from basket context
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
-                    {formatPrice(basketTotalPrice)}
+                    {formatPrice(subtotal)} // Assuming subtotal is from useBasket() if needed
                 </div>
-             )}
+             )} */}
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
-              {basketItemCount > 0 && (
+              {itemCount > 0 && (
                 <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 min-w-4 justify-center rounded-full p-0.5 text-[10px] leading-none">
-                    {basketItemCount}
+                    {itemCount}
                 </Badge>
               )}
             </Link>

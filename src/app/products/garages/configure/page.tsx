@@ -30,6 +30,8 @@ import { cn } from '@/lib/utils';
 import { useFirestoreDocument } from '@/hooks/firebase/useFirestoreDocument';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useBasket } from '@/context/basket-context';
+import { AddToBasketPayload } from '@/context/basket-types';
 
 // --- Firestore Data Structure Definition (Comment) ---
 // This comment is now primarily in garagePricing.ts for direct reference by the logic.
@@ -41,7 +43,8 @@ import { useToast } from '@/hooks/use-toast';
 export default function ConfigureGaragePage() {
   const category = 'garages'; // This might become dynamic if page handles multiple categories
   const router = useRouter();
-  const { toast } = useToast();
+  const { toast } = useToast(); // Already here
+  const { addItem, isItemInBasket } = useBasket(); // Use the basket hook
 
   const {
     data: garageConfigData,
@@ -99,51 +102,122 @@ export default function ConfigureGaragePage() {
     setCalculatedPrice(calculatePriceCallback(configState, quantity, garageConfigData));
   };
 
-  const handleAddToBasket = async () => {
-    console.log("Adding to basket:", {
-      configState, // This is the state of selected options
-      overallQuantity,
-      unitPrice: calculatedPrice !== null ? calculatedPrice / overallQuantity : 0, // Example: if you want unit price
-      totalPrice: calculatedPrice,
-      garageConfigTitle: garageConfigData?.title, // Example of including some config meta
-      timestamp: new Date().toISOString(),
-    });
-    // TODO: Implement actual basket logic (e.g., call a context function or API endpoint)
-    // Example: await basketContext.addItem({ productId: 'garage_configured', configuration: configState, quantity: overallQuantity, price: calculatedPrice });
-    toast({
-      title: "Added to Basket (Simulated)",
-      description: `${overallQuantity} "${garageConfigData?.title || 'Garage'}"(s) added. Total: £${calculatedPrice?.toFixed(2)}`,
-    });
+  // Placeholder for configuration summary generation
+  function generateGarageConfigurationSummary(config: any, configDataRef: GarageConfigData | undefined): string {
+    if (!configDataRef) return "Custom Garage";
+    let summaryParts: string[] = [];
+    summaryParts.push(`${config.bays?.[0] || 1} Bay(s)`);
+
+    const beamSizeOption = configDataRef.options.find(o => o.id === 'beamSize');
+    if (beamSizeOption && config.beamSize && beamSizeOption.values?.[config.beamSize]) {
+      summaryParts.push(beamSizeOption.values[config.beamSize].label);
+    }
+
+    const trussTypeOption = configDataRef.options.find(o => o.id === 'trussType');
+    if (trussTypeOption && config.trussType && trussTypeOption.values?.[config.trussType]) {
+      summaryParts.push(trussTypeOption.values[config.trussType].label + " Truss");
+    }
+
+    const baySizeOption = configDataRef.options.find(o => o.id === 'baySize');
+    if (baySizeOption && config.baySize && baySizeOption.values?.[config.baySize]) {
+        summaryParts.push(`Bay Size: ${baySizeOption.values[config.baySize].label}`);
+    }
+
+    if (config.catSlide) {
+      summaryParts.push("Cat Slide Roof");
+    }
+    return summaryParts.join(', ');
+  }
+
+  const handleAddToBasket = () => {
+    if (!garageConfigData || calculatedPrice === null) {
+      toast({
+        title: "Error",
+        description: "Configuration or price not available. Cannot add to basket.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const unitPrice = calculatedPrice / overallQuantity;
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+        toast({
+            title: "Price Error",
+            description: "Invalid unit price. Cannot add to basket.",
+            variant: "destructive",
+          });
+        return;
+    }
+
+    const payload: AddToBasketPayload = {
+      productId: "GARAGE_CONFIGURABLE", // Static ID for configurable garage type
+      productName: garageConfigData.title || "Custom Oak Garage",
+      category: "garages",
+      configuration: { ...configState },
+      configurationSummary: generateGarageConfigurationSummary(configState, garageConfigData),
+      quantity: overallQuantity,
+      unitPrice: unitPrice,
+      imageSrc: garageConfigData.image || '/images/garage-category.jpg', // Default image
+    };
+    addItem(payload);
+    // The toast notification is now handled by the addItem function in BasketContext
   };
 
-  const handlePayNow = async () => {
-    console.log("Proceeding to Pay Now:", {
-      configState,
-      overallQuantity,
-      calculatedPrice,
-      timestamp: new Date().toISOString(),
-    });
-    // TODO: Implement actual payment logic (e.g., redirect to checkout, call payment API)
-    // This might also involve adding to basket first, then redirecting.
+  const handlePayNow = () => {
+    if (!garageConfigData || calculatedPrice === null) {
+      toast({
+        title: "Error",
+        description: "Configuration or price not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const unitPrice = calculatedPrice / overallQuantity;
+     if (isNaN(unitPrice) || unitPrice <= 0) {
+        toast({
+            title: "Price Error",
+            description: "Invalid unit price. Cannot proceed to pay.",
+            variant: "destructive",
+          });
+        return;
+    }
+    // First, add the current configuration to the basket
+    const payload: AddToBasketPayload = {
+      productId: "GARAGE_CONFIGURABLE",
+      productName: garageConfigData.title || "Custom Oak Garage",
+      category: "garages",
+      configuration: { ...configState },
+      configurationSummary: generateGarageConfigurationSummary(configState, garageConfigData),
+      quantity: overallQuantity,
+      unitPrice: unitPrice,
+      imageSrc: garageConfigData.image || '/images/garage-category.jpg',
+    };
+    addItem(payload); // Add to basket first
+
+    // Then, simulate proceeding to payment (e.g., redirect to checkout page)
+    console.log("Proceeding to Pay Now with item added to basket:", payload);
     toast({
-      title: "Pay Now Clicked (Simulated)",
-      description: `Proceeding with ${overallQuantity} "${garageConfigData?.title || 'Garage'}"(s). Total: £${calculatedPrice?.toFixed(2)}`,
+      title: "Added to Basket & Proceeding (Simulated)",
+      description: `Redirecting to checkout with ${overallQuantity} "${garageConfigData.title || 'Garage'}"(s). Total: £${calculatedPrice?.toFixed(2)}`,
     });
-    // Example: router.push('/checkout?item=garage_configured&config=...&quantity=...');
+    // router.push('/checkout'); // Example redirect
   };
+
+  const itemAlreadyInBasket = garageConfigData ? isItemInBasket("GARAGE_CONFIGURABLE", { ...configState }) : undefined;
   // Loading and error states, rendering logic remains largely the same as before,
   // just ensuring that calculatePriceCallback is used.
   // The actual JSX for rendering options, quantity, price, and buttons
   // would be here, identical to the previous version of the component.
   // For brevity, I'm not repeating that large JSX block if it's unchanged
-  // other than using calculatePriceCallback instead of a local calculatePrice.
+  // other than using calculatePriceCallback.
 
   if (isLoading) {
+    // Skeleton rendering (same as before)
     return (
       <div className="container mx-auto px-4 py-12">
         <Card className="max-w-3xl mx-auto">
           <CardHeader className="text-center">
-            <Skeleton className="h-8 w-3/4 mx-auto" /> {/* Title Skeleton */}
+            <Skeleton className="h-8 w-3/4 mx-auto" />
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-8">
             <div className="space-y-6">
@@ -161,8 +235,8 @@ export default function ConfigureGaragePage() {
               ))}
             </div>
             <div className="space-y-4 border-t border-border/50 pt-6 mt-4">
-                <Skeleton className="h-6 w-1/3 mx-auto" /> {/* Quantity Label */}
-                <Skeleton className="h-10 w-1/2 mx-auto" /> {/* Quantity Input */}
+                <Skeleton className="h-6 w-1/3 mx-auto" />
+                <Skeleton className="h-10 w-1/2 mx-auto" />
             </div>
             <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
               <div className="text-center space-y-2">
@@ -181,6 +255,7 @@ export default function ConfigureGaragePage() {
   }
 
   if (isError || !garageConfigData) {
+    // Error UI (same as before)
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <Card className="max-w-3xl mx-auto bg-destructive/10 border-destructive">
@@ -232,7 +307,7 @@ export default function ConfigureGaragePage() {
                       onValueChange={(value) => handleConfigChange(option.id, value)}
                       className={cn(
                         "mt-1 grid gap-4 justify-center",
-                        Object.keys(option.values).length <= 3 ? `grid-cols-${Object.keys(option.values).length}` : "grid-cols-2", // Adjust columns based on options
+                        Object.keys(option.values).length <= 3 ? `grid-cols-${Object.keys(option.values).length}` : "grid-cols-2",
                         "max-w-lg mx-auto"
                       )}
                     >
@@ -298,7 +373,10 @@ export default function ConfigureGaragePage() {
                     id="overallQuantity"
                     type="number"
                     value={overallQuantity}
-                    onChange={(e) => handleQuantityChange(parseInt(e.target.value, 10))}
+                    onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val)) handleQuantityChange(val);
+                    }}
                     min="1"
                     className="w-20 text-center mx-2 text-lg font-semibold h-11"
                   />
@@ -309,7 +387,7 @@ export default function ConfigureGaragePage() {
               </div>
             </div>
 
-            <div className="space-y-8 border-t border-border/50 pt-8 mt-0"> {/* Adjusted mt-0 as quantity section now has pt-8 */}
+            <div className="space-y-8 border-t border-border/50 pt-8 mt-0">
               <div className="text-center space-y-2">
                 <p className="text-base text-muted-foreground">Estimated Total Price (excl. VAT & Delivery)</p>
                 <p className="text-4xl font-bold tracking-tight">
@@ -317,10 +395,21 @@ export default function ConfigureGaragePage() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-md mx-auto">
-                <Button size="xl" className="flex-1 py-7 text-lg" onClick={handleAddToBasket} disabled={calculatedPrice === null || calculatedPrice <= 0}>
-                  Add to Basket
+                <Button
+                  size="xl"
+                  className="flex-1 py-7 text-lg"
+                  onClick={handleAddToBasket}
+                  disabled={calculatedPrice === null || calculatedPrice <= 0 || isLoading || isError}
+                >
+                  {itemAlreadyInBasket ? "Update in Basket" : "Add to Basket"}
                 </Button>
-                <Button size="xl" variant="outline" className="flex-1 py-7 text-lg" onClick={handlePayNow} disabled={calculatedPrice === null || calculatedPrice <= 0}>
+                <Button
+                  size="xl"
+                  variant="outline"
+                  className="flex-1 py-7 text-lg"
+                  onClick={handlePayNow}
+                  disabled={calculatedPrice === null || calculatedPrice <= 0 || isLoading || isError}
+                >
                   Pay Now
                 </Button>
               </div>
