@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -37,6 +36,7 @@ import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/auth-context";
+import { useBasket } from "@/context/basket-context";
 import { useToast } from "@/hooks/use-toast";
 // import { cn } from "@/lib/utils"; // No longer used
 
@@ -89,6 +89,12 @@ function HeaderContentSkeleton() {
 function ActualHeaderContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, signOut, loading: authLoading } = useAuth();
+  const {
+    items: basketItems,
+    itemCount: basketItemCount,
+    total: basketTotalPrice,
+    loading: basketLoading
+  } = useBasket();
   const { toast } = useToast();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
@@ -110,13 +116,9 @@ function ActualHeaderContent() {
   }
 
   // TEMPORARILY MODIFIED FOR DEVELOPMENT: Always true for admin links visibility
-  const isAdmin = true; 
+  const isAdmin = true;
 
-  // Placeholder basket data
-  const basketItemCount = 3; 
-  const basketTotalPrice = 17575.00; 
-
-  if (authLoading) {
+  if (authLoading || basketLoading) {
     return <HeaderContentSkeleton />;
   }
 
@@ -243,7 +245,7 @@ function ActualHeaderContent() {
           </Button>
 
 
-            {basketItemCount > 0 && (
+            {basketItemCount > 0 && !basketLoading && (
                 <div className="text-sm font-medium text-foreground ml-2 hidden md:block">
                     {formatPrice(basketTotalPrice)}
                 </div>
@@ -254,7 +256,7 @@ function ActualHeaderContent() {
           <Button variant="ghost" size="icon" asChild className="relative h-9 w-9">
             <Link href="/basket" aria-label="Shopping Basket">
               <ShoppingCart className="h-5 w-5" />
-              {basketItemCount > 0 && (
+              {basketItemCount > 0 && !basketLoading && (
                 <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 min-w-4 justify-center rounded-full p-0.5 text-[10px] leading-none">
                     {basketItemCount}
                 </Badge>

@@ -1,29 +1,24 @@
-
 "use client"; // Needed for form/state
 
-// Add dynamic export configuration to prevent static generation
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { notFound, useRouter } from 'next/navigation';
-import { ArrowRight, PlusCircle, Trash2, ShoppingCart } from 'lucide-react';
+import { notFound, useRouter } from 'next/navigation'; // Added useRouter
+import { ArrowRight, PlusCircle, Trash2, ShoppingCart } from 'lucide-react'; // Added icons
 import { cn } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from '@/components/ui/separator';
-import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Import Table components
+import { Separator } from '@/components/ui/separator'; // Import Separator
+import { useToast } from "@/hooks/use-toast"; // Import toast
 
 // --- Interfaces ---
 
 interface ConfigOption {
   id: string;
   label: string;
-  type: 'select' | 'area';
+  type: 'select' | 'area'; // Simplified for Flooring
   options?: { value: string; label: string; }[];
   defaultValue?: any;
   unit?: string;
@@ -35,9 +30,9 @@ interface CategoryConfig {
 }
 
 interface FlooringListItem {
-    id: string;
+    id: string; // Unique ID for the list item
     oakType: string;
-    area: number;
+    area: number; // Area in m²
     description: string;
     price: number;
 }
@@ -49,7 +44,9 @@ interface BasketItem {
   description: string;
   price: number;
   quantity: number;
+  // image: string; // Removed image
   href: string;
+  // dataAiHint: string; // Removed dataAiHint
   category: string;
 }
 
@@ -59,18 +56,10 @@ const oakFlooringConfig: CategoryConfig = {
         title: "Configure Your Oak Flooring",
         options: [
          { id: 'oakType', label: 'Oak Type', type: 'select', options: [{ value: 'reclaimed', label: 'Reclaimed Oak' }, { value: 'kilned', label: 'Kilned Dried Oak' }], defaultValue: 'kilned' },
-         { id: 'area', label: 'Area Required', type: 'area', unit: 'm²', defaultValue: { area: 10, length: '', width: '' } },
+         // { id: 'thickness', label: 'Thickness', type: 'area', fixedValue: '20mm' }, // Removed fixed thickness display
+         { id: 'area', label: 'Area Required', type: 'area', unit: 'm²', defaultValue: { area: 10, length: '', width: '' } }, // Allows direct area or length*width
         ]
     };
-
-// Data fetching function for React Query
-const fetchOakFlooringConfig = async (): Promise<CategoryConfig> => {
-  // In a real application, this would fetch from Firestore or an API
-  // For now, we return the hardcoded config
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(oakFlooringConfig), 500); // Simulate API call
-  });
-};
 
 // --- Unit Prices (Fetch from admin settings in real app) ---
 const unitPrices = {
@@ -109,41 +98,30 @@ const formatPrice = (price: number) => {
 
 export default function ConfigureOakFlooringPage() {
   const category = 'oak-flooring';
+  const categoryConfig = oakFlooringConfig;
   const router = useRouter(); // Initialize router
   const { toast } = useToast();
 
-  const { data: categoryConfig, isLoading, isError, error } = useQuery<CategoryConfig, Error>({
-    queryKey: ['oakFlooringConfig'],
-    queryFn: fetchOakFlooringConfig,
-    staleTime: Infinity, // Configuration data is static for now
-    refetchOnWindowFocus: false,
+  // State for the current configuration input
+  const [configState, setConfigState] = useState<any>(() => {
+    const initialState: any = {};
+    categoryConfig.options.forEach(opt => {
+      initialState[opt.id] = opt.defaultValue;
+    });
+    return initialState;
   });
 
-  // State for the current configuration input
-  const [configState, setConfigState] = useState<any>({});
-  // State for the current calculated price
-  const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
-  // State for the cutting list
-  const [cuttingList, setCuttingList] = useState<FlooringListItem[]>([]);
+   // State for the current calculated price
+   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
+   // State for the cutting list
+   const [cuttingList, setCuttingList] = useState<FlooringListItem[]>([]);
 
-  // Effect to initialize configState and calculatedPrice when categoryConfig is fetched
-  useEffect(() => {
-    if (categoryConfig) {
-      const initialState: any = {};
-      categoryConfig.options.forEach(opt => {
-        initialState[opt.id] = opt.defaultValue;
-      });
-      setConfigState(initialState);
-      const { price } = calculateAreaAndPrice(initialState);
+
+  // Effect to calculate initial price and recalculate on config change
+   useEffect(() => {
+      const { price } = calculateAreaAndPrice(configState);
       setCalculatedPrice(price);
-    }
-  }, [categoryConfig]); // Re-run when categoryConfig is fetched or changes
-
-  // Effect to recalculate price on configState change
-  useEffect(() => {
-    const { price } = calculateAreaAndPrice(configState);
-    setCalculatedPrice(price);
-  }, [configState]);
+   }, [configState]);
 
    // Handle changes in configuration options (select)
    const handleConfigChange = (id: string, value: any) => {
@@ -307,26 +285,6 @@ export default function ConfigureOakFlooringPage() {
         router.push('/basket'); // Navigate to basket
     };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <p>Loading configuration...</p>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="container mx-auto px-4 py-12 text-center text-red-500">
-        <p>Error loading configuration: {error?.message || 'Unknown error'}</p>
-      </div>
-    );
-  }
-
-  if (!categoryConfig) {
-    notFound();
-  }
-
   return (
     <div>
         <div className="container mx-auto px-4 py-12">
@@ -378,7 +336,7 @@ export default function ConfigureOakFlooringPage() {
                                                  placeholder="Calculate area"
                                                  value={configState[option.id]?.length || ''}
                                                  onChange={(e) => handleAreaChange(e.target.value, 'length')}
-                                                  className="mt-1 bg-background/70 text-center"/>
+                                                 className="mt-1 bg-background/70 text-center"/>
                                         </div>
                                         <div className="text-center">
                                            <Label htmlFor={`${option.id}-width`}>Width (cm)</Label>
