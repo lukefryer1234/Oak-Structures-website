@@ -83,21 +83,53 @@ export interface UserMutationState {
 
 export async function updateUserRoleAction(userId: string, newRole: UserRole): Promise<UserMutationState> {
   if (!userId || !newRole) {
-    return { message: "User ID and new role are required.", success: false };
+    return { success: false, message: "User ID and new role are required." };
   }
 
-  const validatedRole = userRoleSchema.safeParse(newRole);
-  if (!validatedRole.success) {
-    return { message: "Invalid role specified.", success: false, errors: validatedRole.error.message };
+  // Optional: Basic client-side type check for role before sending to API,
+  // though the API route will perform the robust Zod validation.
+  const validRoles: UserRole[] = ['Customer', 'Manager', 'SuperAdmin'];
+  if (!validRoles.includes(newRole)) {
+      return { success: false, message: `Invalid role specified in action. Must be one of: ${validRoles.join(', ')}`};
   }
 
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, { role: validatedRole.data });
-    return { message: "User role updated successfully.", success: true };
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://your-production-url.com'); // Replace with actual prod URL
+    const apiUrl = `${appUrl}/api/admin/users/${userId}/role`;
+
+    const response = await fetch(apiUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ role: newRole }),
+    });
+
+    let result: UserMutationState;
+    try {
+        result = await response.json();
+    } catch (e) {
+        const responseText = await response.text();
+        console.error(`Error updating role for user ${userId} via API: Non-JSON response ${response.status} ${response.statusText} - Body: ${responseText}`);
+        return {
+            success: false,
+            message: `Failed to update role: API returned non-JSON response (${response.status}). Check server logs.`
+        };
+    }
+
+    if (!response.ok) {
+      // Log the detailed error message from the API if available
+      console.error(`Error updating role for user ${userId} via API: ${response.status} - ${result.message}${result.errors ? ' Errors: ' + result.errors : ''}`);
+      // Return the result from the API, which should already be in UserMutationState format
+      return result;
+    }
+
+    return result; // This should be { success: true, message: "..." } from the API
+
   } catch (error) {
-    console.error("Error updating user role:", error);
-    return { message: "Failed to update user role.", success: false };
+    console.error(`Error in updateUserRoleAction calling API for user ${userId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, message: `An unexpected error occurred: ${errorMessage}` };
   }
 }
 
