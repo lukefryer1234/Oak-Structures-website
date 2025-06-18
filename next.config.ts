@@ -20,9 +20,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      enabled: true, // Keep enabled from current, or use original with allowedOrigins
-      // It's safer to include allowedOrigins if they are known
-      allowedOrigins: ['localhost:9002', '*.timberline-commerce.web.app'],
+      enabled: true,
+      allowedOrigins: ['localhost:9002', '*.timberline-commerce.web.app'], // Restore allowedOrigins
     },
   },
   env: { // Restore this entire block

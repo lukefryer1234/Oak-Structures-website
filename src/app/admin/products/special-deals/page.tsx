@@ -1,14 +1,13 @@
-
 "use client"; // For state, dialogs, form handling
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Trash2, Edit } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,41 +21,26 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch"; // For activation status
+import { useSpecialDeals, SPECIAL_DEALS_QUERY_KEY_PREFIX } from '@/hooks/products/useSpecialDeals';
+import { useCreateSpecialDeal } from '@/hooks/products/useCreateSpecialDeal';
+import { useUpdateSpecialDeal } from '@/hooks/products/useUpdateSpecialDeal';
+import { useDeleteSpecialDeal } from '@/hooks/products/useDeleteSpecialDeal';
+import { type SpecialDeal, type CreateSpecialDealData, type UpdateSpecialDealData } from '@/services/domain/product-service';
+import { useToast } from "@/hooks/use-toast";
 
-
-// --- Types and Placeholder Data ---
-
-interface SpecialDeal {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number; // Optional original price for showing discount
-  image: string; // URL or path to image
-  dataAiHint: string; // AI hint for placeholder image generation
-  href: string; // Link to the specific deal page (e.g., /special-deals/deal-slug)
-  isActive: boolean; // Is the deal currently live?
-  // Add fields relevant for shipping calculation if it's a Beam/Flooring type deal
-  isStructureType: boolean; // True if Garage/Gazebo/Porch (shipping included), false if Beam/Flooring (calc required)
-  volumeM3?: number; // Required if isStructureType is false
-}
-
-// Placeholder data - Fetch from backend
-const initialDeals: SpecialDeal[] = [
-  { id: 'deal1', name: 'Pre-Configured Double Garage', description: 'Our popular 2-bay garage...', price: 8500, originalPrice: 9200, image: 'https://picsum.photos/seed/deal1/100/100', dataAiHint: 'double oak frame garage sale', href: '/special-deals/double-garage', isActive: true, isStructureType: true },
-  { id: 'deal2', name: 'Garden Gazebo Kit', description: 'Easy-to-assemble 3m x 3m kit...', price: 3200, originalPrice: 3500, image: 'https://picsum.photos/seed/deal2/100/100', dataAiHint: 'garden gazebo kit wood offer', href: '/special-deals/gazebo-kit', isActive: true, isStructureType: true },
-  { id: 'deal3', name: 'Rustic Oak Beam Bundle', description: 'Selection of 3 reclaimed beams...', price: 450, image: 'https://picsum.photos/seed/deal3/100/100', dataAiHint: 'rustic oak beams bundle', href: '/special-deals/beam-bundle', isActive: true, isStructureType: false, volumeM3: 0.3 },
-  { id: 'deal4', name: 'End-of-Line Oak Flooring (15m²)', description: '15 sq meters remaining...', price: 750, image: 'https://picsum.photos/seed/deal4/100/100', dataAiHint: 'oak flooring discount lot', href: '/special-deals/flooring-lot', isActive: false, isStructureType: false, volumeM3: 0.3 }, // Example inactive deal
-];
 
 export default function SpecialDealsPage() {
-  const [deals, setDeals] = useState<SpecialDeal[]>(initialDeals);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { data: dealsData, isLoading: isLoadingDeals, isError: isErrorDeals, error: errorDeals } = useSpecialDeals();
+  const { mutate: createDeal, isLoading: isCreatingDeal } = useCreateSpecialDeal();
+  const { mutate: updateDeal, isLoading: isUpdatingDeal } = useUpdateSpecialDeal();
+  const { mutate: deleteDeal, isLoading: isDeletingDeal } = useDeleteSpecialDeal();
+  const deals = dealsData || [];
   const [editingDeal, setEditingDeal] = useState<SpecialDeal | null>(null);
   // Simplified form state - expand as needed
-  const [formState, setFormState] = useState<Partial<SpecialDeal>>({ isActive: true, isStructureType: true });
+  const [formState, setFormState] = useState<Partial<CreateSpecialDealData>>({ isActive: true, isStructureType: true });
 
-  const handleFormChange = (field: keyof SpecialDeal, value: any) => {
+  const handleFormChange = (field: keyof CreateSpecialDealData, value: any) => {
      // Handle switch specifically
      if (field === 'isActive' || field === 'isStructureType') {
          setFormState(prev => ({ ...prev, [field]: value as boolean }));
@@ -70,9 +54,13 @@ export default function SpecialDealsPage() {
 
   const handleSaveDeal = (event: React.FormEvent) => {
     event.preventDefault();
-    // --- Basic Validation ---
-    if (!formState.name || !formState.description || !formState.price || formState.price <= 0 || !formState.href || !formState.image || !formState.dataAiHint) {
-        alert("Please fill in all required fields (Name, Description, Price, Href, Image URL, AI Hint)."); // Use toast
+    // Basic Validation (can be enhanced with Zod on client-side if desired)
+    if (!formState.name || !formState.description || !formState.price || formState.price <= 0 || !formState.href || !formState.image) { // dataAiHint is optional in schema
+        alert("Please fill in all required fields (Name, Description, Price, Href, Image URL)."); // Use toast
+        return;
+    }
+    if (!(formState.isStructureType === true || formState.isStructureType === false)) { // Ensure boolean
+        alert("Please specify if shipping is included (structure type).");
         return;
     }
     if (!formState.isStructureType && (!formState.volumeM3 || formState.volumeM3 <= 0)) {
@@ -80,15 +68,13 @@ export default function SpecialDealsPage() {
          return;
     }
 
-
-    const newDealData: SpecialDeal = {
-        id: editingDeal?.id ?? `deal${Date.now()}`,
+    const dealDataToSave: CreateSpecialDealData = { // This type is for creation, update will use UpdateSpecialDealData
         name: formState.name!,
         description: formState.description!,
         price: formState.price!,
         originalPrice: formState.originalPrice,
         image: formState.image!,
-        dataAiHint: formState.dataAiHint!,
+        dataAiHint: formState.dataAiHint,
         href: formState.href!,
         isActive: formState.isActive ?? true,
         isStructureType: formState.isStructureType ?? true,
@@ -96,17 +82,40 @@ export default function SpecialDealsPage() {
     };
 
     if (editingDeal) {
-        setDeals(prev => prev.map(d => d.id === editingDeal.id ? newDealData : d));
-        // TODO: API call to update deal
-        console.log("Updated Deal:", newDealData);
-    } else {
-        setDeals(prev => [...prev, newDealData]);
-        // TODO: API call to add deal
-        console.log("Added Deal:", newDealData);
-    }
-    closeDialog();
-  };
+      // Ensure all fields from CreateSpecialDealData are present, others are partial
+      const { name, description, price, image, href, isActive, isStructureType, ...restFormState } = formState;
+      const dealDataToUpdate: UpdateSpecialDealData = {
+        name: formState.name!,
+        description: formState.description!,
+        price: formState.price!,
+        image: formState.image!,
+        href: formState.href!,
+        isActive: formState.isActive ?? true,
+        isStructureType: formState.isStructureType ?? true,
+        // optional fields below
+      };
+      if (formState.originalPrice !== undefined) dealDataToUpdate.originalPrice = formState.originalPrice;
+      if (formState.dataAiHint !== undefined) dealDataToUpdate.dataAiHint = formState.dataAiHint;
+      if (formState.isStructureType === false) { // only add volumeM3 if not structure type
+           dealDataToUpdate.volumeM3 = formState.volumeM3;
+      } else {
+           dealDataToUpdate.volumeM3 = undefined;
+      }
 
+      updateDeal({ dealId: editingDeal.id, dealData: dealDataToUpdate }, {
+        onSuccess: () => closeDialog(),
+        // onError is handled by the hook
+      });
+    } else {
+        createDeal(dealDataToSave, {
+            onSuccess: () => {
+                closeDialog();
+                // Toast is handled by the hook
+            },
+            // onError is handled by the hook
+        });
+    }
+  };
 
    const openAddDialog = () => {
     setEditingDeal(null);
@@ -117,15 +126,16 @@ export default function SpecialDealsPage() {
 
    const openEditDialog = (deal: SpecialDeal) => {
     setEditingDeal(deal);
-    setFormState(deal); // Pre-fill form
+    // For editing, ensure formState gets all fields from deal, matching CreateSpecialDealData structure for the form
+    const { id, createdAt, updatedAt, ...editableDealData } = deal;
+    setFormState(editableDealData);
     setIsDialogOpen(true);
   };
 
   const handleDeleteDeal = (id: string) => {
      if (window.confirm("Are you sure you want to delete this special deal?")) {
-        setDeals(prev => prev.filter(d => d.id !== id));
-         // TODO: API call to delete deal
-        console.log("Deleted Deal ID:", id);
+        deleteDeal(id);
+        // onSuccess and onError are handled by the useDeleteSpecialDeal hook
      }
   };
 
@@ -181,8 +191,8 @@ export default function SpecialDealsPage() {
                          {/* TODO: Add file upload component here */}
                       </div>
                        <div className="space-y-2">
-                         <Label htmlFor="dataAiHint">Image AI Hint <span className="text-destructive">*</span></Label>
-                         <Input id="dataAiHint" placeholder="e.g., double oak garage" value={formState.dataAiHint ?? ''} onChange={(e) => handleFormChange('dataAiHint', e.target.value)} required />
+                         <Label htmlFor="dataAiHint">Image AI Hint</Label>
+                         <Input id="dataAiHint" placeholder="e.g., double oak garage" value={formState.dataAiHint ?? ''} onChange={(e) => handleFormChange('dataAiHint', e.target.value)} />
                       </div>
                       <div className="space-y-2">
                          <Label htmlFor="href">Link Href <span className="text-destructive">*</span></Label>
@@ -228,13 +238,16 @@ export default function SpecialDealsPage() {
                     <DialogClose asChild>
                         <Button type="button" variant="outline" onClick={closeDialog}>Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" form="dealForm">
-                        {editingDeal ? 'Save Changes' : 'Add Deal'}
+                    <Button type="submit" form="dealForm" disabled={isCreatingDeal || isUpdatingDeal}>
+                        {(isCreatingDeal || isUpdatingDeal) ? <><Loader2 className='mr-2 h-4 w-4 animate-spin' /> Saving...</> : (editingDeal ? 'Save Changes' : 'Add Deal')}
                     </Button>
                  </DialogFooter>
              </DialogContent>
          </Dialog>
       </CardHeader>
+      {isErrorDeals && (
+        <CardContent><p className="text-red-500">Error loading special deals: {errorDeals?.message}</p></CardContent>
+      )}
       <CardContent>
         <Table>
           <TableHeader>
@@ -248,7 +261,9 @@ export default function SpecialDealsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {deals.length > 0 ? (
+            {isLoadingDeals ? (
+              <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
+            ) : deals.length > 0 ? (
               deals.map((deal) => (
                 <TableRow key={deal.id}>
                   <TableCell>
@@ -266,11 +281,11 @@ export default function SpecialDealsPage() {
                        {deal.isStructureType ? 'Included' : `Volume: ${deal.volumeM3 ?? 'N/A'}m³`}
                    </TableCell>
                   <TableCell className="text-right">
-                     <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => openEditDialog(deal)}>
+                     <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => openEditDialog(deal)} disabled={isUpdatingDeal || isDeletingDeal}>
                         <Edit className="h-4 w-4"/>
                          <span className="sr-only">Edit</span>
                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteDeal(deal.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteDeal(deal.id)} disabled={isDeletingDeal || isUpdatingDeal}>
                          <Trash2 className="h-4 w-4"/>
                          <span className="sr-only">Delete</span>
                      </Button>

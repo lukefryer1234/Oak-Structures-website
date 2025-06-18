@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -47,6 +48,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import ErrorBoundary from '@/components/error/error-boundary';
 
 interface NavItem {
     href: string;
@@ -96,7 +98,7 @@ const adminNavLinks: NavItem[] = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { currentUser, loading: authLoading, signOut } = useAuth();
-    const router = useRouter();
+    // const router = useRouter(); // Temporarily unused
     const pathname = usePathname();
     const { toast } = useToast();
     const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
@@ -250,7 +252,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Sidebar>
             <SidebarInset>
                  <div className="p-4 md:p-8">
-                    {children}
+                    <ErrorBoundary>
+                      {children}
+                    </ErrorBoundary>
                  </div>
             </SidebarInset>
         </SidebarProvider>

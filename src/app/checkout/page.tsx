@@ -23,13 +23,14 @@ import {
 import Image from 'next/image';
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { placeOrderAction, type OrderData } from './actions'; // Import server action
 import { useAuth } from "@/context/auth-context"; // For getting current user
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { PayPalButton } from "@/components/checkout/paypal-button";
+import type { CreateOrderData, CreateOrderItem, CreateOrderAddress } from '@/services/domain/order-service';
 
 // Placeholder validation schema (adjust based on UK address specifics)
+// This schema is for client-side form validation
 const addressSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   firstName: z.string().min(1, { message: "First name is required." }),
@@ -50,29 +51,35 @@ const checkoutSchema = z.object({
 });
 
 // Placeholder order summary data - fetch from basket state in a real app
+// This structure should align with what PayPalButton expects for its orderData prop,
+// which in turn should be compatible with CreateOrderData for the API call.
 const orderSummary = {
   subtotal: 17575.00,
-  shippingCost: 25.00, // Renamed from shipping to shippingCost
+  shippingCost: 25.00,
   vat: 3515.00,
-  total: 21115.00,
-  items: [ // Should match OrderItem schema in actions.ts
-    { id: 'garage1', name: 'Custom Garage (3-Bay)', quantity: 1, price: 12500, description: 'Curved Truss, Reclaimed Oak, 2 Bays', category: 'garages' },
-    { id: 'flooring1', name: 'Oak Flooring (25m²)', quantity: 1, price: 1875, description: 'Kilned Oak, 25m²', category: 'oak-flooring' },
-    { id: 'deal2', name: 'Garden Gazebo Kit', quantity: 1, price: 3200, description: 'Special Deal', category: 'special-deals' },
- ]
+  total: 21115.00, // This will be totalAmount in CreateOrderData
+  items: [
+    { productId: 'garage1', productName: 'Custom Garage (3-Bay)', quantity: 1, priceAtPurchase: 12500, configuration: { description: 'Curved Truss, Reclaimed Oak, 2 Bays'} },
+    { productId: 'flooring1', productName: 'Oak Flooring (25m²)', quantity: 1, priceAtPurchase: 1875, configuration: { description: 'Kilned Oak, 25m²'} },
+    { productId: 'deal2', productName: 'Garden Gazebo Kit', quantity: 1, priceAtPurchase: 3200, configuration: { description: 'Special Deal'} },
+  ]
 };
 
 export default function CheckoutPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // For the main form validation button
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       useBillingAsShipping: true,
-      billingAddress: { email: currentUser?.email || "", firstName: "", lastName: "", addressLine1: "", town: "", postcode: ""},
+      billingAddress: {
+        email: currentUser?.email || "",
+        firstName: "", lastName: "",
+        addressLine1: "", town: "", postcode: ""
+      },
       paymentMethod: "paypal", 
       orderNotes: "",
     },
@@ -80,24 +87,26 @@ export default function CheckoutPage() {
 
    const useBillingAsShipping = form.watch("useBillingAsShipping");
 
-  // Handle PayPal payment success
+  // This function is called by PayPalButton upon successful PayPal transaction capture
+  // The actual order placement with backend is now handled within PayPalButton.
   const handlePayPalSuccess = async (transactionId: string) => {
-    // The checkout-specific PayPal button component handles order submission
-    // We just need to handle any additional UI updates here
-    console.log("Payment successful with transaction ID:", transactionId);
-    // Note: No need to manually navigate as the PayPal button component handles redirection
+    console.log("PayPal transaction successful on parent page, ID:", transactionId);
+    // Redirection to order confirmation is handled by PayPalButton after API call
+    // Additional UI updates on this page can happen here if needed.
+    // e.g. clear form, show a more persistent success message here if PayPalButton doesn't redirect.
   };
 
-  // Handle PayPal payment error
+  // This function is called by PayPalButton if PayPal interaction itself errors.
   const handlePayPalError = (error: any) => {
-    console.error("PayPal error:", error);
-    // The toast is now handled by the PayPal button component
-    setIsSubmitting(false);
+    console.error("PayPal error on parent page:", error);
+    // Toast/error display for PayPal specific errors is handled within PayPalButton.
+    // setIsSubmitting(false); // PayPalButton might handle its own loading state.
   };
 
-  // Form submission handler
+  // Form submission handler for the "Validate Order Details" button
+  // This does NOT submit the order to the backend. It's a pre-validation step.
   async function onSubmit(values: z.infer<typeof checkoutSchema>) {
-    setIsSubmitting(true);
+    setIsSubmitting(true); // Loading state for the validation button
 
     const finalShippingAddress = values.useBillingAsShipping 
       ? values.billingAddress 
@@ -109,12 +118,11 @@ export default function CheckoutPage() {
       return;
     }
     
-    // Form validation passed, but we don't submit directly
-    // PayPal button handles the actual submission after payment
+    // Form validation passed. User should proceed with PayPal.
     setIsSubmitting(false);
     toast({
       title: "Form Validated",
-      description: "Please complete payment using the PayPal button."
+      description: "Please complete payment using the PayPal button below."
     });
   }
 
@@ -280,19 +288,27 @@ export default function CheckoutPage() {
                      <div className="mt-6">
                         <PayPalButton
                           orderData={{
-                            ...form.getValues(),
+                            ...(form.getValues() as Omit<z.infer<typeof checkoutSchema>, 'billingAddress' | 'shippingAddress' | 'orderNotes'> & { billingAddress: CreateOrderAddress, shippingAddress?: CreateOrderAddress, orderNotes?: string}),
                             shippingAddress: form.getValues().useBillingAsShipping
                               ? form.getValues().billingAddress
                               : form.getValues().shippingAddress,
-                            items: orderSummary.items.map(item => ({ ...item, price: Number(item.price) })),
+                            items: orderSummary.items.map(item => ({
+                                productId: item.productId, // Already updated in orderSummary
+                                productName: item.productName,
+                                quantity: item.quantity,
+                                priceAtPurchase: Number(item.priceAtPurchase),
+                                configuration: item.configuration
+                            })),
                             subtotal: orderSummary.subtotal,
                             shippingCost: orderSummary.shippingCost,
                             vat: orderSummary.vat,
-                            total: orderSummary.total
+                            totalAmount: orderSummary.total, // Map to totalAmount for CreateOrderData
+                            paymentMethod: form.getValues().paymentMethod, // from form
+                            // paymentStatus is defaulted by CreateOrderDataSchema if not provided
                           }}
                           onSuccess={handlePayPalSuccess}
                           onError={handlePayPalError}
-                          disabled={!form.formState.isValid || isSubmitting}
+                           disabled={!form.formState.isValid || isSubmitting} // isSubmitting is for the main form validation button
                         />
                      </div>
                   </CardContent>
@@ -364,9 +380,9 @@ export default function CheckoutPage() {
                   <CardContent className="space-y-4">
                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2 border-b border-border/50 pb-4 mb-4">
                         {orderSummary.items.map(item => (
-                            <div key={item.id} className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">{item.name} x {item.quantity}</span>
-                                <span className="text-foreground">£{(item.price * item.quantity).toFixed(2)}</span>
+                            <div key={item.productId} className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">{item.productName} x {item.quantity}</span>
+                                <span className="text-foreground">£{(item.priceAtPurchase * item.quantity).toFixed(2)}</span>
                             </div>
                         ))}
                      </div>

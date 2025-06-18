@@ -1,12 +1,15 @@
+"use client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ShoppingCart, FileText, Settings, Users, Truck, GalleryHorizontal } from 'lucide-react'; // Example icons, Added Truck and GalleryHorizontal
+import { ShoppingCart, FileText, Settings, Users, Truck, GalleryHorizontal, Loader2 } from 'lucide-react'; // Example icons, Added Truck and GalleryHorizontal
+import { useRecentOrdersCount } from '@/hooks/orders/useRecentOrdersCount';
+import { useCustomInquiriesCount } from '@/hooks/custom-orders/useCustomInquiriesCount';
 
 export default function AdminDashboardPage() {
   // Placeholder data - replace with actual data fetching
-  const recentOrdersCount = 5;
-  const pendingCustomRequests = 2;
+  const { data: recentOrdersCount, isLoading: isLoadingOrdersCount, isError: isErrorOrdersCount } = useRecentOrdersCount(7);
+  const { data: customInquiriesCount, isLoading: isLoadingInquiriesCount, isError: isErrorInquiriesCount } = useCustomInquiriesCount();
 
   return (
     <div className="space-y-8">
@@ -20,7 +23,13 @@ export default function AdminDashboardPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{recentOrdersCount}</div>
+            {isLoadingOrdersCount ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : isErrorOrdersCount ? (
+              <p className="text-xs text-destructive">Could not load count</p>
+            ) : (
+              <div className="text-2xl font-bold">{recentOrdersCount ?? 0}</div>
+            )}
             <p className="text-xs text-muted-foreground">in the last 7 days</p>
              <Button variant="link" size="sm" className="px-0" asChild>
                 <Link href="/admin/orders">View Orders</Link>
@@ -29,12 +38,18 @@ export default function AdminDashboardPage() {
         </Card>
         <Card>
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Custom Inquiries</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Custom Inquiries</CardTitle>
              <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
            <CardContent>
-             <div className="text-2xl font-bold">{pendingCustomRequests}</div>
-             <p className="text-xs text-muted-foreground">awaiting response</p>
+            {isLoadingInquiriesCount ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : isErrorInquiriesCount ? (
+              <p className="text-xs text-destructive">Could not load count</p>
+            ) : (
+              <div className="text-2xl font-bold">{customInquiriesCount ?? 0}</div>
+            )}
+             {/* <p className="text-xs text-muted-foreground">awaiting response</p> */}
              {/* Link to where custom inquiries are managed (if applicable) */}
              {/* <Button variant="link" size="sm" className="px-0" asChild><Link href="/admin/custom-inquiries">View Inquiries</Link></Button> */}
            </CardContent>

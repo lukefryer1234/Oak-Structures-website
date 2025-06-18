@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, startTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,7 +10,9 @@ import { MoreHorizontal, Trash2, Edit, ShieldCheck, Search, Loader2 } from 'luci
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { fetchUsersAction, updateUserRoleAction, deleteUserAction, type UserData, type UserRole } from './actions';
+import { useUsers, USERS_QUERY_KEY_PREFIX } from '@/hooks/users/useUsers';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { userService, type UserRole, type User } from '@/services/domain/user-service'; // Assuming User type is also from here
 
 const getRoleVariant = (role: UserRole): "default" | "secondary" | "destructive" | "outline" => {
     switch (role) {
@@ -22,21 +24,40 @@ const getRoleVariant = (role: UserRole): "default" | "secondary" | "destructive"
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: usersData, isLoading, isError, error } = useUsers({ searchQuery: searchTerm });
+  // Handle the case where usersData might be undefined initially by defaulting to an empty array for mapping
+  const users = usersData || [];
 
-  const loadUsers = async () => {
-    setIsLoading(true);
-    const fetchedUsers = await fetchUsersAction();
-    setUsers(fetchedUsers);
-    setIsLoading(false);
-  };
+  const { mutate: changeUserRole, isLoading: isChangingRole } = useMutation({
+    mutationFn: async (data: { userId: string; newRole: UserRole }) => {
+      return userService.updateUserRole(data.userId, data.newRole);
+    },
+    onSuccess: (updatedUser) => {
+      toast({ title: "Role Updated", description: `User ${updatedUser.displayName || updatedUser.email}'s role updated to ${updatedUser.role}` });
+      queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY_PREFIX] });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Error Updating Role", description: error.message || 'Could not update user role.' });
+    }
+  });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  const { mutate: deleteUserFirestore, isLoading: isDeletingUser } = useMutation({
+    mutationFn: async (userId: string) => {
+      return userService.deleteUser(userId);
+    },
+    onSuccess: (success, userId) => { // `success` is the result from userService.deleteUser (true)
+      if (success) {
+        toast({ title: "User Deleted from Firestore", description: `User (ID: ${userId}) was successfully deleted.` });
+        queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY_PREFIX] });
+      }
+    },
+    onError: (error: any, userId) => {
+      toast({ variant: "destructive", title: "Error Deleting User", description: error.message || `Could not delete user (ID: ${userId}).` });
+    }
+  });
 
   const filteredUsers = users.filter(user =>
      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -47,38 +68,25 @@ export default function UsersPage() {
       toast({ title: "Info", description: `Edit user ${userId} functionality not yet implemented. Manage profile via /account/profile for self-edit.`});
   };
 
-  const handleDeleteUser = async (userId: string, userName?: string) => {
+  const handleDeleteUser = (userId: string, userName?: string) => {
      if (window.confirm(`Are you sure you want to delete user "${userName || userId}" from Firestore? This action does not remove the user from Firebase Authentication.`)) {
-        setIsLoading(true); // Indicate loading for the specific action
-        const result = await deleteUserAction(userId);
-        if (result.success) {
-          toast({ title: "User Deleted from Firestore", description: result.message });
-          startTransition(() => { // use startTransition to batch state updates
-            loadUsers();
-          });
-        } else {
-          toast({ variant: "destructive", title: "Error", description: result.message });
-        }
-        setIsLoading(false); // Reset loading after action
+        deleteUserFirestore(userId);
      }
   };
 
-   const handleChangeRole = async (userId: string, newRole: UserRole) => {
+   const handleChangeRole = (userId: string, newRole: UserRole) => {
        if (window.confirm(`Change role for user ${userId} to ${newRole}?`)) {
-           setIsLoading(true); // Indicate loading for the specific action
-           const result = await updateUserRoleAction(userId, newRole);
-           if (result.success) {
-               toast({ title: "Role Updated", description: result.message });
-               startTransition(() => {
-                 loadUsers();
-               });
-           } else {
-               toast({ variant: "destructive", title: "Error", description: result.message });
-           }
-           setIsLoading(false); // Reset loading after action
+           changeUserRole({ userId, newRole });
        }
    };
 
+  if (isError && error) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center text-red-500">
+        <p>Error loading users: {error.message}</p>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -138,28 +146,28 @@ export default function UsersPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLoading}>
-                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isChangingRole || isDeletingUser || isLoading}>
+                          {(isChangingRole || isDeletingUser) ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                           <span className="sr-only">User Actions</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditUser(user.id)} disabled={isLoading}>
+                        <DropdownMenuItem onClick={() => handleEditUser(user.id)} disabled={isChangingRole || isDeletingUser}>
                            <Edit className="mr-2 h-4 w-4" /> Edit User (Placeholder)
                         </DropdownMenuItem>
                          <DropdownMenuSeparator />
                          <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Customer')} disabled={user.role === 'Customer' || isLoading}>
+                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Customer')} disabled={user.role === 'Customer' || isChangingRole}>
                             Set as Customer
                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Manager')} disabled={user.role === 'Manager' || isLoading}>
+                          <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'Manager')} disabled={user.role === 'Manager' || isChangingRole}>
                             Set as Manager
                          </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'SuperAdmin')} disabled={user.role === 'SuperAdmin' || isLoading}>
+                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, 'SuperAdmin')} disabled={user.role === 'SuperAdmin' || isChangingRole}>
                             <ShieldCheck className="mr-2 h-4 w-4"/>Set as SuperAdmin
                          </DropdownMenuItem>
                          <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id, user.name)} className="text-destructive focus:bg-destructive/10 focus:text-destructive" disabled={isLoading}>
+                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id, user.name)} className="text-destructive focus:bg-destructive/10 focus:text-destructive" disabled={isDeletingUser}>
                           <Trash2 className="mr-2 h-4 w-4" /> Delete from Firestore
                         </DropdownMenuItem>
                       </DropdownMenuContent>

@@ -1,6 +1,6 @@
 // src/services/domain/product-service.ts
 import FirebaseServices from '@/services/firebase';
-import { withRetry } from '@/utils/error-utils';
+import { withRetry, CustomError } from '@/utils/error-utils'; // Added CustomError
 
 /**
  * Product interface
@@ -19,6 +19,69 @@ export interface Product {
   relatedProducts?: string[];
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+// Schemas and types for Special Deals
+export const SpecialDealSchema = z.object({
+  id: z.string(), // Firestore document ID
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  price: z.number().positive("Price must be positive"),
+  originalPrice: z.number().positive("Original price must be positive").optional(),
+  image: z.string().url("Valid image URL is required"), // Or z.string() if it can be a path
+  dataAiHint: z.string().optional(), // Kept for consistency if used by image components
+  href: z.string().min(1, "Link href is required"), // Typically a relative path
+  isActive: z.boolean().default(true),
+  isStructureType: z.boolean().default(false), // Differentiates shipping calculation needs
+  volumeM3: z.number().positive("Volume must be positive").optional(),
+  createdAt: z.string().datetime().optional(), // Should be set by server on create
+  updatedAt: z.string().datetime().optional(), // Should be set by server
+});
+export type SpecialDeal = z.infer<typeof SpecialDealSchema>;
+
+export const CreateSpecialDealSchema = SpecialDealSchema.omit({ id: true, createdAt: true, updatedAt: true });
+export type CreateSpecialDealData = z.infer<typeof CreateSpecialDealSchema>;
+
+export const UpdateSpecialDealSchema = CreateSpecialDealSchema.partial();
+export type UpdateSpecialDealData = z.infer<typeof UpdateSpecialDealSchema>;
+
+// Schemas and types for Unit Prices
+export const ProductTypeSchema = z.enum(['Oak Beams', 'Oak Flooring']); // Add other types if they have unit prices
+export type ProductType = z.infer<typeof ProductTypeSchema>;
+
+export const OakTypeSchema = z.enum(['Reclaimed Oak', 'Kilned Dried Oak', 'Green Oak']); // Add other oak types
+export type OakType = z.infer<typeof OakTypeSchema>;
+
+export const UnitPriceSchema = z.object({
+  id: z.string(), // e.g., 'beams-reclaimed'
+  productType: ProductTypeSchema,
+  oakType: OakTypeSchema,
+  unit: z.enum(['per m³', 'per m²']), // Add other units if needed
+  price: z.number().positive("Price must be positive"),
+  updatedAt: z.string().datetime().optional(),
+});
+export type UnitPrice = z.infer<typeof UnitPriceSchema>;
+
+export const UpdateUnitPriceDataSchema = z.object({
+    price: z.number().positive("Price must be positive"),
+});
+export type UpdateUnitPriceData = z.infer<typeof UpdateUnitPriceDataSchema>;
+
+// Configuration state type
+export interface ConfigState {
+  [key: string]: any;
+}
+
+// BasketItem interface
+export interface BasketItem {
+  id?: string; // Firestore ID, generated on add
+  productId: string; // Original product ID, e.g., "porches-configurable"
+  productName: string;
+  configuration: ConfigState;
+  price: number; // Final calculated price for this configured item
+  quantity: number;
+  imageUrl?: string; // Optional image of the configured item/base product
+  addedAt?: string; // ISO Date string
 }
 
 /**
@@ -321,6 +384,226 @@ export const ProductService = {
       updatedAt: new Date(),
     };
   },
+
+  async calculateProductPrice(productId: string, configuration: ConfigState): Promise<number> {
+    // For "porches-configurable", use the hardcoded fallback logic for now.
+    if (productId === "porches-configurable") {
+      let basePrice = 2000; // Default base for porches
+      if (configuration.sizeType === 'wide') basePrice += 400;
+      if (configuration.sizeType === 'narrow') basePrice -= 200;
+      if (configuration.legType === 'floor') basePrice += 150;
+      // TODO: Add other pricing adjustments based on config.trussType if needed
+      return Math.max(0, basePrice);
+    } else {
+      // For other products, attempt to fetch their base price.
+      // This part might need more sophisticated logic if they also have configurations.
+      try {
+        const product = await this.getProduct(productId);
+        // TODO: Implement actual configuration-based pricing for other products if applicable.
+        // For now, just returning base price.
+        return product.price;
+      } catch (error) {
+        console.error(`Error fetching product ${productId} for price calculation:`, error);
+        throw new CustomError(`Could not calculate price for ${productId}. Product not found or error occurred.`, "PRICE_CALCULATION_ERROR");
+      }
+    }
+  },
+
+  async generateConfigurationDescription(productName: string, configuration: ConfigState): Promise<string> {
+    let description = `${productName}: `;
+    const parts = [];
+    for (const key in configuration) {
+      if (configuration.hasOwnProperty(key)) {
+        const titleCaseKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        parts.push(`${titleCaseKey} - ${configuration[key]}`);
+      }
+    }
+    description += parts.join(', ');
+    return description;
+  },
+
+  async addToBasket(userId: string, itemData: Omit<BasketItem, 'id' | 'addedAt'>): Promise<string> {
+    if (!userId) throw new CustomError("User ID is required to add to basket.", "INVALID_ARGUMENT");
+
+    const basketItemWithTimestamp: Omit<BasketItem, 'id'> = {
+      ...itemData,
+      addedAt: new Date().toISOString(),
+    };
+
+    const docId = await FirebaseServices.firestore.addDocument(
+      `users/${userId}/basket`,
+      basketItemWithTimestamp
+    );
+    return docId; // Returns the ID of the newly added basket item
+  },
+
+  async getSpecialDeals(): Promise<SpecialDeal[]> {
+    try {
+      const { documents } = await FirebaseServices.firestore.getDocuments(
+        'special_deals',
+        // Ensure constraints are correctly typed or structured for getDocuments
+        // Example: [['createdAt', 'desc']] might need to be { orderBy: { field: 'createdAt', direction: 'desc' }}
+        // Depending on FirebaseServices.firestore.getDocuments implementation.
+        // For now, assuming it accepts an array of [field, direction] tuples.
+        [{ field: 'createdAt', direction: 'desc' }]
+      );
+      return documents.map(doc => SpecialDealSchema.parse({ id: doc.id, ...doc })).filter(Boolean) as SpecialDeal[];
+    } catch (error) {
+      throw handleError(error, "Failed to retrieve special deals", "ProductService.getSpecialDeals");
+    }
+  },
+
+  async createSpecialDeal(dealData: CreateSpecialDealData): Promise<SpecialDeal> {
+    try {
+      const validatedData = CreateSpecialDealSchema.parse(dealData);
+      const now = new Date().toISOString();
+
+      let payload: any = { // Use 'any' temporarily if payload structure is dynamic before final parsing
+        ...validatedData,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      // Conditional logic for volumeM3
+      if (payload.isStructureType) {
+          payload.volumeM3 = undefined; // Or delete payload.volumeM3;
+      } else if (payload.volumeM3 === undefined || payload.volumeM3 === null || payload.volumeM3 <= 0) {
+          // Ensure volumeM3 is explicitly set to null or a valid number if not a structure type
+          // and it's missing or invalid. Or throw error if it's strictly required.
+          // The schema makes volumeM3 optional, so this check is application logic.
+          // If it's truly required for non-structures, schema should reflect that (e.g. via refine).
+          // For now, let's assume if not structure type, volumeM3 must be provided and positive.
+           throw new CustomError("Volume (m³) is required and must be positive for non-structure type deals.", "INVALID_ARGUMENT");
+      }
+
+
+      const docId = await FirebaseServices.firestore.addDocument('special_deals', payload);
+
+      // Construct the object to be parsed by SpecialDealSchema, ensuring all required fields are present
+      const finalDataForParsing = {
+        id: docId,
+        name: payload.name,
+        description: payload.description,
+        price: payload.price,
+        originalPrice: payload.originalPrice,
+        image: payload.image,
+        dataAiHint: payload.dataAiHint,
+        href: payload.href,
+        isActive: payload.isActive,
+        isStructureType: payload.isStructureType,
+        volumeM3: payload.volumeM3, // Will be undefined if isStructureType is true
+        createdAt: payload.createdAt,
+        updatedAt: payload.updatedAt,
+      };
+
+      return SpecialDealSchema.parse(finalDataForParsing);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid special deal data.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to create special deal", "ProductService.createSpecialDeal");
+    }
+  },
+
+  async updateSpecialDeal(dealId: string, dealData: UpdateSpecialDealData): Promise<SpecialDeal> {
+    try {
+      if (!dealId) throw new CustomError("Deal ID is required for update.", "INVALID_ARGUMENT");
+
+      const validatedData = UpdateSpecialDealSchema.parse(dealData);
+      const now = new Date().toISOString();
+      const payload: any = { ...validatedData, updatedAt: now };
+
+      if (Object.keys(payload).length === 1 && payload.updatedAt) {
+        throw new CustomError("No fields to update provided.", "INVALID_ARGUMENT");
+      }
+
+      // Conditional logic for volumeM3 if isStructureType is being updated
+      if (payload.isStructureType === true) {
+          payload.volumeM3 = undefined; // Or FirebaseServices.firestore.deleteField() if your service supports it
+      } else if (payload.isStructureType === false) {
+          // If isStructureType is explicitly set to false, volumeM3 becomes required.
+          // Check if volumeM3 is provided in the update, or if it exists on the document already and is valid.
+          if (payload.volumeM3 === undefined || payload.volumeM3 === null || payload.volumeM3 <= 0) {
+              // If not updating volumeM3, check existing document
+              const existingDeal = await this._getSpecialDealById(dealId); // Use private helper
+              if (!existingDeal?.isStructureType && (existingDeal?.volumeM3 === undefined || existingDeal?.volumeM3 <= 0)) {
+                  throw new CustomError("Volume (m³) is required and must be positive for non-structure type deals when isStructureType is false.", "INVALID_ARGUMENT");
+              }
+          }
+      }
+
+
+      await FirebaseServices.firestore.updateDocument('special_deals', dealId, payload);
+
+      const updatedDocData = await FirebaseServices.firestore.getDocument('special_deals', dealId);
+      if (!updatedDocData) throw new CustomError("Failed to retrieve updated special deal after update.", "INTERNAL_ERROR");
+
+      return SpecialDealSchema.parse({ id: dealId, ...updatedDocData });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid special deal data for update.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to update special deal", "ProductService.updateSpecialDeal");
+    }
+  },
+
+  async deleteSpecialDeal(dealId: string): Promise<void> {
+    try {
+      if (!dealId) throw new CustomError("Deal ID is required for deletion.", "INVALID_ARGUMENT");
+      await FirebaseServices.firestore.deleteDocument('special_deals', dealId);
+    } catch (error) {
+      throw handleError(error, "Failed to delete special deal", "ProductService.deleteSpecialDeal");
+    }
+  },
+
+  // Private helper to fetch a deal, used internally for validation during update
+  async _getSpecialDealById(dealId: string): Promise<SpecialDeal | null> {
+      try {
+          const doc = await FirebaseServices.firestore.getDocument('special_deals', dealId);
+          if (!doc) return null;
+          return SpecialDealSchema.parse({ id: dealId, ...doc });
+      } catch (error) {
+          console.error(`Internal error fetching special deal ${dealId} for validation:`, error);
+          return null; // Return null if internal fetch fails, main operation will handle user-facing error
+      }
+  },
+
+  async getUnitPrices(): Promise<UnitPrice[]> {
+    try {
+      const { documents } = await FirebaseServices.firestore.getDocuments(
+        'unit_prices',
+        [{ field: "productType", direction: "asc" }, { field: "oakType", direction: "asc" }]
+      );
+      return documents.map(doc => UnitPriceSchema.parse({ id: doc.id, ...doc })).filter(Boolean) as UnitPrice[];
+    } catch (error) {
+      throw handleError(error, "Failed to retrieve unit prices", "ProductService.getUnitPrices");
+    }
+  },
+
+  async updateUnitPrice(unitPriceId: string, data: UpdateUnitPriceData): Promise<UnitPrice> {
+    try {
+      if (!unitPriceId) throw new CustomError("Unit price ID is required for update.", "INVALID_ARGUMENT");
+
+      const validatedData = UpdateUnitPriceDataSchema.parse(data);
+      const payload = {
+        price: validatedData.price,
+        updatedAt: new Date().toISOString()
+      };
+
+      await FirebaseServices.firestore.updateDocument('unit_prices', unitPriceId, payload);
+
+      const updatedDoc = await FirebaseServices.firestore.getDocument('unit_prices', unitPriceId);
+      if (!updatedDoc) throw new CustomError("Failed to retrieve updated unit price.", "INTERNAL_ERROR");
+
+      return UnitPriceSchema.parse({ id: unitPriceId, ...updatedDoc });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid unit price data for update.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to update unit price", "ProductService.updateUnitPrice");
+    }
+  }
 };
 
 export default ProductService;

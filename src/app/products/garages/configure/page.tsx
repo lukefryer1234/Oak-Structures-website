@@ -1,36 +1,83 @@
 "use client"; // Needed for form/state
 
+// Add dynamic export configuration to prevent static generation
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { notFound, useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { notFound, useRouter } from 'next/navigation'; // Added useRouter
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowRight, ShoppingCart } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-
-// Import from product service
-import {
-  garageConfig,
-  calculateProductPrice,
-  addToBasket,
-  ConfigState,
-  AnyConfigOption,
-  generateConfigurationDescription
-} from '@/services/product-service';
+import { ArrowRight, ShoppingCart, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils'; // Import cn utility
+import { useFirestoreDocument } from '@/hooks/firebase/useFirestoreDocument';
+import { productService, type ConfigState, type BasketItem } from '@/services/domain/product-service';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/hooks/use-toast';
 
-// Loading and error states
-interface ConfiguratorState {
-  loading: boolean;
-  addingToBasket: boolean;
-  error: string | null;
+// --- Configuration Interfaces & Data (Replace with actual data/logic) ---
+
+interface ConfigOption {
+  id: string;
+  label: string;
+  type: 'select' | 'slider' | 'radio' | 'checkbox' | 'dimensions' | 'area'; // Removed 'preview' type
+  options?: { value: string; label: string; image?: string, dataAiHint?: string }[]; // For select/radio, added dataAiHint
+  min?: number; // For slider/numeric inputs
+  max?: number; // For slider/numeric inputs
+  step?: number; // For slider/numeric inputs
+  defaultValue?: any;
+  unit?: string; // For dimensions/area
+  fixedValue?: string | number; // For non-editable display like flooring thickness
+  perBay?: boolean; // True if the option applies individually to each bay
+  dataAiHint?: string; // Added for preview placeholder
 }
+
+
+interface CategoryConfig {
+  title: string;
+  options: ConfigOption[];
+  image?: string; // Main category image for config page
+  dataAiHint?: string;
+}
+
+// --- Fallback Configuration and Pricing ---
+const fallbackGarageConfig: CategoryConfig = {
+  title: "Configure Your Garage (Using Fallback Data)",
+  options: [
+    { id: 'bays', label: 'Number of Bays (Added from Left)', type: 'slider', min: 1, max: 4, step: 1, defaultValue: [2] },
+    { id: 'beamSize', label: 'Structural Beam Sizes', type: 'select', options: [ { value: '6x6', label: '6 inch x 6 inch' }, { value: '7x7', label: '7 inch x 7 inch' }, { value: '8x8', label: '8 inch x 8 inch' } ], defaultValue: '6x6' },
+    { id: 'trussType', label: 'Truss Type', type: 'radio', options: [{ value: 'curved', label: 'Curved', image: '/images/config/truss-curved.jpg', dataAiHint: 'curved oak truss' }, { value: 'straight', label: 'Straight', image: '/images/config/truss-straight.jpg', dataAiHint: 'straight oak truss' }], defaultValue: 'curved' },
+    { id: 'baySize', label: 'Size Per Bay', type: 'select', options: [{ value: 'standard', label: 'Standard (e.g., 3m wide)' }, { value: 'large', label: 'Large (e.g., 3.5m wide)' }], defaultValue: 'standard' },
+    { id: 'catSlide', label: 'Include Cat Slide Roof? (Applies to all bays)', type: 'checkbox', defaultValue: false },
+  ]
+};
+
+const fallbackCalculatePrice = (config: ConfigState): number => {
+  let basePrice = 8000; // Base price for a single bay garage
+  const bays = config.bays?.[0] || 1;
+  basePrice += (bays - 1) * 1500;
+  if (config.catSlide) {
+    basePrice += 150 * bays;
+  }
+  let beamSizeCost = 0;
+  switch (config.beamSize) {
+    case '7x7': beamSizeCost = 200; break; // Note: original fallback had bays multiplier here, removing for consistency with service version
+    case '8x8': beamSizeCost = 450; break;
+  }
+  basePrice += beamSizeCost;
+  if (config.baySize === 'large') {
+    basePrice += 300 * bays;
+  }
+  return Math.max(0, basePrice);
+};
 
 // --- Component ---
 
@@ -38,84 +85,82 @@ export default function ConfigureGaragePage() {
   const category = 'garages'; // Hardcoded for this specific page
   const router = useRouter(); // Initialize router
   const { user } = useAuth();
-
-  // State for the configurator
-  const [configState, setConfigState] = useState<ConfigState>(() => {
-    // Initialize state based on the category config
-    const initialState: ConfigState = {};
-    garageConfig.options.forEach(opt => {
-      initialState[opt.id] = opt.defaultValue;
-    });
-    return initialState;
+  const { toast } = useToast();
+  const [pageUiState, setPageUiState] = useState<{ usingFallback: boolean; error: string | null; isAddingToBasket: boolean }>({
+    usingFallback: false,
+    error: null,
+    isAddingToBasket: false,
   });
-
-  // UI state
-  const [uiState, setUiState] = useState<ConfiguratorState>({
-    loading: false,
-    addingToBasket: false,
-    error: null
-  });
-
-  // Price state
+  const { data: firestoreData, isLoading: isLoadingConfig, error: firestoreError } = useFirestoreDocument<CategoryConfig>('product_configurators/garages');
+  const [activeConfig, setActiveConfig] = useState<CategoryConfig | null>(null);
+  const [configState, setConfigState] = useState<ConfigState>({});
   const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
 
-  // Calculate initial price when component mounts
   useEffect(() => {
-    try {
-      const price = calculateProductPrice(category, configState);
-      setCalculatedPrice(price);
-    } catch (error) {
-      console.error('Error calculating initial price:', error);
-      setUiState(prev => ({
-        ...prev,
-        error: 'Failed to calculate price. Please try again.'
-      }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Handle configuration changes
-  const handleConfigChange = (id: string, value: any) => {
-    setConfigState(prev => {
-      const newState = { ...prev, [id]: value };
-
-      // Update price dynamically
-      try {
-        const price = calculateProductPrice(category, newState);
-        setCalculatedPrice(price);
-      } catch (error) {
-        console.error('Error calculating price:', error);
-        setUiState(prev => ({
-          ...prev,
-          error: 'Failed to calculate price. Please try again.'
-        }));
+    if (!isLoadingConfig) {
+      if (firestoreError || !firestoreData) {
+        console.warn("Firestore config error or no data, using fallback for garages.", firestoreError);
+        setActiveConfig(fallbackGarageConfig);
+        setPageUiState(prev => ({ ...prev, usingFallback: true, error: firestoreError ? "Failed to load custom configuration, using default options." : null }));
+      } else {
+        setActiveConfig(firestoreData);
+        setPageUiState(prev => ({ ...prev, usingFallback: false, error: null }));
       }
+    }
+  }, [firestoreData, isLoadingConfig, firestoreError]);
 
-      return newState;
-    });
-  };
+  useEffect(() => {
+    if (activeConfig) {
+      const initialState: ConfigState = {};
+      activeConfig.options.forEach(opt => {
+        initialState[opt.id] = opt.defaultValue;
+      });
+      setConfigState(initialState);
+    }
+  }, [activeConfig]);
 
-  // Preview the configured product
-  const handlePreviewPurchase = () => {
+  useEffect(() => {
+    if (activeConfig && Object.keys(configState).length > 0) {
+      if (pageUiState.usingFallback) {
+        setCalculatedPrice(fallbackCalculatePrice(configState));
+      } else {
+        productService.calculateProductPrice('garages-configurable', configState)
+          .then(price => setCalculatedPrice(price))
+          .catch(err => {
+            console.error("Error calculating price with service:", err);
+            setPageUiState(prev => ({ ...prev, error: "Error calculating price. Using fallback."}));
+            setCalculatedPrice(fallbackCalculatePrice(configState));
+          });
+      }
+    }
+  }, [configState, activeConfig, category, pageUiState.usingFallback]);
+
+   const handleConfigChange = (id: string, value: any) => {
+     setConfigState((prev: any) => {
+        const newState = { ...prev, [id]: value };
+        // Price recalculation is handled by the useEffect above
+        return newState;
+     });
+   };
+
+  const handlePreviewPurchase = async () => {
+    if (!activeConfig || Object.keys(configState).length === 0) {
+        toast({ title: "Configuration not loaded", description: "Please wait for configuration to load or try again.", variant: "destructive"});
+        return;
+    }
     try {
       const configString = encodeURIComponent(JSON.stringify(configState));
       const price = calculatedPrice !== null ? calculatedPrice.toFixed(2) : '0.00';
-      const description = generateConfigurationDescription(category, configState);
-
+      const description = await productService.generateConfigurationDescription(activeConfig.title, configState);
       router.push(`/preview?category=${category}&config=${configString}&price=${price}&description=${encodeURIComponent(description)}`);
     } catch (error) {
-      console.error('Error navigating to preview:', error);
-      setUiState(prev => ({
-        ...prev,
-        error: 'Failed to generate preview. Please try again.'
-      }));
+        console.error("Error navigating to preview:", error);
+        toast({ title: "Preview Error", description: "Could not generate preview.", variant: "destructive"});
     }
   };
 
-  // Add the configured product to basket
   const handleAddToBasket = async () => {
     if (!user) {
-      // Redirect to login if user is not authenticated
       toast({
         title: "Login Required",
         description: "Please login or create an account to add items to your basket.",
@@ -124,52 +169,56 @@ export default function ConfigureGaragePage() {
       router.push(`/login?redirect=${encodeURIComponent(`/products/${category}/configure`)}`);
       return;
     }
-
-    // Start loading state
-    setUiState(prev => ({ ...prev, addingToBasket: true, error: null }));
-
+    if (!activeConfig || Object.keys(configState).length === 0 || calculatedPrice === null) {
+        toast({ title: "Configuration Incomplete", description: "Please ensure configuration is loaded and price is calculated.", variant: "destructive"});
+        return;
+    }
+    setPageUiState(prev => ({ ...prev, isAddingToBasket: true, error: null }));
     try {
-      // Use the product service to add to basket
-      // In a real implementation, you would use a real product ID
-      // For now, we'll use a placeholder ID
-      const placeholderProductId = `${category}-configurator`;
-
-      const result = await addToBasket(
-        user.uid,
-        placeholderProductId,
-        1, // quantity
-        configState,
-        category
-      );
-
+      const productName = activeConfig.title;
+      const itemDetails: Omit<BasketItem, 'id' | 'addedAt'> = { // Ensure BasketItem is imported or defined
+        productId: `${category}-${JSON.stringify(configState)}`,
+        productName: productName,
+        configuration: configState,
+        price: calculatedPrice,
+        quantity: 1,
+        // imageUrl: activeConfig.image || undefined // Optional: use main category image or a specific one
+      };
+      const result = await productService.addToBasket(user.uid, itemDetails);
       if (result) {
         toast({
           title: "Added to Basket",
-          description: "Your configured garage has been added to your basket.",
+          description: `${productName} has been added to your basket.`,
         });
-
-        // Optionally navigate to the basket
         router.push('/basket');
       } else {
-        // Handle case where result is null (failed to add to basket)
-        toast({
-          title: "Error",
-          description: "Failed to add item to basket. Please try again.",
-          variant: "destructive"
-        });
+        toast({ title: "Error", description: "Failed to add item to basket. Please try again.", variant: "destructive" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding to basket:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: "Error Adding to Basket", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
-      // Reset loading state
-      setUiState(prev => ({ ...prev, addingToBasket: false }));
+      setPageUiState(prev => ({ ...prev, isAddingToBasket: false }));
     }
   };
+
+  if (isLoadingConfig && !activeConfig) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading Configuration...</p>
+      </div>
+    );
+  }
+
+  // If after attempting to load/fallback, activeConfig is still null, then it's a true issue.
+  if (!activeConfig) {
+     return (
+        <div className="container mx-auto px-4 py-12 text-center text-red-500">
+           <p>Critical error: Configuration could not be determined. Please contact support.</p>
+        </div>
+     );
+  }
 
   return (
     // Removed relative isolate and background image handling
@@ -178,12 +227,14 @@ export default function ConfigureGaragePage() {
            {/* Adjusted card appearance */}
           <Card className="max-w-3xl mx-auto bg-card/80 backdrop-blur-sm border border-border/50">
             <CardHeader className="text-center"> {/* Center align header content */}
-              <CardTitle className="text-3xl">{garageConfig.title}</CardTitle>
+              <CardTitle className="text-3xl">{activeConfig.title}</CardTitle>
+              {pageUiState.usingFallback && (<p className="text-sm text-orange-500">(Default options shown due to a problem loading custom settings)</p>)}
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-8">
+                {pageUiState.error && !pageUiState.usingFallback && (<div className="p-3 text-sm bg-destructive/10 text-destructive rounded-md text-center">{pageUiState.error}</div>)}
                 {/* Configuration Options */}
                <div className="space-y-6">
-                 {garageConfig.options.map((option) => (
+                 {activeConfig.options.map((option) => (
                   <div key={option.id} className="text-center"> {/* Center align each option block */}
                     {/* Added text-center to center the label */}
                     <Label htmlFor={option.id} className="text-base font-medium block mb-2">{option.label}</Label>
@@ -223,7 +274,7 @@ export default function ConfigureGaragePage() {
                                  {opt.image && (
                                     <div className="mb-2 relative w-full aspect-[4/3] rounded overflow-hidden">
                                         <Image
-                                            src={`https://picsum.photos/seed/${opt.dataAiHint?.replace(/\s+/g, '-') || opt.value}/200/150`}
+                                            src={opt.image}
                                             alt={opt.label}
                                             layout="fill"
                                             objectFit="cover"
@@ -241,9 +292,9 @@ export default function ConfigureGaragePage() {
                       <div className="mt-2 space-y-2 max-w-sm mx-auto">
                          <Slider
                             id={option.id}
-                            min={option.min}
-                            max={option.max}
-                            step={option.step}
+                            min={option.min || 1}
+                            max={option.max || 10}
+                            step={option.step || 1}
                             value={configState[option.id]}
                             onValueChange={(value) => handleConfigChange(option.id, value)}
                             className="py-2"
@@ -269,15 +320,6 @@ export default function ConfigureGaragePage() {
                 ))}
                </div>
 
-                {/* Display error message if there is one */}
-                {uiState.error && (
-                  <div className="p-3 text-sm bg-destructive/10 text-destructive rounded-md text-center">
-                    {uiState.error}
-                  </div>
-                )}
-
-                {/* Price & Add to Basket Section */}
-                 {/* Added margin top */}
                <div className="space-y-6 border-t border-border/50 pt-6 mt-4">
                  <div className="text-center space-y-2">
                     <p className="text-sm text-muted-foreground">Estimated Price (excl. VAT & Delivery)</p>
@@ -285,28 +327,24 @@ export default function ConfigureGaragePage() {
                        {calculatedPrice !== null ? `£${calculatedPrice.toFixed(2)}` : 'Calculating...'}
                     </p>
                  </div>
-
                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                   {/* Preview button */}
                    <Button
                      size="lg"
                      className="flex-1 max-w-xs mx-auto sm:mx-0"
                      onClick={handlePreviewPurchase}
-                     disabled={calculatedPrice === null || calculatedPrice <= 0 || uiState.loading || uiState.addingToBasket}
+                     disabled={calculatedPrice === null || calculatedPrice <= 0 || pageUiState.isAddingToBasket || !activeConfig}
                    >
                      Preview Purchase <ArrowRight className="ml-2 h-5 w-5" />
                    </Button>
-
-                   {/* Add to basket button */}
                    <Button
                      size="lg"
                      variant="secondary"
                      className="flex-1 max-w-xs mx-auto sm:mx-0"
                      onClick={handleAddToBasket}
-                     disabled={calculatedPrice === null || calculatedPrice <= 0 || uiState.loading || uiState.addingToBasket}
+                     disabled={calculatedPrice === null || calculatedPrice <= 0 || pageUiState.isAddingToBasket || !activeConfig}
                    >
-                     {uiState.addingToBasket ? (
-                       <>Adding...</>
+                     {pageUiState.isAddingToBasket ? (
+                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...</>
                      ) : (
                        <>Add to Basket <ShoppingCart className="ml-2 h-5 w-5" /></>
                      )}
