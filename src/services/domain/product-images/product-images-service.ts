@@ -1,7 +1,9 @@
 // src/services/domain/product-images/product-images-service.ts
 import { z } from "zod";
 import FirebaseServices from '@/services/firebase';
-import { withRetry } from '@/utils/error-utils';
+import { storage } from '@/lib/firebase'; // Assuming storage is exported from firebase init
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { withRetry, handleError, CustomError } from '@/utils/error-utils'; // Ensure handleError and CustomError are imported
 
 // Constants
 const PRODUCT_IMAGES_COLLECTION = "productImages";
@@ -328,6 +330,61 @@ export const ProductImagesService = {
       };
     }
   },
+
+  async addProductImageWithFile(
+    // Parameters to match the hook's call:
+    targetId: string, // This was productId in the hook
+    file: File,
+    metadata: Partial<Omit<ProductImage, 'id' | 'createdAt' | 'url' | 'target'>> // 'type' could be in here
+  ): Promise<ProductImageResponse<ProductImage>> {
+    try {
+      if (!file) throw new Error("File is required for upload.");
+      if (!targetId) throw new Error("Image target ID (productId/target) is required.");
+
+      const imageType = metadata.type || 'main_product'; // Default type if not in metadata
+
+      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+      // Sanitize target and type for path, ensure they are simple strings
+      const safeType = String(imageType).replace(/[^a-zA-Z0-9-_]/g, '');
+      const safeTarget = String(targetId).replace(/[^a-zA-Z0-9-_]/g, '');
+      const storagePath = `product_images/${safeType}/${safeTarget}/${fileName}`;
+
+      const storageRef = ref(storage, storagePath);
+      // console.log(`Uploading to: ${storagePath}`); // For debugging
+      await uploadBytesResumable(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef); // Use storageRef directly
+
+      // Now call the existing addProductImage with the metadata and new URL
+      return this.addProductImage({
+        url: downloadURL,
+        type: imageType as ProductImage['type'], // Ensure type matches ProductImage['type']
+        target: targetId,
+        altText: metadata.altText || file.name, // Default alt text
+        opacity: metadata.opacity !== undefined ? metadata.opacity : 1, // Default opacity from schema is 1
+      });
+
+    } catch (error) {
+      console.error("Error in addProductImageWithFile:", error);
+      return {
+        success: false,
+        message: `File upload or metadata save failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  },
+
+  async getProductImagesCount(options?: { type?: string; target?: string }): Promise<number> {
+    try {
+      // This service's getAllProductImages already fetches then filters client-side.
+      // So, calling it and getting length is consistent with its current design.
+      const images = await this.getAllProductImages(options);
+      return images.length;
+      // Ideal: direct count query if filters could be applied server-side for count.
+      // e.g. await FirebaseServices.firestore.getCount(PRODUCT_IMAGES_COLLECTION, constraints);
+    } catch (error) {
+      // Ensure handleError is imported and used
+      throw handleError(error, "Failed to get product images count", "ProductImagesService.getProductImagesCount");
+    }
+  }
 };
 
 export default ProductImagesService;

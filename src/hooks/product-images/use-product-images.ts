@@ -57,6 +57,24 @@ export function useProductImages(options?: { type?: string; target?: string } | 
   );
 }
 
+export const PRODUCT_IMAGES_COUNT_QUERY_KEY = 'productImagesCount';
+
+export function useProductImagesCount(options?: { type?: string; target?: string }) {
+  // queryKey needs to include options if they are used, to differentiate counts
+  const queryKey = [PRODUCT_IMAGES_COUNT_QUERY_KEY, options?.type, options?.target].filter(Boolean); // Filter out undefined for cleaner keys
+  return useSafeQuery<number>(
+    queryKey,
+    () => ProductImagesService.getProductImagesCount(options),
+    {
+      context: 'Fetching product images count',
+      showErrorToast: false,
+      queryOptions: {
+        staleTime: 5 * 60 * 1000,
+      }
+    }
+  );
+}
+
 /**
  * Hook to fetch a single product image by ID
  */

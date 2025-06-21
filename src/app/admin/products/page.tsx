@@ -10,9 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Ruler, Sparkles } from "lucide-react";
+import { DollarSign, Ruler, Sparkles, Loader2 } from "lucide-react"; // Added Loader2
 import { ImageIcon as ImageIconLucide } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSpecialDealsCount } from '@/hooks/products/useSpecialDeals';
+import { useUnitPricesCount } from '@/hooks/products/useUnitPrices';
+import { useConfigurablePricesCount } from '@/hooks/products/useConfigurablePrices';
+import { useProductImagesCount } from '@/hooks/product-images/use-product-images';
+
 
 // Product management category definition
 interface ProductCategory {
@@ -53,6 +58,11 @@ const productCategories: ProductCategory[] = [
 ];
 
 export default function ProductsDashboard() {
+  const { data: configurablePricesCount, isLoading: isLoadingConfigurablePrices } = useConfigurablePricesCount();
+  const { data: unitPricesCount, isLoading: isLoadingUnitPrices } = useUnitPricesCount();
+  const { data: specialDealsCount, isLoading: isLoadingSpecialDeals } = useSpecialDealsCount();
+  const { data: productImagesCount, isLoading: isLoadingProductImages } = useProductImagesCount(); // For all images
+
   return (
     <div className="space-y-6">
       <div>
@@ -79,6 +89,21 @@ export default function ProductsDashboard() {
               <CardDescription className="min-h-[2.5rem]">
                 {category.description}
               </CardDescription>
+              <p className="text-sm text-muted-foreground mt-2">
+                Current Count:
+                {category.title === "Configurable Prices" && (
+                  isLoadingConfigurablePrices ? <Loader2 className="h-4 w-4 animate-spin inline ml-1" /> : (configurablePricesCount ?? 0)
+                )}
+                {category.title === "Unit Prices" && (
+                  isLoadingUnitPrices ? <Loader2 className="h-4 w-4 animate-spin inline ml-1" /> : (unitPricesCount ?? 0)
+                )}
+                {category.title === "Special Deals" && (
+                  isLoadingSpecialDeals ? <Loader2 className="h-4 w-4 animate-spin inline ml-1" /> : (specialDealsCount ?? 0)
+                )}
+                {category.title === "Product Photos" && (
+                  isLoadingProductImages ? <Loader2 className="h-4 w-4 animate-spin inline ml-1" /> : (productImagesCount ?? 0)
+                )}
+              </p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">

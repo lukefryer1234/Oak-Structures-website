@@ -11,3 +11,13 @@ export function useSpecialDeals() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
+export const SPECIAL_DEALS_COUNT_QUERY_KEY = 'specialDealsCount';
+
+export function useSpecialDealsCount() {
+  return useQuery<number, Error>({
+    queryKey: [SPECIAL_DEALS_COUNT_QUERY_KEY],
+    queryFn: () => productService.getSpecialDealsCount(),
+    staleTime: 5 * 60 * 1000,
+  });
+}

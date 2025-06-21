@@ -29,9 +29,47 @@ export const UserSchema = z.object({
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   disabled: z.boolean().optional(),
+  // Addresses will be a subcollection, so not directly on UserSchema for main user doc.
+  // Default billing/shipping address IDs could be stored here if desired.
+  // defaultBillingAddressId: z.string().optional(),
+  // defaultShippingAddressId: z.string().optional(),
 });
 
 export type User = z.infer<typeof UserSchema>;
+
+// Address Schemas
+export const AddressTypeSchema = z.enum(["Billing", "Shipping", "Both"]);
+export type AddressType = z.infer<typeof AddressTypeSchema>;
+
+export const AddressSchema = z.object({
+  id: z.string(), // Firestore document ID from the subcollection
+  // userId: z.string(), // Implicit from subcollection path users/{userId}/addresses
+  type: AddressTypeSchema,
+  isDefault: z.boolean().default(false),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  addressLine1: z.string().min(1, "Address Line 1 is required"),
+  addressLine2: z.string().optional(),
+  town: z.string().min(1, "Town/City is required"),
+  county: z.string().optional(),
+  postcode: z.string().min(1, "Postcode is required"), // Basic validation, can be improved
+  country: z.string().min(1, "Country is required"),
+  phone: z.string().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Address = z.infer<typeof AddressSchema>;
+
+export const CreateAddressDataSchema = AddressSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type CreateAddressData = z.infer<typeof CreateAddressDataSchema>;
+
+export const UpdateAddressDataSchema = CreateAddressDataSchema.partial();
+export type UpdateAddressData = z.infer<typeof UpdateAddressDataSchema>;
+
 
 // Input schemas for update operations
 export const UpdateUserInputSchema = UserSchema.partial().omit({
@@ -477,6 +515,171 @@ class UserService {
         "Failed to batch update user roles",
         "UserService.batchUpdateUserRoles"
       );
+    }
+  }
+
+  // --- Address Management Methods ---
+
+  private async _updateDefaultAddresses(
+    userId: string,
+    newDefaultAddressId: string,
+    newAddressType: AddressType
+  ): Promise<void> {
+    const addressesSnapshot = await this.firestoreService.getDocuments(
+      `${this.collectionName}/${userId}/addresses`,
+      [["isDefault", "==", true]]
+    );
+
+    const batch = this.firestoreService.createBatch();
+    let defaultUpdated = false;
+
+    addressesSnapshot.documents.forEach(doc => {
+      const address = { id: doc.id, ...doc } as Address;
+      if (address.id === newDefaultAddressId) return; // Don't unset the one we are setting
+
+      let shouldUnsetDefault = false;
+      if (newAddressType === "Both") {
+        shouldUnsetDefault = true;
+      } else if (address.type === newAddressType || address.type === "Both") {
+        shouldUnsetDefault = true;
+      }
+
+      if (shouldUnsetDefault) {
+        const addressRef = this.firestoreService.getDocRef(
+          `${this.collectionName}/${userId}/addresses`,
+          address.id
+        );
+        batch.update(addressRef, { isDefault: false, updatedAt: new Date().toISOString() });
+        defaultUpdated = true;
+      }
+    });
+
+    if (defaultUpdated) {
+      await batch.commit();
+    }
+  }
+
+  async getUserAddresses(userId: string): Promise<Address[]> {
+    try {
+      if (!userId) throw new CustomError("User ID is required.", "INVALID_ARGUMENT");
+      const { documents } = await this.firestoreService.getDocuments(
+        `${this.collectionName}/${userId}/addresses`,
+        [["isDefault", "desc"], ["createdAt", "desc"]] // Default first, then newest
+      );
+      return documents.map(doc => AddressSchema.parse({ id: doc.id, ...doc })).filter(Boolean) as Address[];
+    } catch (error) {
+      throw handleError(error, "Failed to retrieve user addresses", "UserService.getUserAddresses");
+    }
+  }
+
+  async addUserAddress(userId: string, addressData: CreateAddressData): Promise<Address> {
+    try {
+      if (!userId) throw new CustomError("User ID is required.", "INVALID_ARGUMENT");
+      const validatedData = CreateAddressDataSchema.parse(addressData);
+      const now = new Date().toISOString();
+
+      const newAddressPayload = {
+        ...validatedData,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Firestore addDocument will generate an ID
+      const docId = await this.firestoreService.addDocument(
+        `${this.collectionName}/${userId}/addresses`,
+        newAddressPayload
+      );
+
+      const finalAddressData: Address = {
+        id: docId,
+        ...newAddressPayload,
+      };
+
+      if (finalAddressData.isDefault) {
+        await this._updateDefaultAddresses(userId, docId, finalAddressData.type);
+      }
+
+      return AddressSchema.parse(finalAddressData); // Validate before returning
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid address data.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to add user address", "UserService.addUserAddress");
+    }
+  }
+
+  async updateUserAddress(userId: string, addressId: string, addressData: UpdateAddressData): Promise<Address> {
+    try {
+      if (!userId || !addressId) throw new CustomError("User ID and Address ID are required.", "INVALID_ARGUMENT");
+      const validatedData = UpdateAddressDataSchema.parse(addressData);
+
+      if (Object.keys(validatedData).length === 0) {
+        throw new CustomError("No fields to update provided.", "INVALID_ARGUMENT");
+      }
+
+      const addressRef = this.firestoreService.getDocRef(`${this.collectionName}/${userId}/addresses`, addressId);
+      const docSnap = await this.firestoreService.getRawDoc(addressRef); // get raw snapshot
+      if (!docSnap.exists()) {
+        throw new CustomError("Address not found.", "NOT_FOUND");
+      }
+
+      const payload = { ...validatedData, updatedAt: new Date().toISOString() };
+
+      if (payload.isDefault) {
+        // Type needs to be known to correctly update other defaults.
+        // If type is not part of payload, use existing type.
+        const currentType = payload.type || (docSnap.data() as Address).type;
+        await this._updateDefaultAddresses(userId, addressId, currentType);
+      }
+
+      await this.firestoreService.updateDocument(
+        `${this.collectionName}/${userId}/addresses`,
+        addressId,
+        payload
+      );
+
+      const updatedDocData = await this.firestoreService.getDocument(`${this.collectionName}/${userId}/addresses`, addressId);
+      if (!updatedDocData) throw new CustomError("Failed to retrieve updated address.", "INTERNAL_ERROR");
+
+      return AddressSchema.parse({ id: addressId, ...updatedDocData });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid address data for update.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to update user address", "UserService.updateUserAddress");
+    }
+  }
+
+  async deleteUserAddress(userId: string, addressId: string): Promise<void> {
+    try {
+      if (!userId || !addressId) throw new CustomError("User ID and Address ID are required.", "INVALID_ARGUMENT");
+      // Optional: Check if address exists before deleting, or let deleteDocument handle it (it might not throw if not found)
+      await this.firestoreService.deleteDocument(`${this.collectionName}/${userId}/addresses`, addressId);
+    } catch (error) {
+      throw handleError(error, "Failed to delete user address", "UserService.deleteUserAddress");
+    }
+  }
+
+  async setDefaultAddress(userId: string, addressId: string): Promise<void> {
+    try {
+      if (!userId || !addressId) throw new CustomError("User ID and Address ID are required.", "INVALID_ARGUMENT");
+
+      const addressRef = this.firestoreService.getDocRef(`${this.collectionName}/${userId}/addresses`, addressId);
+      const docSnap = await this.firestoreService.getRawDoc(addressRef);
+      if (!docSnap.exists()) {
+        throw new CustomError("Address not found to set as default.", "NOT_FOUND");
+      }
+      const addressToSetDefault = AddressSchema.parse({id: docSnap.id, ...docSnap.data()});
+
+      await this._updateDefaultAddresses(userId, addressId, addressToSetDefault.type);
+
+      await this.firestoreService.updateDocument(
+        `${this.collectionName}/${userId}/addresses`,
+        addressId,
+        { isDefault: true, updatedAt: new Date().toISOString() }
+      );
+    } catch (error) {
+      throw handleError(error, "Failed to set default address", "UserService.setDefaultAddress");
     }
   }
 }

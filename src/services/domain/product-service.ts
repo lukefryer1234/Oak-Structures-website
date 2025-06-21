@@ -67,6 +67,30 @@ export const UpdateUnitPriceDataSchema = z.object({
 });
 export type UpdateUnitPriceData = z.infer<typeof UpdateUnitPriceDataSchema>;
 
+// Schemas and types for Configurable Prices
+export const ConfigurablePriceCategorySchema = z.enum(['Garages', 'Gazebos', 'Porches']);
+export type ConfigurablePriceCategory = z.infer<typeof ConfigurablePriceCategorySchema>;
+
+export const ConfigurablePriceSchema = z.object({
+  id: z.string(), // Firestore document ID
+  category: ConfigurablePriceCategorySchema,
+  configKey: z.string().min(1, "Config key is required"), // Unique key representing the option combination
+  configDescription: z.string().min(1, "Config description is required"),
+  price: z.number().positive("Price must be positive"),
+  createdAt: z.string().datetime().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+export type ConfigurablePrice = z.infer<typeof ConfigurablePriceSchema>;
+
+export const CreateConfigurablePriceSchema = ConfigurablePriceSchema.omit({ id: true, createdAt: true, updatedAt: true });
+export type CreateConfigurablePriceData = z.infer<typeof CreateConfigurablePriceSchema>;
+
+export const UpdateConfigurablePriceSchema = CreateConfigurablePriceSchema.omit({ category: true })
+  .partial()
+  .merge(z.object({price: z.number().positive("Price must be positive")}));
+export type UpdateConfigurablePriceData = z.infer<typeof UpdateConfigurablePriceSchema>;
+
+
 // Configuration state type
 export interface ConfigState {
   [key: string]: any;
@@ -602,6 +626,94 @@ export const ProductService = {
         throw new CustomError("Invalid unit price data for update.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
       }
       throw handleError(error, "Failed to update unit price", "ProductService.updateUnitPrice");
+    }
+  },
+
+  async getConfigurablePrices(): Promise<ConfigurablePrice[]> {
+    try {
+      const { documents } = await FirebaseServices.firestore.getDocuments(
+        'configurable_prices',
+        [{ field: "category", direction: "asc" }, { field: "configDescription", direction: "asc" }]
+      );
+      return documents.map(doc => ConfigurablePriceSchema.parse({ id: doc.id, ...doc })).filter(Boolean) as ConfigurablePrice[];
+    } catch (error) {
+      throw handleError(error, "Failed to retrieve configurable prices", "ProductService.getConfigurablePrices");
+    }
+  },
+
+  async createConfigurablePrice(data: CreateConfigurablePriceData): Promise<ConfigurablePrice> {
+    try {
+      const validatedData = CreateConfigurablePriceSchema.parse(data);
+      const now = new Date().toISOString();
+      const payload = { ...validatedData, createdAt: now, updatedAt: now };
+      const docId = await FirebaseServices.firestore.addDocument('configurable_prices', payload);
+      return ConfigurablePriceSchema.parse({ id: docId, ...payload });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid configurable price data.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to create configurable price", "ProductService.createConfigurablePrice");
+    }
+  },
+
+  async updateConfigurablePrice(id: string, data: UpdateConfigurablePriceData): Promise<ConfigurablePrice> {
+    try {
+      if (!id) throw new CustomError("ID is required for update.", "INVALID_ARGUMENT");
+      const validatedData = UpdateConfigurablePriceSchema.parse(data);
+
+      if (Object.keys(validatedData).length === 0) {
+        throw new CustomError("No fields to update provided.", "INVALID_ARGUMENT");
+      }
+
+      const payload = { ...validatedData, updatedAt: new Date().toISOString() };
+      await FirebaseServices.firestore.updateDocument('configurable_prices', id, payload);
+      const updatedDoc = await FirebaseServices.firestore.getDocument('configurable_prices', id);
+      if (!updatedDoc) throw new CustomError("Failed to retrieve updated configurable price.", "INTERNAL_ERROR");
+      return ConfigurablePriceSchema.parse({ id: id, ...updatedDoc });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new CustomError("Invalid data for configurable price update.", "INVALID_ARGUMENT", error.flatten().fieldErrors);
+      }
+      throw handleError(error, "Failed to update configurable price", "ProductService.updateConfigurablePrice");
+    }
+  },
+
+  async deleteConfigurablePrice(id: string): Promise<void> {
+    try {
+      if (!id) throw new CustomError("ID is required for deletion.", "INVALID_ARGUMENT");
+      await FirebaseServices.firestore.deleteDocument('configurable_prices', id);
+    } catch (error) {
+      throw handleError(error, "Failed to delete configurable price", "ProductService.deleteConfigurablePrice");
+    }
+  },
+
+  async getSpecialDealsCount(): Promise<number> {
+    try {
+      const deals = await this.getSpecialDeals();
+      return deals.length;
+      // Ideal: return await FirebaseServices.firestore.getCount('special_deals');
+    } catch (error) {
+      throw handleError(error, "Failed to get special deals count", "ProductService.getSpecialDealsCount");
+    }
+  },
+
+  async getUnitPricesCount(): Promise<number> {
+    try {
+      const prices = await this.getUnitPrices();
+      return prices.length;
+      // Ideal: return await FirebaseServices.firestore.getCount('unit_prices');
+    } catch (error) {
+      throw handleError(error, "Failed to get unit prices count", "ProductService.getUnitPricesCount");
+    }
+  },
+
+  async getConfigurablePricesCount(): Promise<number> {
+    try {
+      const prices = await this.getConfigurablePrices();
+      return prices.length;
+      // Ideal: return await FirebaseServices.firestore.getCount('configurable_prices');
+    } catch (error) {
+      throw handleError(error, "Failed to get configurable prices count", "ProductService.getConfigurablePricesCount");
     }
   }
 };

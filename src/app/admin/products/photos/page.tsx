@@ -7,53 +7,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Trash2, Image as ImageIcon } from 'lucide-react'; // Icons
+import { Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react'; // Icons
 import Image from 'next/image'; // Use next/image for preview
 import { Slider } from "@/components/ui/slider"; // Import Slider
 import { useToast } from "@/hooks/use-toast"; // Import useToast
-
-// --- Types and Placeholder Data ---
-
-// Added 'background' type
-type ImageType = 'category' | 'special_deal' | 'config_option' | 'main_product' | 'background';
-
-interface ProductImage {
-  id: string;
-  type: ImageType;
-  target: string; // Category name, Deal ID/Name, Config Option ID, Page Key (e.g., 'home', 'garages')
-  url: string; // Image URL
-  altText: string; // Alt text for accessibility
-  opacity?: number; // Optional opacity for background images (0-100)
-}
-
-// Placeholder data - Fetch from backend
-const initialImages: ProductImage[] = [
-  { id: 'img1', type: 'category', target: 'Garages', url: 'https://picsum.photos/seed/garage-category/200/200', altText: 'Oak Frame Garages Category' },
-  { id: 'img2', type: 'category', target: 'Gazebos', url: 'https://picsum.photos/seed/gazebo-category/200/200', altText: 'Oak Frame Gazebos Category' },
-  { id: 'img3', type: 'special_deal', target: 'deal1', url: 'https://picsum.photos/seed/deal1/200/200', altText: 'Pre-Configured Double Garage Deal' },
-  { id: 'img4', type: 'config_option', target: 'truss-curved', url: 'https://picsum.photos/seed/truss-curved/200/200', altText: 'Curved Truss Option Preview' },
-  { id: 'img5', type: 'config_option', target: 'truss-straight', url: 'https://picsum.photos/seed/truss-straight/200/200', altText: 'Straight Truss Option Preview' },
-  { id: 'img6', type: 'main_product', target: 'Garages', url: 'https://picsum.photos/seed/main-garage/400/300', altText: 'Main Garage Product Image' },
-   { id: 'img7', type: 'background', target: 'home', url: 'https://picsum.photos/seed/home-bg/1920/1080', altText: 'Homepage Background Image', opacity: 5 }, // Example with opacity
-   { id: 'img8', type: 'background', target: 'about', url: 'https://picsum.photos/seed/about-bg/1920/1080', altText: 'About Page Background Image', opacity: 5 },
-];
+import { useProductImages, useAddProductImage, useDeleteProductImage } from '@/hooks/product-images/use-product-images';
+import type { ProductImage, ImageType as ServiceImageType } from '@/services/domain/product-images/product-images-service';
 
 // Updated imageTypes array
-const imageTypes: ImageType[] = ['category', 'main_product', 'background', 'special_deal', 'config_option'];
-const categoryTargets = ['Garages', 'Gazebos', 'Porches', 'Oak Beams', 'Oak Flooring', 'Special Deals'];
+// Using ServiceImageType from the service now, aligning with ProductImageSchema
+const imageTypes: ServiceImageType[] = ["banner", "thumbnail", "gallery", "detail"]; // These are the valid enum values from ProductImageSchema
+const categoryTargets = ['Garages', 'Gazebos', 'Porches', 'Oak Beams', 'Oak Flooring', 'Special Deals']; // These might need to align with actual category IDs/slugs from DB
 // Placeholder targets for background images - add more as needed
 const pageTargets = ['home', 'products', 'gallery', 'about', 'contact', 'basket', 'checkout', 'account', 'admin', 'login', 'forgot-password', 'custom-order', 'delivery', 'faq', 'order-confirmation', 'privacy', 'terms'];
-// Add logic to fetch Special Deal IDs/Names and Config Option IDs
+// Add logic to fetch Special Deal IDs/Names and Config Option IDs dynamically for 'target' field
 
 export default function ProductPhotosPage() {
-  const [images, setImages] = useState<ProductImage[]>(initialImages);
-  const [newImageType, setNewImageType] = useState<ImageType | ''>('');
+  const { toast } = useToast();
+  const { data: imagesData, isLoading: isLoadingImages, isError: isErrorImages, error: errorImages } = useProductImages();
+  const { mutate: addImage, isLoading: isAddingImage } = useAddProductImage();
+  const { mutate: deleteImage, isLoading: isDeletingImage } = useDeleteProductImage();
+  const images = imagesData || [];
+
+  const [newImageType, setNewImageType] = useState<ServiceImageType | ''>('');
   const [newImageTarget, setNewImageTarget] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageAlt, setNewImageAlt] = useState('');
   const [newImageOpacity, setNewImageOpacity] = useState<number>(10); // Default opacity 10%
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Already initialized via useAddProductImage etc. // This was a mistake, toast is needed for local validation.
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -67,106 +49,92 @@ export default function ProductPhotosPage() {
   const handleAddImage = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newImageType || !newImageTarget || (!newImageUrl && !selectedFile) || !newImageAlt) {
-        toast({ // Use toast for validation
-            variant: "destructive",
-            title: "Validation Error",
-            description: "Please fill in Type, Target, Alt Text, and provide an Image URL or Upload.",
-        });
+        toast({ variant: "destructive", title: "Validation Error", description: "Please fill in Type, Target, Alt Text, and provide an Image URL or Upload." });
         return;
     }
 
-    let finalImageUrl = newImageUrl;
-
-    // --- Placeholder File Upload Logic ---
-    if (selectedFile) {
-        // In a real app, upload the file to cloud storage (e.g., S3, GCS)
-        // and get the public URL back.
-        console.log("Uploading file:", selectedFile.name);
-        // Simulate upload delay and getting a URL
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        finalImageUrl = `https://picsum.photos/seed/${Date.now()}/200/200`; // Placeholder URL after "upload"
-        console.log("Simulated upload complete. URL:", finalImageUrl);
-        toast({ title: "Info", description: "Image upload simulated." });
-    }
-     // --- End Placeholder ---
-
-
-    const newImage: ProductImage = {
-        id: `img${Date.now()}`,
-        type: newImageType as ImageType,
-        target: newImageTarget,
-        url: finalImageUrl,
-        altText: newImageAlt,
-        // Only include opacity if it's a background image
-        opacity: newImageType === 'background' ? newImageOpacity : undefined,
+    const resetForm = () => {
+        setNewImageType('detail'); // Reset to a default valid type from the updated imageTypes
+        setNewImageTarget('');
+        setNewImageUrl('');
+        setNewImageAlt('');
+        setNewImageOpacity(10);
+        setSelectedFile(null);
+        const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
     };
 
-    setImages(prev => [...prev, newImage]);
-     // TODO: API call to save image metadata to backend
-     console.log("Added Image:", newImage);
-     toast({ title: "Success", description: "Image association added." });
+    const commonImageData = {
+        type: newImageType, // Already ServiceImageType
+        target: newImageTarget,
+        altText: newImageAlt,
+        opacity: (newImageType === 'background' || newImageType === 'banner') ? newImageOpacity / 100 : 1, // Opacity 0-1
+    };
 
-    // Reset form
-    setNewImageType('');
-    setNewImageTarget('');
-    setNewImageUrl('');
-    setNewImageAlt('');
-    setNewImageOpacity(10); // Reset opacity
-    setSelectedFile(null);
-     // Reset file input visually
-     const fileInput = document.getElementById('image-upload') as HTMLInputElement;
-     if (fileInput) fileInput.value = '';
-
+    if (selectedFile) {
+        addImage({
+            file: selectedFile,
+            productId: newImageTarget, // productId maps to 'target' in the hook's current implementation that calls service
+            data: commonImageData
+        }, { onSuccess: resetForm });
+    } else {
+        addImage({
+            imageData: { // This param is for when URL is provided directly
+                ...commonImageData,
+                url: newImageUrl, // URL is required here
+            }
+        }, { onSuccess: resetForm });
+    }
   };
 
   const handleDeleteImage = (id: string) => {
-     if (window.confirm("Are you sure you want to delete this image association? This does not delete the actual image file from storage.")) {
-        setImages(prev => prev.filter(img => img.id !== id));
-         // TODO: API call to delete image metadata from backend
-        console.log("Deleted Image ID:", id);
-        toast({ title: "Deleted", description: "Image association removed." });
+     if (window.confirm("Are you sure you want to delete this image association? This may not delete the actual image file from storage depending on setup.")) {
+        deleteImage(id);
+        // onSuccess and onError are handled by the useDeleteProductImage hook
      }
   };
 
   // Dynamically render target options based on selected type
   const renderTargetOptions = () => {
     switch (newImageType) {
-      case 'category':
-      case 'main_product': // Main product images target categories
+      case 'category': // Targets a category name/slug
         return (
            <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
              <SelectTrigger id="target-select">
-                <SelectValue placeholder="Select Category" />
+                <SelectValue placeholder="Select Category Target" />
              </SelectTrigger>
              <SelectContent>
                {categoryTargets.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
              </SelectContent>
            </Select>
         );
-       case 'background': // Background images target pages
+       case 'background': // Targets a page key
            return (
              <Select value={newImageTarget} onValueChange={setNewImageTarget} required>
                <SelectTrigger id="target-select">
-                 <SelectValue placeholder="Select Page" />
+                 <SelectValue placeholder="Select Page Target" />
                </SelectTrigger>
                <SelectContent>
                  {pageTargets.map(page => <SelectItem key={page} value={page}>{page.charAt(0).toUpperCase() + page.slice(1)}</SelectItem>)}
                </SelectContent>
              </Select>
            );
-       case 'special_deal':
-           // Replace with actual dynamic list of Deal IDs/Names
-           return <Input id="target-input" placeholder="Enter Special Deal ID or Name" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
-       case 'config_option':
-           // Replace with actual dynamic list of Config Option IDs
-           return <Input id="target-input" placeholder="Enter Config Option ID (e.g., truss-curved)" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
-      default:
-        return <Input id="target-input" placeholder="Select Image Type first" disabled />;
+       case 'special_deal': // Targets a Special Deal ID
+           return <Input id="target-input" placeholder="Enter Special Deal ID" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
+       case 'config_option': // Targets a Config Option ID (e.g., 'truss-curved')
+           return <Input id="target-input" placeholder="Enter Config Option ID" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
+       case 'main_product': // These types typically target a Product ID
+       case 'thumbnail':
+       case 'gallery':
+       case 'detail':
+            return <Input id="target-input" placeholder="Enter Product ID" value={newImageTarget} onChange={(e) => setNewImageTarget(e.target.value)} required />;
+      default: // Should not happen if newImageType is always valid due to initialization
+        return <Input id="target-input" placeholder="Select Image Type first" value={newImageTarget} disabled />;
     }
   };
 
    // Helper function to format ImageType for display
-   const formatImageType = (type: ImageType): string => {
+   const formatImageType = (type: ServiceImageType): string => {
        return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
    }
 
@@ -184,12 +152,12 @@ export default function ProductPhotosPage() {
                  {/* Image Type Select */}
                  <div className="space-y-2">
                     <Label htmlFor="image-type">Image Type <span className="text-destructive">*</span></Label>
-                    <Select value={newImageType} onValueChange={(value) => setNewImageType(value as ImageType)} required>
+                    <Select value={newImageType} onValueChange={(value) => setNewImageType(value as ServiceImageType)} required>
                        <SelectTrigger id="image-type">
                           <SelectValue placeholder="Select Type" />
                        </SelectTrigger>
                        <SelectContent>
-                          {imageTypes.map(type => <SelectItem key={type} value={type}>{formatImageType(type)}</SelectItem>)}
+                          {imageTypes.map(type => <SelectItem key={type} value={type}>{formatImageType(type as ServiceImageType)}</SelectItem>)}
                        </SelectContent>
                     </Select>
                  </div>
@@ -246,7 +214,9 @@ export default function ProductPhotosPage() {
              )}
 
              <div className="flex justify-end pt-4 border-t">
-                 <Button type="submit"><Upload className="mr-2 h-4 w-4"/> Add Image</Button>
+                 <Button type="submit" disabled={isAddingImage}>
+                   {isAddingImage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Adding...</> : <><Upload className="mr-2 h-4 w-4"/> Add Image</>}
+                 </Button>
              </div>
           </form>
         </CardContent>
@@ -260,36 +230,42 @@ export default function ProductPhotosPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images.length > 0 ? (
-              images.map((img) => (
-                <Card key={img.id} className="overflow-hidden group relative">
-                   <div className="relative aspect-square w-full bg-muted">
-                     <Image src={img.url} alt={img.altText} layout="fill" objectFit="cover" />
-                  </div>
-                   <div className="p-3 text-xs space-y-1 bg-card">
-                     <p><strong className="text-muted-foreground">Type:</strong> {formatImageType(img.type)}</p>
-                     <p><strong className="text-muted-foreground">Target:</strong> {img.target}</p>
-                     <p><strong className="text-muted-foreground">Alt:</strong> {img.altText}</p>
-                      {img.type === 'background' && img.opacity !== undefined && (
-                         <p><strong className="text-muted-foreground">Opacity:</strong> {img.opacity}%</p>
-                      )}
-                      <p className="truncate"><strong className="text-muted-foreground">URL:</strong> <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{img.url}</a></p>
-                  </div>
-                   {/* Delete Button */}
-                   <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDeleteImage(img.id)}
-                   >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete Image Association</span>
-                   </Button>
-                </Card>
-              ))
-            ) : (
-              <p className="text-muted-foreground col-span-full text-center py-10">No images associated yet.</p>
-            )}
+          {isLoadingImages ? (
+            <div className="flex justify-center items-center py-10 col-span-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : isErrorImages ? (
+            <p className="text-red-500 col-span-full text-center">Error loading images: {errorImages?.message}</p>
+          ) : images.length > 0 ? (
+            images.map((img) => (
+              <Card key={img.id} className="overflow-hidden group relative">
+                 <div className="relative aspect-square w-full bg-muted">
+                   <Image src={img.url} alt={img.altText} layout="fill" objectFit="cover" />
+                </div>
+                 <div className="p-3 text-xs space-y-1 bg-card">
+                   <p><strong className="text-muted-foreground">Type:</strong> {formatImageType(img.type)}</p>
+                   <p><strong className="text-muted-foreground">Target:</strong> {img.target}</p>
+                   <p><strong className="text-muted-foreground">Alt:</strong> {img.altText}</p>
+                    {img.type === 'background' && img.opacity !== undefined && (
+                       <p><strong className="text-muted-foreground">Opacity:</strong> {(img.opacity * 100).toFixed(0)}%</p>
+                    )}
+                    <p className="truncate"><strong className="text-muted-foreground">URL:</strong> <a href={img.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{img.url}</a></p>
+                </div>
+                 <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDeleteImage(img.id)}
+                    disabled={isDeletingImage}
+                 >
+                    {isDeletingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    <span className="sr-only">Delete Image Association</span>
+                 </Button>
+              </Card>
+            ))
+          ) : (
+            <p className="text-muted-foreground col-span-full text-center py-10">No images associated yet.</p>
+          )}
           </div>
         </CardContent>
       </Card>

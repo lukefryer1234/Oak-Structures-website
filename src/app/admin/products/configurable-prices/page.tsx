@@ -1,5 +1,4 @@
-
-"use client"; // Needed for state, form handling
+"use client"; // For state, form handling
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Trash2, Edit } from 'lucide-react'; // Icons
+import { PlusCircle, Trash2, Edit, Loader2 } from 'lucide-react'; // Icons
 import {
   Dialog,
   DialogContent,
@@ -20,94 +19,61 @@ import {
   DialogClose, // Import DialogClose
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { useConfigurablePrices, CONFIGURABLE_PRICES_QUERY_KEY_PREFIX } from '@/hooks/products/useConfigurablePrices';
+import { useCreateConfigurablePrice } from '@/hooks/products/useCreateConfigurablePrice';
+import { useUpdateConfigurablePrice } from '@/hooks/products/useUpdateConfigurablePrice';
+import { useDeleteConfigurablePrice } from '@/hooks/products/useDeleteConfigurablePrice';
+import { type ConfigurablePrice, type CreateConfigurablePriceData, type UpdateConfigurablePriceData, type ConfigurablePriceCategory } from '@/services/domain/product-service';
+import { Textarea } from "@/components/ui/textarea";
 
 
-// --- Types and Placeholder Data ---
-
-interface ConfigurablePrice {
-  id: string; // Unique ID for the price entry
-  category: 'Garages' | 'Gazebos' | 'Porches';
-  configKey: string; // A string representing the unique combination of options
-  configDescription: string; // Human-readable description of the configuration
-  price: number; // Price for this specific configuration
-}
-
-// Placeholder data - Fetch from backend
-const initialPrices: ConfigurablePrice[] = [
-  { id: 'p1', category: 'Garages', configKey: 'medium-curved-2-nocat-reclaimed', configDescription: 'Med Garage, Curved Truss, 2 Bay, No Cat Slide, Reclaimed Oak', price: 8500 },
-  { id: 'p2', category: 'Garages', configKey: 'large-straight-3-yescat-kilned', configDescription: 'Lrg Garage, Straight Truss, 3 Bay, Cat Slide, Kilned Oak', price: 12000 },
-  { id: 'p3', category: 'Gazebos', configKey: '4x4-curved-full-kilned', configDescription: '4x4 Gazebo, Curved Truss, Full Legs, Kilned Oak', price: 3500 },
-  { id: 'p4', category: 'Porches', configKey: 'standard-curved-floor-reclaimed', configDescription: 'Std Porch, Curved Truss, Legs to Floor, Reclaimed Oak', price: 2150 },
-];
-
-// Options for the form - In real app, these might come from product definitions
-const categoryOptions = ['Garages', 'Gazebos', 'Porches'];
-// Add more options for each category based on the actual configuration possibilities
-const garageOptions = ['Size: Small/Medium/Large', 'Truss: Curved/Straight', 'Bays: 1-4', 'CatSlide: Yes/No', 'Oak: Reclaimed/Kilned'];
-const gazeboOptions = ['Legs: Full/Wall', 'Size: 3x3/4x3/4x4', 'Truss: Curved/Straight', 'Oak: Reclaimed/Kilned'];
-const porchOptions = ['Truss: Curved/Straight', 'Legs: Floor/Wall', 'Size: Narrow/Standard/Wide', 'Oak: Reclaimed/Kilned'];
+const categoryOptions: ConfigurablePriceCategory[] = ['Garages', 'Gazebos', 'Porches'];
 
 
 export default function ConfigurablePricesPage() {
-  const [prices, setPrices] = useState<ConfigurablePrice[]>(initialPrices);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { data: pricesData, isLoading: isLoadingPrices, isError: isErrorPrices, error: errorPrices } = useConfigurablePrices();
+  const { mutate: createPrice, isLoading: isCreating } = useCreateConfigurablePrice();
+  const { mutate: updatePrice, isLoading: isUpdating } = useUpdateConfigurablePrice();
+  const { mutate: deletePrice, isLoading: isDeleting } = useDeleteConfigurablePrice();
+  const prices = pricesData || [];
   const [editingPrice, setEditingPrice] = useState<ConfigurablePrice | null>(null);
-  const [formState, setFormState] = useState<Partial<ConfigurablePrice>>({}); // For Add/Edit form
-  const { toast } = useToast(); // Initialize useToast
+  const [formState, setFormState] = useState<Partial<CreateConfigurablePriceData | ConfigurablePrice>>({});
+  const { toast } = useToast();
 
-          const handleFormChange = (field: keyof ConfigurablePrice, value: any) => {
+          const handleFormChange = (field: keyof (CreateConfigurablePriceData | ConfigurablePrice), value: any) => {
             setFormState(prev => ({ ...prev, [field]: value }));
-            // TODO: Add logic to generate configKey and configDescription based on selected options
-            
-            // Get current category value - using type assertion to tell TypeScript this is valid
-            const currentCategory = field === "category" ? value : formState.category;
-            
-            // Only update config description and key for non-price fields
-            if (field !== 'price') {
-                // Example: Combine selected options into a description (highly simplified)
-                // In a real app, this would involve iterating over actual option selections
-                const description = `Config: ${currentCategory ?? ''} - Options...`; // Placeholder description
-                const key = `key-${Date.now()}`; // Placeholder key generation
-                setFormState(prev => ({ ...prev, configDescription: description, configKey: key }));
-            }
   };
 
   const handleSavePrice = (event: React.FormEvent) => {
     event.preventDefault();
-    const priceValue = parseFloat(formState.price as any);
-    if (isNaN(priceValue) || priceValue <= 0 || !formState.category || !formState.configKey || !formState.configDescription) {
-         toast({ // Use toast for validation message
-             variant: "destructive",
-             title: "Validation Error",
-             description: "Please fill in all required fields (Category, Options, Price) and ensure the price is valid.",
-         });
+    const priceValue = parseFloat(formState.price as any); // Already parsing
+    if (!formState.category || !formState.configKey || !formState.configDescription || isNaN(priceValue) || priceValue <= 0) {
+        toast({ variant: "destructive", title: "Validation Error", description: "Category, Config Key, Description, and a valid positive Price are required." });
         return;
     }
 
-    const newPriceEntry: ConfigurablePrice = {
-        id: editingPrice?.id ?? `p${Date.now()}`, // Use existing ID if editing, else generate
-        category: formState.category!,
-        configKey: formState.configKey!,
-        configDescription: formState.configDescription!,
-        price: priceValue,
-    };
-
     if (editingPrice) {
-        // Update existing price
-        setPrices(prev => prev.map(p => p.id === editingPrice.id ? newPriceEntry : p));
-         toast({ title: "Success", description: "Price configuration updated." });
-         // TODO: API call to update price
-        console.log("Updated Price:", newPriceEntry);
-
+        const updateData: UpdateConfigurablePriceData = {
+            // category is not updatable as per UpdateConfigurablePriceSchema
+            configKey: formState.configKey,
+            configDescription: formState.configDescription,
+            price: priceValue,
+        };
+        updatePrice({ id: editingPrice.id, data: updateData }, {
+            onSuccess: () => closeDialog(),
+        });
     } else {
-        // Add new price
-        setPrices(prev => [...prev, newPriceEntry]);
-         toast({ title: "Success", description: "New price configuration added." });
-         // TODO: API call to add price
-        console.log("Added Price:", newPriceEntry);
+        const createData: CreateConfigurablePriceData = {
+            category: formState.category as ConfigurablePriceCategory, // Cast needed
+            configKey: formState.configKey!,
+            configDescription: formState.configDescription!,
+            price: priceValue,
+        };
+        createPrice(createData, {
+            onSuccess: () => closeDialog(),
+        });
     }
-
-    closeDialog();
   };
 
 
@@ -125,10 +91,7 @@ export default function ConfigurablePricesPage() {
 
   const handleDeletePrice = (id: string) => {
      if (window.confirm("Are you sure you want to delete this price configuration?")) {
-        setPrices(prev => prev.filter(p => p.id !== id));
-         toast({ title: "Deleted", description: "Price configuration removed." });
-         // TODO: API call to delete price
-        console.log("Deleted Price ID:", id);
+        deletePrice(id);
      }
   };
 
@@ -137,25 +100,6 @@ export default function ConfigurablePricesPage() {
      setIsDialogOpen(false);
      setEditingPrice(null);
      setFormState({});
-  }
-
-  // Render form fields based on selected category (simplified example)
-  const renderCategoryOptions = () => {
-     let options: string[] = [];
-     switch(formState.category) {
-        case 'Garages': options = garageOptions; break;
-        case 'Gazebos': options = gazeboOptions; break;
-        case 'Porches': options = porchOptions; break;
-     }
-     return options.map(opt => (
-        <div key={opt} className="space-y-2">
-           <Label>{opt.split(':')[0]}</Label>
-           {/* This Input needs to be replaced with actual interactive form elements (Select, Radio, Slider etc.)
-               based on the 'opt' value to capture the actual configuration. The current setup is just a placeholder. */}
-           <Input placeholder={`Select ${opt.split(':')[1]}`} disabled />
-           <p className="text-xs text-muted-foreground">Placeholder for selecting {opt.split(':')[0].toLowerCase()} options.</p>
-        </div>
-     ));
   }
 
   return (
@@ -187,8 +131,9 @@ export default function ConfigurablePricesPage() {
                     <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
                     <Select
                        value={formState.category}
-                       onValueChange={(value) => handleFormChange('category', value as ConfigurablePrice['category'])}
-                       required
+                       onValueChange={(value) => handleFormChange('category', value as ConfigurablePriceCategory)}
+                       // required // Select component doesn't use HTML5 required in the same way
+                       disabled={!!editingPrice} // Cannot change category when editing
                     >
                        <SelectTrigger id="category">
                           <SelectValue placeholder="Select Category" />
@@ -199,16 +144,15 @@ export default function ConfigurablePricesPage() {
                     </Select>
                  </div>
 
-                {/* Dynamic Options based on Category */}
-                {/* Add a note that these are placeholders */}
-                {formState.category && (
-                    <div className="p-4 border rounded-md bg-muted/50 space-y-4">
-                         <p className="text-sm font-medium text-center text-muted-foreground">Configuration Options (Placeholders)</p>
-                         <p className="text-xs text-center text-muted-foreground">Note: Detailed option selection fields need implementation here based on the chosen category.</p>
-                         {renderCategoryOptions()}
-                    </div>
-                )}
-
+                {/* Simplified Config Key and Description Inputs */}
+                <div className="space-y-2">
+                  <Label htmlFor="configKey">Config Key <span className="text-destructive">*</span></Label>
+                  <Input id="configKey" value={formState.configKey ?? ""} onChange={(e) => handleFormChange("configKey", e.target.value)} placeholder="e.g., large-curved-2bay" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="configDescription">Config Description <span className="text-destructive">*</span></Label>
+                  <Textarea id="configDescription" value={formState.configDescription ?? ""} onChange={(e) => handleFormChange("configDescription", e.target.value)} placeholder="e.g., Large Garage, Curved Truss, 2 Bay" required />
+                </div>
                 {/* Price Input */}
                  <div className="space-y-2">
                     <Label htmlFor="price">Price (£) <span className="text-destructive">*</span></Label>
@@ -216,7 +160,7 @@ export default function ConfigurablePricesPage() {
                       id="price"
                       type="number"
                       step="0.01"
-                      min="0"
+                      min="0.01" // Price must be positive as per schema
                       placeholder="e.g., 8500.00"
                       value={formState.price ?? ''}
                       onChange={(e) => handleFormChange('price', e.target.value)}
@@ -224,22 +168,14 @@ export default function ConfigurablePricesPage() {
                     />
                  </div>
 
-                 {/* Display generated description/key (read-only for user) */}
-                  <div className="space-y-2 mt-4 p-3 bg-muted/50 rounded-md border">
-                     <p className="text-sm font-medium text-muted-foreground">Generated Description:</p>
-                     <p className="text-sm">{formState.configDescription || 'Configure options above...'}</p>
-                     <p className="text-xs text-muted-foreground mt-1">Key: {formState.configKey || '-'}</p>
-                     <p className="text-xs text-muted-foreground mt-1">Ensure this accurately reflects the selected options before saving.</p>
-                  </div>
-
              </form>
              <DialogFooter>
                <DialogClose asChild>
                   <Button type="button" variant="outline" onClick={closeDialog}>Cancel</Button>
                </DialogClose>
                {/* Submit button triggers the form's onSubmit */}
-                <Button type="submit" form="addEditPriceForm">
-                    {editingPrice ? 'Save Changes' : 'Add Price'}
+                <Button type="submit" form="addEditPriceForm" disabled={isCreating || isUpdating}>
+                    {(isCreating || isUpdating) ? <><Loader2 className='mr-2 h-4 w-4 animate-spin' /> Saving...</> : (editingPrice ? 'Save Changes' : 'Add Price')}
                 </Button>
              </DialogFooter>
           </DialogContent>
@@ -257,7 +193,11 @@ export default function ConfigurablePricesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {prices.length > 0 ? (
+            {isLoadingPrices ? (
+              <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
+            ) : isErrorPrices ? (
+              <TableRow><TableCell colSpan={4} className="h-24 text-center text-red-500">Error loading prices: {errorPrices?.message}</TableCell></TableRow>
+            ) : prices.length > 0 ? (
               prices.map((price) => (
                 <TableRow key={price.id}>
                   <TableCell>{price.category}</TableCell>
@@ -266,11 +206,11 @@ export default function ConfigurablePricesPage() {
                   </TableCell>
                   <TableCell className="text-right font-medium">{price.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
-                     <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => openEditDialog(price)}>
+                     <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => openEditDialog(price)} disabled={isCreating || isUpdating || isDeleting}>
                         <Edit className="h-4 w-4"/>
                          <span className="sr-only">Edit</span>
                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeletePrice(price.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeletePrice(price.id)} disabled={isCreating || isUpdating || isDeleting}>
                          <Trash2 className="h-4 w-4"/>
                          <span className="sr-only">Delete</span>
                      </Button>
@@ -290,4 +230,3 @@ export default function ConfigurablePricesPage() {
     </Card>
   );
 }
-

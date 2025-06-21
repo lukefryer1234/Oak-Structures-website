@@ -1,33 +1,66 @@
-
 "use client";
 
+import React from 'react';
+import { useAuth } from '@/context/auth-context';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useOrders } from '@/hooks/orders/useOrders'; // Verify path if needed
+import { type Order } from '@/services/domain/order-service'; // Verify path if needed
 
-// Placeholder data - fetch user's orders
-const orders = [
-  { id: 'ORD12345', date: '2024-05-01', total: 21115.00, status: 'Processing', items: 3 },
-  { id: 'ORD12300', date: '2024-03-15', total: 450.00, status: 'Delivered', items: 1 },
-  { id: 'ORD11987', date: '2023-12-20', total: 9200.00, status: 'Delivered', items: 1 },
-];
-
-const getStatusVariant = (status: string): "default" | "secondary" | "outline" | "destructive" => {
+const getStatusVariant = (status?: string): "default" | "secondary" | "outline" | "destructive" => {
+   if (!status) return "default";
    switch (status.toLowerCase()) {
-        case 'delivered': return 'secondary'; // Using secondary for completed/delivered
-        case 'processing': return 'default'; // Using default for ongoing
-        case 'shipped': return 'outline'; // Using outline for shipped
-        case 'cancelled': return 'destructive';
-        default: return 'default';
+        case 'delivered':
+        case 'completed':
+            return 'secondary';
+        case 'processing':
+        case 'pending':
+            return 'default';
+        case 'shipped':
+            return 'outline';
+        case 'cancelled':
+        case 'failed':
+            return 'destructive';
+        default:
+            return 'default';
    }
 }
 
-
 export default function OrdersPage() {
+  const { currentUser } = useAuth();
+  const userId = currentUser?.uid;
+
+  // Pass userId to the useOrders hook.
+  // The hook's GetOrdersParams allows for userId.
+  const { data: ordersData, isLoading, isError, error } = useOrders({ userId: userId });
+  const orders = ordersData?.orders || []; // Assuming useOrders returns { orders: Order[], ... }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isError && error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">Failed to load your orders: {error.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-     // Card styling is inherited from layout, only need header/content adjustments if necessary
      <>
       <CardHeader>
         <CardTitle>Order History</CardTitle>
@@ -39,27 +72,30 @@ export default function OrdersPage() {
         ) : (
            <Table>
             <TableHeader>
-              <TableRow className="border-border/50"> {/* Lighter border */}
+              <TableRow className="border-border/50">
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Total</TableHead>
-                 <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id} className="border-border/50"> {/* Lighter border */}
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">£{order.total.toFixed(2)}</TableCell>
-                   <TableCell className="text-center">
-                        <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                   </TableCell>
+              {orders.map((order: Order) => ( // Explicitly type order
+                <TableRow key={order.id} className="border-border/50">
+                  <TableCell className="font-medium">
+                    <Link href={`/account/orders/${order.id}`} className="hover:underline text-primary">
+                      #{order.id.substring(0, 8)}...
+                    </Link>
+                  </TableCell>
+                  <TableCell>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell className="text-right">£{(order.totalAmount / 100).toFixed(2)}</TableCell> {/* Assuming totalAmount is in pence */}
+                  <TableCell className="text-center">
+                    <Badge variant={getStatusVariant(order.status)}>{order.status || 'Unknown'}</Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                      <Button variant="outline" size="sm" asChild>
-                        {/* Link to the main orders page for now as specific detail page doesn't exist */}
-                        <Link href={`/account/orders`}>View Details</Link>
+                        <Link href={`/account/orders/${order.id}`}>View Details</Link>
                      </Button>
                   </TableCell>
                 </TableRow>
@@ -68,11 +104,7 @@ export default function OrdersPage() {
           </Table>
         )}
       </CardContent>
-       {/* Optional: Add pagination if there are many orders */}
-       {/* <CardFooter className="flex justify-end">
-          <Button variant="outline">Previous</Button>
-           <Button variant="outline" className="ml-2">Next</Button>
-       </CardFooter> */}
+      {/* Future: Add pagination if useOrders hook supports it */}
      </>
   );
 }
