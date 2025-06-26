@@ -1,28 +1,27 @@
 
-import type { Metadata } from "next";
-import { Inter } from "next/font/google"; // Changed from Geist_Sans, Geist_Mono
-import "./globals.css";
+"use client"
+
+import type {Metadata} from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { SiteHeader } from '@/components/layout/site-header';
+import { SiteFooter } from '@/components/layout/site-footer';
+import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from "@/components/ui/toaster";
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteProvider } from "@/components/layout/site-provider";
-import { BackgroundImage } from "@/components/layout/background-image";
-import { AuthProvider } from "@/context/auth-context"; // Import AuthProvider
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { CartProvider } from '@/contexts/CartContext';
+
+const queryClient = new QueryClient();
 
 const interSans = Inter({
-  subsets: ["latin"],
-  variable: "--font-geist-sans", // Keep CSS variable name for compatibility
+  subsets: ['latin'],
+  variable: '--font-geist-sans',
 });
 
 const interMono = Inter({
-  subsets: ["latin"],
-  variable: "--font-geist-mono", // Keep CSS variable name for compatibility
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
 });
-
-export const metadata: Metadata = {
-  title: "Timberline Commerce",
-  description: "Custom timber products and structures",
-};
 
 export default function RootLayout({
   children,
@@ -31,21 +30,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${interSans.variable} ${interMono.variable} font-sans antialiased`}
-      >
-        <SiteProvider>
-          <AuthProvider> {/* Wrap with AuthProvider */}
-            <BackgroundImage>
-              <div className="relative flex min-h-screen flex-col">
-                <SiteHeader />
-                <main className="flex-1">{children}</main>
-                <SiteFooter />
-              </div>
-            </BackgroundImage>
+      <body className={`${interSans.variable} ${interMono.variable} antialiased flex flex-col min-h-screen`}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <CartProvider>
+              <SiteHeader />
+              <main className="flex-grow">
+                <div className="config-page-background">
+                  {children}
+                </div>
+              </main>
+              <SiteFooter />
+              <Toaster />
+            </CartProvider>
           </AuthProvider>
-          <Toaster />
-        </SiteProvider>
+        </QueryClientProvider>
       </body>
     </html>
   );

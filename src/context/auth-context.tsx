@@ -48,11 +48,11 @@ const isPublicPath = (path: string): boolean => {
   }
   
   return publicPaths.includes(path);
-};
-};
+}
 
 interface AuthContextType {
-  currentUser: User | null;
+  user: User | null;
+  isAdmin: boolean;
   loading: boolean;
   error: string | null;
   setError: Dispatch<SetStateAction<string | null>>;
@@ -61,8 +61,9 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<User | null>;
   // signInWithPayPal: () => Promise<User | null>; 
   sendPasswordReset: (authInstance: Auth, email: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  logout: () => Promise<void>;
   updateUserProfile: (user: User, profileData: { displayName?: string; photoURL?: string }) => Promise<void>;
+  awaitAuthReady: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -108,7 +109,8 @@ async function ensureUserDocumentInFirestore(user: User): Promise<void> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -117,14 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // If user logs in or state changes, ensure their doc is in Firestore.
-        // This helps sync on first login or if the doc was missed.
         await ensureUserDocumentInFirestore(user);
+        const tokenResult = await user.getIdTokenResult();
+        setIsAdmin(tokenResult.claims.admin === true);
+      } else {
+        setIsAdmin(false);
       }
-      setCurrentUser(user);
+      setUser(user);
       setLoading(false);
     });
-    return unsubscribe; 
+    return unsubscribe;
   }, []);
 
   const signUpWithEmail = async (authInstance: Auth, email: string, pass: string, displayName?: string): Promise<User | null> => {
@@ -138,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Call the function to create/verify user document in Firestore
         await ensureUserDocumentInFirestore(userCredential.user);
       }
-      setCurrentUser(userCredential.user); // Update context state
+      setUser(userCredential.user); // Update context state
       return userCredential.user;
     } catch (e: any) {
       console.error("Sign up error:", e);
@@ -153,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await signInWithEmailAndPassword(authInstance, email, pass);
       // Firestore document sync is handled by onAuthStateChanged
-      setCurrentUser(userCredential.user);
+      setUser(userCredential.user);
       return userCredential.user;
     } catch (e: any) {
       console.error("Sign in error:", e);
@@ -175,11 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const logout = async () => {
     setError(null);
     try {
       await firebaseSignOut(auth);
-      setCurrentUser(null);
+      setUser(null);
       
       // Get the current path
       if (typeof window !== 'undefined') {
@@ -214,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await signInWithPopup(auth, provider);
       // Firestore document sync is handled by onAuthStateChanged
-      setCurrentUser(result.user);
+      setUser(result.user);
       
       // Get the redirect URL from the URL parameters if available
       if (typeof window !== 'undefined') {
@@ -250,8 +254,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } as User); // Cast to User to satisfy ensureUserDocumentInFirestore
       }
       // Update context state for current user if it's the same user
-      if (currentUser && currentUser.uid === user.uid) {
-          setCurrentUser({...user, ...profileData});
+      if (user && user.uid === user.uid) {
+          setUser({...user, ...profileData});
       }
       toast({ title: "Profile Updated", description: "Your profile has been updated." });
     } catch (e: any) {
@@ -262,8 +266,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
 
+  const awaitAuthReady = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!loading) {
+        resolve();
+      } else {
+        const interval = setInterval(() => {
+          if (!loading) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 50);
+      }
+    });
+  };
+
   const value: AuthContextType = {
-    currentUser,
+    user,
+    isAdmin,
     loading,
     error,
     setError,
@@ -271,8 +291,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithEmail,
     signInWithGoogle,
     sendPasswordReset,
-    signOut,
+    logout,
     updateUserProfile,
+    awaitAuthReady,
   };
 
   return (
