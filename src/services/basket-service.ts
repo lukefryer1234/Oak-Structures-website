@@ -1,10 +1,28 @@
 import { db } from '@/lib/firebase';
 import { CartItem, FirestoreCartItem, SelectedConfiguration } from '@/types';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, query, where } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, getDoc, setDoc, increment } from 'firebase/firestore';
+import { Buffer } from 'buffer';
 
 const getBasketCollectionRef = (userId: string) => {
     return collection(db, 'users', userId, 'basket');
 };
+
+/**
+ * Generates a deterministic, unique ID for a basket item based on its product ID and configuration.
+ * This ensures that the same product with the same options always maps to the same basket item.
+ */
+const generateBasketItemId = (productId: string, configuration: SelectedConfiguration[]): string => {
+    if (!configuration || configuration.length === 0) {
+        return productId;
+    }
+    // Sort configuration by optionId to ensure consistency
+    const sortedConfig = [...configuration].sort((a, b) => a.optionId.localeCompare(b.optionId));
+    const configString = sortedConfig.map(c => `${c.optionId}:${c.value}`).join('|');
+    // Combine and encode to create a filesystem-safe ID
+    const combinedId = `${productId}|${configString}`;
+    return Buffer.from(combinedId).toString('base64');
+};
+
 
 /**
  * Converts a client-side CartItem to a Firestore-compatible format.
@@ -54,39 +72,26 @@ export const BasketService = {
     },
 
     /**
-     * Adds a new item to the user's basket.
-     * Checks for an existing item with the same product ID and configuration.
+     * Adds a new item to the user's basket or updates the quantity if it already exists.
+     * Uses a deterministic ID to avoid querying for existing items.
      */
     async addToBasket(userId: string, item: Omit<CartItem, 'cartItemId'>): Promise<string> {
-        const basketColRef = getBasketCollectionRef(userId);
+        const basketItemId = generateBasketItemId(item.product.id, item.configuration);
+        const itemDocRef = doc(db, 'users', userId, 'basket', basketItemId);
 
-        // Create a comparable string for the configuration
-        const configString = JSON.stringify(item.configuration.map(c => ({ optionId: c.optionId, value: c.value })).sort((a, b) => a.optionId.localeCompare(b.optionId)));
+        const docSnap = await getDoc(itemDocRef);
 
-        // Query for an existing item
-        const q = query(
-            basketColRef,
-            where('productId', '==', item.product.id),
-            where('configString', '==', configString) // We'll need to add this field
-        );
-        
-        const existingItemsSnapshot = await getDocs(q);
-
-        if (!existingItemsSnapshot.empty) {
-            // Item exists, update quantity
-            const existingDoc = existingItemsSnapshot.docs[0];
-            const newQuantity = existingDoc.data().quantity + item.quantity;
-            await updateDoc(existingDoc.ref, { quantity: newQuantity });
-            return existingDoc.id;
+        if (docSnap.exists()) {
+            // Item exists, increment quantity
+            await updateDoc(itemDocRef, {
+                quantity: increment(item.quantity)
+            });
         } else {
             // Item doesn't exist, add new document
             const firestoreItem = toFirestoreCartItem(item);
-            const docRef = await addDoc(basketColRef, {
-                ...firestoreItem,
-                configString // Store for querying
-            });
-            return docRef.id;
+            await setDoc(itemDocRef, firestoreItem);
         }
+        return basketItemId;
     },
 
     /**
@@ -127,21 +132,21 @@ export const BasketService = {
      * Merges a local guest basket with the user's Firestore basket upon login.
      */
     async mergeLocalBasket(userId: string, localCartItems: CartItem[]): Promise<void> {
-        // This is a simplified merge. A more robust implementation would handle
-        // conflicts (e.g., same item in local and remote cart) by summing quantities.
         const batch = writeBatch(db);
-        const basketColRef = getBasketCollectionRef(userId);
 
         for (const item of localCartItems) {
-            const firestoreItem = toFirestoreCartItem(item);
-            const configString = JSON.stringify(item.configuration.map(c => ({ optionId: c.optionId, value: c.value })).sort((a, b) => a.optionId.localeCompare(b.optionId)));
-            
-            // In a real scenario, you'd query for existing items here to merge quantities.
-            // For this implementation, we'll just add them.
-            const newDocRef = doc(basketColRef); // Create a new doc ref
-            batch.set(newDocRef, { ...firestoreItem, configString });
-        }
+            const basketItemId = generateBasketItemId(item.product.id, item.configuration);
+            const itemDocRef = doc(db, 'users', userId, 'basket', basketItemId);
 
-        await batch.commit();
+            // Atomically increment the quantity of the item if it exists, or set it if it doesn't.
+            // This requires a read first to check existence, which we can't do in a batch write directly.
+            // So we'll fetch existing basket items first.
+            // A more optimized approach for large baskets might use a Cloud Function.
+            
+            // For now, we'll just use the same logic as addToBasket, but in a loop.
+            // This is not a true batch operation, but will work for this case.
+            // A better batch approach would be to read all docs first, then write.
+            await this.addToBasket(userId, item);
+        }
     }
 };

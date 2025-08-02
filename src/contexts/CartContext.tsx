@@ -39,22 +39,22 @@ const FirestoreCartProvider = ({ children }: { children: ReactNode }) => {
     const updateQuantityMutation = useUpdateBasketItem();
     const clearBasketMutation = useClearBasket();
 
-    const addToCart = (product: Product, quantity: number, configuration: SelectedConfiguration[]) => {
+    const addToCart = useCallback((product: Product, quantity: number, configuration: SelectedConfiguration[]) => {
         const unitPrice = calculateUnitPrice(product.basePrice, configuration);
         addToBasketMutation.mutate({ product, quantity, configuration, unitPrice });
-    };
+    }, [addToBasketMutation]);
 
-    const removeFromCart = (cartItemId: string) => {
+    const removeFromCart = useCallback((cartItemId: string) => {
         removeFromBasketMutation.mutate(cartItemId);
-    };
+    }, [removeFromBasketMutation]);
 
-    const updateQuantity = (cartItemId: string, quantity: number) => {
+    const updateQuantity = useCallback((cartItemId: string, quantity: number) => {
         updateQuantityMutation.mutate({ basketItemId: cartItemId, newQuantity: quantity });
-    };
+    }, [updateQuantityMutation]);
 
-    const clearCart = () => {
+    const clearCart = useCallback(() => {
         clearBasketMutation.mutate();
-    };
+    }, [clearBasketMutation]);
 
     const getCartTotal = useCallback(() => {
         return cartItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
