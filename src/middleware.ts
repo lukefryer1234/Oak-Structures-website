@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Define public paths that don't require authentication
+// Define paths that are accessible to everyone, regardless of auth status
 const publicPaths = [
   '/',
   '/about',
@@ -11,33 +11,58 @@ const publicPaths = [
   '/special-deals',
   '/terms',
   '/privacy',
-  '/login',
-  '/register', 
-  '/forgot-password',
-  '/auth-test',
+  '/products', // All product-related paths are public
 ];
 
-// Check if path is a product page (should be public)
-function isProductPath(pathname: string): boolean {
-  return pathname.startsWith('/products/') || pathname === '/products';
-}
+// Define paths that are part of the authentication flow
+const authPaths = [
+  '/login',
+  '/register',
+  '/forgot-password',
+];
 
-// Check if path is public
-function isPublicPath(pathname: string): boolean {
-  if (isProductPath(pathname)) return true;
-  return publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'));
-}
+// Helper to check if a path is public
+const isPublic = (path: string) => {
+  return publicPaths.some(p => path === p || path.startsWith(p + '/'));
+};
+
+// Helper to check if a path is for authentication
+const isAuthPath = (path: string) => {
+  return authPaths.includes(path);
+};
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Allow all public paths and product pages
-  if (isPublicPath(pathname)) {
+  const sessionCookie = request.cookies.get('session');
+
+  const isApiRoute = pathname.startsWith('/api');
+
+  // Allow all API routes to pass through; they have their own authentication checks
+  if (isApiRoute) {
     return NextResponse.next();
   }
-  
-  // For protected paths, let the client-side auth handle redirects
-  // This middleware only handles server-side route protection
+
+  // If the user is authenticated (has a session cookie)
+  if (sessionCookie) {
+    // If they are trying to access an auth page (like login), redirect to their account
+    if (isAuthPath(pathname)) {
+      const accountUrl = new URL('/account/profile', request.url);
+      return NextResponse.redirect(accountUrl);
+    }
+  }
+  // If the user is not authenticated (no session cookie)
+  else {
+    // And they are trying to access a protected route (not public and not an auth route)
+    if (!isPublic(pathname) && !isAuthPath(pathname)) {
+      // Redirect them to the login page, preserving the intended destination
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // Allow the request to proceed for all other cases
+  // (e.g., public paths, or protected paths for authenticated users)
   return NextResponse.next();
 }
 
@@ -45,11 +70,10 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

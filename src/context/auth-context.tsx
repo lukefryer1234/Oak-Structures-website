@@ -2,68 +2,19 @@
 
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  Auth,
-  User,
-  onAuthStateChanged,
-  signOut as firebaseSignOut,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile, // Added for updating display name
-  // OAuthProvider, // For PayPal if implemented
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-
-// List of public paths that don't require authentication
-const publicPaths = [
-  '/',
-  '/products',
-  '/about',
-  '/contact',
-  '/gallery',
-  '/faq',
-  '/special-deals',
-  '/terms',
-  '/privacy',
-  '/login',
-  '/register',
-  '/forgot-password',
-];
-
-// Check if the current path starts with any of the public paths
-const isPublicPath = (path: string): boolean => {
-  // Handle product category paths specifically - these should ALWAYS be public
-  if (path.startsWith('/products/')) {
-    return true;
-  }
-  
-  // Handle gallery and other static content
-  if (path.startsWith('/gallery') || path.startsWith('/special-deals')) {
-    return true;
-  }
-  
-  return publicPaths.includes(path);
-}
+import * as authApi from '@/lib/api/auth-api';
+import type { User } from '@/types/user';
 
 interface AuthContextType {
   user: User | null;
-  isAdmin: boolean;
   loading: boolean;
   error: string | null;
   setError: Dispatch<SetStateAction<string | null>>;
-  signUpWithEmail: (authInstance: Auth, email: string, pass: string, displayName?: string) => Promise<User | null>;
-  signInWithEmail: (authInstance: Auth, email: string, pass: string) => Promise<User | null>;
-  signInWithGoogle: () => Promise<User | null>;
-  // signInWithPayPal: () => Promise<User | null>; 
-  sendPasswordReset: (authInstance: Auth, email: string) => Promise<void>;
+  register: (userData: any) => Promise<void>;
+  login: (credentials: any) => Promise<void>;
   logout: () => Promise<void>;
-  updateUserProfile: (user: User, profileData: { displayName?: string; photoURL?: string }) => Promise<void>;
-  awaitAuthReady: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,127 +27,68 @@ export function useAuth() {
   return context;
 }
 
-// This function calls the API endpoint to ensure user data is in Firestore.
-async function ensureUserDocumentInFirestore(user: User): Promise<void> {
-  if (!user) return;
-  try {
-    const response = await fetch('/api/createUser', { // Ensure this matches your API route
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // Send only necessary serializable user data
-      body: JSON.stringify({ 
-        user: { 
-          uid: user.uid, 
-          email: user.email, 
-          displayName: user.displayName 
-        } 
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Failed to create/update user document in Firestore:', errorData.message);
-      // Not throwing here to avoid breaking auth flow, but logging is important.
-      // The API route itself should handle retries or critical errors if necessary.
-    } else {
-      console.log('User document processed successfully in Firestore.');
-    }
-  } catch (error) {
-    console.error('Error calling ensureUserDocumentInFirestore API:', error);
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start loading until session is checked
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await ensureUserDocumentInFirestore(user);
-        const tokenResult = await user.getIdTokenResult();
-        setIsAdmin(tokenResult.claims.admin === true);
-      } else {
-        setIsAdmin(false);
+    // Check for an active session when the provider mounts
+    const checkUserSession = async () => {
+      setLoading(true);
+      try {
+        const sessionUser = await authApi.checkSession();
+        if (sessionUser) {
+          setUser(sessionUser);
+        }
+      } catch (e: any) {
+        // It's normal for this to fail if there's no session
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setUser(user);
-      setLoading(false);
-    });
-    return unsubscribe;
+    };
+    checkUserSession();
   }, []);
 
-  const signUpWithEmail = async (authInstance: Auth, email: string, pass: string, displayName?: string): Promise<User | null> => {
+  const register = async (userData: any) => {
     setError(null);
     try {
-      const userCredential = await createUserWithEmailAndPassword(authInstance, email, pass);
-      if (userCredential.user && displayName) {
-        await updateProfile(userCredential.user, { displayName });
-      }
-      if (userCredential.user) {
-        // Call the function to create/verify user document in Firestore
-        await ensureUserDocumentInFirestore(userCredential.user);
-      }
-      setUser(userCredential.user); // Update context state
-      return userCredential.user;
+      await authApi.register(userData);
+      toast({ title: 'Registration Successful', description: 'Please log in with your new account.' });
+      router.push('/login');
     } catch (e: any) {
-      console.error("Sign up error:", e);
+      console.error("Registration error:", e);
       setError(e.message);
-      toast({ variant: "destructive", title: "Sign Up Error", description: e.message });
-      return null;
+      toast({ variant: "destructive", title: "Registration Error", description: e.message });
     }
   };
 
-  const signInWithEmail = async (authInstance: Auth, email: string, pass: string): Promise<User | null> => {
+  const login = async (credentials: any) => {
     setError(null);
+    setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(authInstance, email, pass);
-      // Firestore document sync is handled by onAuthStateChanged
-      setUser(userCredential.user);
-      return userCredential.user;
+      const loggedInUser = await authApi.login(credentials);
+      setUser(loggedInUser);
+      router.push('/account/profile'); // Redirect after successful login
+      toast({ title: "Signed In", description: "Successfully signed in." });
     } catch (e: any) {
       console.error("Sign in error:", e);
       setError(e.message);
       toast({ variant: "destructive", title: "Sign In Error", description: e.message });
-      return null;
-    }
-  };
-  
-  const sendPasswordReset = async (authInstance: Auth, email: string): Promise<void> => {
-    setError(null);
-    try {
-      await firebaseSendPasswordResetEmail(authInstance, email);
-      // Toast for success is handled in the component calling this
-    } catch (e: any) {
-      console.error("Password reset error:", e);
-      setError(e.message);
-      throw e; // Re-throw to be caught by the calling component for specific UI updates
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = async () => {
     setError(null);
     try {
-      await firebaseSignOut(auth);
+      await authApi.logout();
       setUser(null);
-      
-      // Get the current path
-      if (typeof window !== 'undefined') {
-        const currentPath = window.location.pathname;
-        
-        // Only redirect to login if current path is not public
-        if (!isPublicPath(currentPath)) {
-          router.push('/login');
-        }
-      } else {
-        router.push('/login'); // Fallback if window is not available
-      }
-      
+      router.push('/login');
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
     } catch (e: any) {
       console.error("Sign out error:", e);
@@ -205,95 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async (): Promise<User | null> => {
-    setError(null);
-    const provider = new GoogleAuthProvider();
-    
-    // Add these lines to force account selection and get refresh token
-    provider.setCustomParameters({
-      prompt: 'select_account',
-      access_type: 'offline'
-    });
-    
-    try {
-      const result = await signInWithPopup(auth, provider);
-      // Firestore document sync is handled by onAuthStateChanged
-      setUser(result.user);
-      
-      // Get the redirect URL from the URL parameters if available
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirectUrl = urlParams.get('redirect') || '/account/profile';
-        
-        // Navigate to the redirect URL
-        router.push(redirectUrl);
-      } else {
-        router.push('/account/profile'); // Fallback if window is not available
-      }
-      
-      toast({ title: "Signed In", description: "Successfully signed in with Google." });
-      return result.user;
-    } catch (e: any) {
-      console.error("Google sign in error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Google Sign-In Error", description: e.message });
-      return null;
-    }
-  };
-
-  const updateUserProfile = async (user: User, profileData: { displayName?: string; photoURL?: string }) => {
-    setError(null);
-    try {
-      await updateProfile(user, profileData);
-      // If display name changed, we should update Firestore too
-      if (profileData.displayName && user.email) { // Ensure user.email is not null
-        await ensureUserDocumentInFirestore({
-            ...user,
-            displayName: profileData.displayName,
-            // photoURL: profileData.photoURL || user.photoURL, // Keep existing or update
-        } as User); // Cast to User to satisfy ensureUserDocumentInFirestore
-      }
-      // Update context state for current user if it's the same user
-      if (user && user.uid === user.uid) {
-          setUser({...user, ...profileData});
-      }
-      toast({ title: "Profile Updated", description: "Your profile has been updated." });
-    } catch (e: any) {
-      console.error("Profile update error:", e);
-      setError(e.message);
-      toast({ variant: "destructive", title: "Profile Update Error", description: e.message });
-    }
-  };
-
-
-  const awaitAuthReady = (): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!loading) {
-        resolve();
-      } else {
-        const interval = setInterval(() => {
-          if (!loading) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 50);
-      }
-    });
-  };
-
   const value: AuthContextType = {
     user,
-    isAdmin,
     loading,
     error,
     setError,
-    signUpWithEmail,
-    signInWithEmail,
-    signInWithGoogle,
-    sendPasswordReset,
+    register,
+    login,
     logout,
-    updateUserProfile,
-    awaitAuthReady,
   };
 
   return (
