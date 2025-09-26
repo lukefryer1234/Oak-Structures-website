@@ -11,7 +11,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "cachebust": "echo 'Trying to bust cache'",
-    "deploy": "next build && firebase deploy --only hosting"
+    "deploy": "next build && firebase deploy --only hosting",
+    "spec:edit": "node -e \"require('spec-up')()\"",
+    "spec:build": "node -e \"require('spec-up')()\""
   },
   "dependencies": {
     "@builder.io/react": "^8.2.7",
@@ -77,6 +79,7 @@
     "eslint-config-next": "15.3.2",
     "genkit-cli": "^1.6.1",
     "postcss": "^8",
+    "spec-up": "^0.10.8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
