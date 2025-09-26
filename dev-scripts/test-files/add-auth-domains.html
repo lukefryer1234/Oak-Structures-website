@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Authorized Domains to Firebase</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #1a73e8;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #1a73e8;
+      margin-top: 30px;
+    }
+    .step {
+      margin-bottom: 25px;
+      padding: 15px;
+      border-left: 4px solid #1a73e8;
+      background-color: #f5f8ff;
+    }
+    .step h3 {
+      margin-top: 0;
+      color: #1a73e8;
+    }
+    img {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 15px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    code {
+      background-color: #f0f0f0;
+      padding: 3px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .domain-list {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+    .domain-list code {
+      display: block;
+      margin: 5px 0;
+      padding: 5px;
+    }
+    .alert {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+    button:hover {
+      background-color: #1557b0;
+    }
+    .firebase-link {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 12px 24px;
+      background-color: #1a73e8;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .firebase-link:hover {
+      background-color: #1557b0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Add Authorized Domains to Firebase Authentication</h1>
+  
+  <div class="alert">
+    <strong>Important:</strong> You need to manually add authorized domains to your Firebase Authentication settings to fix the "auth/api-key-is-not-valid" error.
+  </div>
+
+  <div class="step">
+    <h3>Step 1: Go to Firebase Authentication Settings</h3>
+    <p>Click the link below to open the Firebase Authentication settings for your project:</p>
+    <a href="https://console.firebase.google.com/project/timberline-commerce/authentication/settings" target="_blank" class="firebase-link">Open Firebase Authentication Settings</a>
+  </div>
+
+  <div class="step">
+    <h3>Step 2: Add the Following Domains</h3>
+    <p>In the "Authorized domains" section, make sure the following domains are added:</p>
+    
+    <div class="domain-list">
+      <code>localhost</code>
+      <code>timberline-commerce.web.app</code>
+      <code>timberline-commerce.firebaseapp.com</code>
+    </div>
+    
+    <p>Click the "Add domain" button for each domain that isn't already in the list.</p>
+  </div>
+
+  <div class="step">
+    <h3>Step 3: Save Changes</h3>
+    <p>After adding the domains, make sure to save your changes.</p>
+  </div>
+
+  <div class="step">
+    <h3>Step 4: Clear Browser Cache</h3>
+    <p>To ensure the changes take effect:</p>
+    <ol>
+      <li>Open your browser's Developer Tools (F12 or right-click → Inspect)</li>
+      <li>Go to the "Application" tab</li>
+      <li>Select "Storage" or "Clear storage" on the left</li>
+      <li>Check all boxes and click "Clear site data"</li>
+      <li>Close and reopen your browser</li>
+    </ol>
+  </div>
+
+  <div class="step">
+    <h3>Step 5: Return to Your Application</h3>
+    <p>Return to your application and try signing in again. The "auth/api-key-is-not-valid" error should be resolved.</p>
+  </div>
+
+  <div class="alert">
+    <strong>Note:</strong> These settings typically take effect immediately, but can sometimes take a few minutes to propagate.
+  </div>
+
+  <script>
+    // Open the Firebase Authentication settings page automatically
+    window.onload = function() {
+      window.open('https://console.firebase.google.com/project/timberline-commerce/authentication/settings', '_blank');
+    };
+  </script>
+</body>
+</html>

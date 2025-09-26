@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { SimpleGoogleSheetsService } from '@/lib/google-sheets';
 
 const contactSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -38,10 +39,27 @@ export async function submitContactForm(
   }
 
   try {
+    // Save to Firebase
     await addDoc(collection(db, 'contactSubmissions'), {
       ...validatedFields.data,
       submittedAt: new Date(),
     });
+
+    // Also save to Google Sheets (if configured)
+    try {
+      const sheetsService = new SimpleGoogleSheetsService();
+      await sheetsService.appendFormSubmission({
+        name: validatedFields.data.name,
+        email: validatedFields.data.email,
+        message: validatedFields.data.message,
+        timestamp: new Date(),
+        source: 'Contact Form',
+      });
+    } catch (sheetsError) {
+      console.warn('Failed to save to Google Sheets:', sheetsError);
+      // Continue execution - don't fail the entire form submission
+    }
+
     return { message: 'Your message has been sent successfully!', success: true };
   } catch (error: unknown) {
     console.error('Error submitting contact form:', error);

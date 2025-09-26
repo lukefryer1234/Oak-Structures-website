@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy with SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: oak-structures-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"      # HTTP (redirects to HTTPS)
+      - "443:443"    # HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - wordpress
+    networks:
+      - oak-wp-network
+      
+  wordpress-db:
+    image: mysql:8.0
+    container_name: oak-structures-wp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: oak_structures_wp
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass123
+      MYSQL_ROOT_PASSWORD: rootpass123
+    volumes:
+      - wp_db_data:/var/lib/mysql
+    networks:
+      - oak-wp-network
+    # Remove external port exposure for security
+    expose:
+      - "3306"
+
+  wordpress:
+    depends_on:
+      - wordpress-db
+    image: wordpress:latest
+    container_name: oak-structures-wp
+    restart: unless-stopped
+    # Remove external port exposure - only accessible via nginx
+    expose:
+      - "80"
+    environment:
+      WORDPRESS_DB_HOST: wordpress-db:3306
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppass123
+      WORDPRESS_DB_NAME: oak_structures_wp
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_DEBUG: 0  # Disable debug in secure mode
+      # Force HTTPS in WordPress
+      WORDPRESS_CONFIG_EXTRA: |
+        define('FORCE_SSL_ADMIN', true);
+        if (isset($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+          $$_SERVER['HTTPS'] = 'on';
+        }
+    volumes:
+      - wp_data:/var/www/html
+      - ./wp-content:/var/www/html/wp-content
+      - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      - ./security.ini:/usr/local/etc/php/conf.d/security.ini
+    networks:
+      - oak-wp-network
+
+  # Secure phpMyAdmin - only accessible from localhost
+  phpmyadmin:
+    depends_on:
+      - wordpress-db
+    image: phpmyadmin/phpmyadmin
+    container_name: oak-structures-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"  # Only bind to localhost
+    environment:
+      PMA_HOST: wordpress-db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: rootpass123
+    networks:
+      - oak-wp-network
+
+volumes:
+  wp_data:
+    driver: local
+  wp_db_data:
+    driver: local
+
+networks:
+  oak-wp-network:
+    driver: bridge

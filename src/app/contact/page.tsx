@@ -5,8 +5,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { submitContactForm, ContactFormState } from "./actions"
+import { useFormState } from "react-dom"
+
+const initialState: ContactFormState = {
+  message: '',
+  success: false,
+};
 
 export default function ContactPage() {
+  const [state, formAction] = useFormState(submitContactForm, initialState);
+
   return (
     <div>
       <section className="bg-muted py-12 md:py-24">
@@ -44,18 +53,31 @@ export default function ContactPage() {
             <div>
               <Card>
                 <CardContent className="p-6">
-                  <form className="grid gap-4">
+                  <form action={formAction} className="grid gap-4">
+                    {state?.message && (
+                      <div className={`p-3 rounded ${state.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {state.message}
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="name">Name</Label>
-                      <Input id="name" placeholder="Enter your name" />
+                      <Input id="name" name="name" placeholder="Enter your name" required />
+                      {state?.errors?.name && <p className="text-red-500 text-sm mt-1">{state.errors.name[0]}</p>}
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="Enter your email" />
+                      <Input id="email" name="email" type="email" placeholder="Enter your email" required />
+                      {state?.errors?.email && <p className="text-red-500 text-sm mt-1">{state.errors.email[0]}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input id="subject" name="subject" placeholder="Enter subject" required />
+                      {state?.errors?.subject && <p className="text-red-500 text-sm mt-1">{state.errors.subject[0]}</p>}
                     </div>
                     <div>
                       <Label htmlFor="message">Message</Label>
-                      <Textarea id="message" placeholder="Enter your message" className="min-h-[150px]" />
+                      <Textarea id="message" name="message" placeholder="Enter your message" className="min-h-[150px]" required />
+                      {state?.errors?.message && <p className="text-red-500 text-sm mt-1">{state.errors.message[0]}</p>}
                     </div>
                     <Button type="submit" className="w-full">
                       Send Message

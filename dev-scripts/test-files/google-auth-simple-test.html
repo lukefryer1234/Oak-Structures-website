@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Google Auth Simple Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    h1, h2, h3 {
+      color: #333;
+    }
+    
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .instructions {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .prerequisites {
+      background-color: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .success {
+      background-color: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .error {
+      background-color: #f8d7da;
+      border-left: 4px solid #dc3545;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .step {
+      margin-bottom: 10px;
+    }
+    
+    button {
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+    }
+    
+    button img {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+    }
+    
+    button:hover {
+      background-color: #357ae8;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    #result {
+      margin-top: 20px;
+    }
+    
+    .user-info {
+      margin-top: 20px;
+      display: none;
+    }
+    
+    .user-info.visible {
+      display: block;
+    }
+    
+    .user-profile {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .user-photo {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Firebase Google Authentication Simple Test</h1>
+  
+  <div class="prerequisites">
+    <h3>Prerequisites</h3>
+    <p>Before using this test page, make sure:</p>
+    <ol>
+      <li>You have a Firebase project set up</li>
+      <li>Google Authentication is enabled in your Firebase project</li>
+      <li>Your API key is correctly set in <code>.env.local</code></li>
+      <li><code>localhost</code> is added to authorized domains in Firebase Console</li>
+    </ol>
+  </div>
+  
+  <div class="instructions">
+    <h3>Required Firebase Console Settings</h3>
+    <p>If Google Sign-In is not working, make sure you have completed these steps:</p>
+    
+    <div class="step">
+      <strong>Step 1:</strong> Enable Google as a sign-in provider
+      <div>
+        <a href="https://console.firebase.google.com/project/timberline-commerce/authentication/providers" target="_blank">
+          Open Firebase Authentication Providers
+        </a>
+      </div>
+      <ul>
+        <li>Click on "Google" in the list of providers</li>
+        <li>Toggle the "Enable" switch to ON</li>
+        <li>Save the changes</li>
+      </ul>
+    </div>
+    
+    <div class="step">
+      <strong>Step 2:</strong> Add localhost to authorized domains
+      <div>
+        <a href="https://console.firebase.google.com/project/timberline-commerce/authentication/settings" target="_blank">
+          Open Firebase Authentication Settings
+        </a>
+      </div>
+      <ul>
+        <li>Find the "Authorized domains" section</li>
+        <li>Click "Add domain" and enter "localhost"</li>
+        <li>Click "Add"</li>
+      </ul>
+    </div>
+    
+    <div class="step">
+      <strong>Step 3:</strong> Check API key restrictions
+      <div>
+        <a href="https://console.cloud.google.com/apis/credentials?project=timberline-commerce" target="_blank">
+          Open Google Cloud API Credentials
+        </a>
+      </div>
+      <ul>
+        <li>Find your API key in the list</li>
+        <li>Ensure it doesn't have restrictions preventing Firebase Authentication</li>
+        <li>Make sure "Identity Toolkit API" is enabled if using API restrictions</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>1. Firebase Configuration</h2>
+    <p>First, we'll load the Firebase configuration from your <code>.env.local</code> file:</p>
+    <div id="config-loading">
+      <em>Loading configuration...</em>
+    </div>
+    <pre id="config-display"></pre>
+  </div>
+  
+  <div class="card">
+    <h2>2. Test Google Sign-In</h2>
+    <p>Click the button below to test Google Sign-In:</p>
+    <button id="google-signin" disabled>
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+      Sign in with Google
+    </button>
+    
+    <div id="result"></div>
+    
+    <div class="user-info" id="user-info">
+      <h3>Signed In User:</h3>
+      <div class="user-profile">
+        <img id="user-photo" src="" alt="Profile photo" class="user-photo">
+        <div>
+          <div><strong id="user-name"></strong></div>
+          <div id="user-email"></div>
+        </div>
+      </div>
+      <button id="sign-out">Sign Out</button>
+    </div>
+  </div>
+  
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js" type="module"></script>
+  
+  <script type="module">
+    // Import the functions you need from the SDKs
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithPopup, 
+      GoogleAuthProvider,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    
+    // DOM Elements
+    const configLoading = document.getElementById('config-loading');
+    const configDisplay = document.getElementById('config-display');
+    const googleSignInButton = document.getElementById('google-signin');
+    const resultDiv = document.getElementById('result');
+    const userInfo = document.getElementById('user-info');
+    const userPhoto = document.getElementById('user-photo');
+    const userName = document.getElementById('user-name');
+    const userEmail = document.getElementById('user-email');
+    const signOutButton = document.getElementById('sign-out');
+    
+    // Variables
+    let firebaseConfig = null;
+    let auth = null;
+    
+    // Load configuration from .env.local
+    async function loadConfig() {
+      try {
+        // For simplicity in this test file, we'll use hardcoded values from the known .env.local
+        firebaseConfig = {
+          apiKey: "AIzaSyDRyZFjrrGB3mBcMf6ug3qp_M2i7XllmF4",
+          authDomain: "timberline-commerce.firebaseapp.com",
+          projectId: "timberline-commerce",
+          storageBucket: "timberline-commerce.firebasestorage.app",
+          messagingSenderId: "139830852341",
+          appId: "1:139830852341:web:341d6cadb84ede9fbd23bc",
+          measurementId: "G-1XGV7DBMCL"
+        };
+        
+        // Display the configuration
+        configLoading.innerHTML = 'Configuration loaded ✓';
+        configDisplay.textContent = JSON.stringify(firebaseConfig, null, 2);
+        
+        // Initialize Firebase
+        initializeFirebase();
+      } catch (error) {
+        configLoading.innerHTML = `Error loading configuration: ${error.message}`;
+        showError(`Failed to load Firebase configuration: ${error.message}`);
+      }
+    }
+    
+    // Initialize Firebase
+    function initializeFirebase() {
+      try {
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        
+        // Initialize Firebase Authentication
+        auth = getAuth(app);
+        
+        // Enable the sign-in button
+        googleSignInButton.disabled = false;
+        
+        // Set up auth state listener
+        onAuthStateChanged(auth, handleAuthStateChange);
+        
+        // Show success message
+        showSuccess("Firebase initialized successfully!");
+      } catch (error) {
+        showError(`Firebase initialization failed: ${error.message}`);
+      }
+    }
+    
+    // Handle Google sign-in
+    googleSignInButton.addEventListener('click', async () => {
+      try {
+        resultDiv.innerHTML = "";
+        
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        // Auth state change listener will handle the rest
+      } catch (error) {
+        if (error.code === 'auth/popup-closed-by-user') {
+          showWarning("Sign-in was cancelled");
+        } else if (error.code === 'auth/unauthorized-domain') {
+          showError(`Domain not authorized. Please add 'localhost' to authorized domains in Firebase Console.<br><br>Error: ${error.message}`);
+        } else if (error.code === 'auth/operation-not-allowed') {
+          showError(`Google sign-in is not enabled. Please enable it in Firebase Console.<br><br>Error: ${error.message}`);
+        } else if (error.code === 'auth/api-key-not-valid') {
+          showError(`API key is not valid. Please check your API key in .env.local.<br><br>Error: ${error.message}`);
+        } else {
+          showError(`Error during sign-in: ${error.message} (${error.code})`);
+        }
+      }
+    });
+    
+    // Handle sign-out
+    signOutButton.addEventListener('click', async () => {
+      try {
+        await signOut(auth);
+        userInfo.classList.remove('visible');
+        showSuccess("Signed out successfully");
+      } catch (error) {
+        showError(`Error signing out: ${error.message}`);
+      }
+    });
+    
+    // Handle auth state changes
+    function handleAuthStateChange(user) {
+      if (user) {
+        // User is signed in
+        showSuccess(`Signed in successfully as ${user.displayName || user.email}`);
+        
+        // Display user info
+        userInfo.classList.add('visible');
+        userPhoto.src = user.photoURL || 'https://www.gravatar.com/avatar/?d=mp';
+        userName.textContent = user.displayName || 'User';
+        userEmail.textContent = user.email || '';
+      } else {
+        // User is signed out
+        userInfo.classList.remove('visible');
+      }
+    }
+    
+    // Show error message
+    function showError(message) {
+      resultDiv.innerHTML = `<div class="error">${message}</div>`;
+    }
+    
+    // Show success message
+    function showSuccess(message) {
+      resultDiv.innerHTML = `<div class="success">${message}</div>`;
+    }
+    
+    // Show warning message
+    function showWarning(message) {
+      resultDiv.innerHTML = `<div class="instructions">${message}</div>`;
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', loadConfig);
+  </script>
+  
+  <div class="card">
+    <h2>3. Common Issues and Solutions</h2>
+    
+    <h3>API Key Not Valid Error</h3>
+    <p>If you see "auth/api-key-not-valid" error:</p>
+    <ul>
+      <li>Verify the API key in your <code>.env.local</code> file matches the one in Firebase Console</li>
+      <li>Check that the API key doesn't have restrictions preventing its use with Firebase</li>
+      <li>Make sure the Identity Toolkit API is enabled for your project</li>
+    </ul>
+    
+    <h3>Unauthorized Domain Error</h3>
+    <p>If you see "auth/unauthorized-domain" error:</p>
+    <ul>
+      <li>Add "localhost" to the authorized domains list in Firebase Console Authentication settings</li>
+    </ul>
+    
+    <h3>Operation Not Allowed Error</h3>
+    <p>If you see "auth/operation-not-allowed" error:</p>
+    <ul>
+      <li>Make sure Google Authentication is enabled in Firebase Console</li>
+    </ul>
+    
+    <h3>Popup Blocked</h3>
+    <p>If the sign-in popup is blocked:</p>
+    <ul>
+      <li>Allow popups for this site in your browser settings</li>
+      <li>Try signing in again</li>
+    </ul>
+  </div>
+</body>
+</html>
+
